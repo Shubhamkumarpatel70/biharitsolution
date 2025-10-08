@@ -18,7 +18,7 @@ const defaultTeam = [
     }
   },
   {
-    name: 'Development Team',
+    name: 'Gulshan Kumar',
     role: 'Full-Stack Developers',
     bio: 'Expert team of developers specializing in scalable solutions.',
     skills: ['MERN Stack', 'Python', 'Database Design', 'API Development'],

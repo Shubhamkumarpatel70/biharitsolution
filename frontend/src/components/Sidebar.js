@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { createPortal } from 'react-dom';
-import './Sidebar.css';
 
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: '🏠' },
@@ -101,6 +100,6 @@ const Sidebar = ({ onLogout, isPlanExpired, user }) => (
     {/* Mobile Bottom Nav - only when logged in */}
     <MobileBottomNav user={user} onLogout={onLogout} />
   </>
-);
+); 
 
-export default Sidebar; 
+export default Sidebar;
