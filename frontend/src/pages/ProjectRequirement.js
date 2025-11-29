@@ -143,10 +143,39 @@ const ProjectRequirement = () => {
         {!hasActiveSubscription ? (
           <div className="bg-gradient-to-r from-accent-500/10 to-primary-500/10 border-2 border-accent-500/30 rounded-xl p-8 text-center">
             <div className="text-6xl mb-4">🔒</div>
-            <h3 className="text-2xl font-bold text-primary-600 mb-3">Subscription Required</h3>
-            <p className="text-gray-600 mb-6">
-              You need to purchase a subscription plan to submit project requirements.
-            </p>
+            <h3 className="text-2xl font-bold text-primary-600 mb-3">Active Subscription Required</h3>
+            {subscriptionStatus && subscriptionStatus.cancellationStatus === 'approved' ? (
+              <>
+                <p className="text-gray-600 mb-2">
+                  Your subscription has been cancelled and is inactive.
+                </p>
+                <p className="text-gray-600 mb-6">
+                  You need an active subscription to submit project requirements.
+                </p>
+              </>
+            ) : subscriptionStatus && subscriptionStatus.isExpired ? (
+              <>
+                <p className="text-gray-600 mb-2">
+                  Your subscription has expired.
+                </p>
+                <p className="text-gray-600 mb-6">
+                  You need an active subscription to submit project requirements.
+                </p>
+              </>
+            ) : subscriptionStatus && subscriptionStatus.status !== 'active' ? (
+              <>
+                <p className="text-gray-600 mb-2">
+                  Your subscription is not active.
+                </p>
+                <p className="text-gray-600 mb-6">
+                  You need an active subscription to submit project requirements.
+                </p>
+              </>
+            ) : (
+              <p className="text-gray-600 mb-6">
+                You need to purchase an active subscription plan to submit project requirements.
+              </p>
+            )}
             <Link
               to="/plans"
               className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-accent text-primary-900 font-bold rounded-lg hover:shadow-xl hover:scale-105 transform transition-all duration-300"
