@@ -357,16 +357,41 @@ router.get('/admin/stats', authMiddleware, adminMiddleware, async (req, res) => 
   try {
     const userCount = await User.countDocuments();
     const subCount = await Subscription.countDocuments();
-    const activeSubs = await Subscription.countDocuments({ status: 'active' });
+    const activeSubs = await Subscription.countDocuments({ 
+      status: 'active',
+      cancellationStatus: { $ne: 'approved' }
+    });
     
-    // Calculate total revenue from active subscriptions
-    const activeSubscriptions = await Subscription.find({ status: 'active' }).populate('plan');
-    let totalRevenue = 0;
-    
-    activeSubscriptions.forEach(sub => {
-      if (sub.plan && sub.plan.price) {
-        totalRevenue += sub.plan.price;
+    // Get all plans to map plan names to prices
+    const plans = await Plan.find();
+    const planPriceMap = {};
+    plans.forEach(plan => {
+      // Map plan name to price (handle different naming conventions)
+      const planNameLower = plan.name.toLowerCase();
+      let planKey = '';
+      if (planNameLower.includes('starter') || planNameLower.includes('basic')) {
+        planKey = 'starter';
+      } else if (planNameLower.includes('premium')) {
+        planKey = 'premium';
+      } else if (planNameLower.includes('pro')) {
+        planKey = 'pro';
       }
+      if (planKey) {
+        planPriceMap[planKey] = parseFloat(plan.price) || 0;
+      }
+    });
+    
+    // Calculate total revenue from all approved subscriptions (active, expired, or were active)
+    // Exclude rejected and pending subscriptions
+    const paidSubscriptions = await Subscription.find({
+      status: { $in: ['active', 'expired'] },
+      cancellationStatus: { $ne: 'approved' } // Don't count cancelled subscriptions
+    });
+    
+    let totalRevenue = 0;
+    paidSubscriptions.forEach(sub => {
+      const planPrice = planPriceMap[sub.plan] || 0;
+      totalRevenue += planPrice;
     });
     
     res.json({ 
