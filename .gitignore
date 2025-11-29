@@ -44,6 +44,9 @@ coverage/
 # Cache files
 frontend/node_modules/.cache/
 backend/node_modules/.package-lock.json
+**/.cache/
+**/*.pack
+**/*.pack.old
 
 # Uploads (keep structure but ignore files)
 backend/uploads/*
