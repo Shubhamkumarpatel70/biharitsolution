@@ -157,13 +157,14 @@ const Payment = () => {
       formData.append('method', paymentMethod);
       formData.append('paymentImage', paymentImage);
       
+      // Don't set Content-Type header - let axios/browser set it with boundary
       const res = await axios.post(
         '/api/auth/subscribe', 
         formData, 
         { 
           headers: { 
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'multipart/form-data'
+            Authorization: `Bearer ${token}`
+            // Content-Type will be set automatically by axios for FormData
           } 
         }
       );
