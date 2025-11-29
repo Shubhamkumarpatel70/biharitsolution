@@ -137,11 +137,6 @@ app.use((req, res, next) => {
   }
 });
 
-// Placeholder route
-app.get('/', (req, res) => {
-  res.send('API is running...');
-});
-
 // CORS test route
 app.get('/api/cors-test', (req, res) => {
   console.log('CORS Test - Origin:', req.headers.origin);
@@ -227,11 +222,17 @@ app.use('/api/auth', authRoutes);
 // Serve static files from React app in production
 if (process.env.NODE_ENV === 'production') {
   const path = require('path');
+  // Serve static files from React build
   app.use(express.static(path.join(__dirname, '../frontend/build')));
   
-  // Serve React app for all non-API routes
+  // Serve React app for all non-API routes (must be last)
   app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/build/index.html'));
+  });
+} else {
+  // Development: API info route
+  app.get('/', (req, res) => {
+    res.send('API is running...');
   });
 }
 
