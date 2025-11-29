@@ -5,6 +5,7 @@ import AdminBottomNav from '../components/AdminBottomNav';
 import AdminHelp from './AdminHelp';
 import AdminHome from './AdminHome';
 import AdminApprove from './AdminApprove';
+import AdminProjectRequests from './AdminProjectRequests';
 import AdminUserPlans from './AdminUserPlans';
 import AdminUsers from './AdminUsers';
 import AdminStats from './AdminStats';
@@ -35,6 +36,8 @@ const AdminDashboard = () => {
         return <AdminHome />;
       case 'approve':
         return <AdminApprove />;
+      case 'project-requests':
+        return <AdminProjectRequests />;
       case 'user-plans':
         return <AdminUserPlans />;
       case 'users':

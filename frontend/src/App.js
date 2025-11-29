@@ -19,6 +19,7 @@ import Subscription from './pages/Subscription';
 import MyPurchases from './pages/MyPurchases';
 import Notifications from './pages/Notifications';
 import Payment from './pages/Payment';
+import ProjectRequirement from './pages/ProjectRequirement';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminHome from './pages/AdminHome';
 import AdminApprove from './pages/AdminApprove';
@@ -78,6 +79,7 @@ function AppContent() {
           <Route path='/register' element={<Register />} />
           <Route path='/dashboard/*' element={<Dashboard />}>
             <Route index element={<DashboardHome />} />
+            <Route path='project-requirement' element={<ProjectRequirement />} />
             <Route path='support' element={<HelpAndSupport />} />
             <Route path='subscription' element={<Subscription />} />
             <Route path='purchases' element={<MyPurchases />} />

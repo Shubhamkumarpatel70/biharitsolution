@@ -69,7 +69,11 @@ const AdminApprove = () => {
 
   const getImageUrl = (imagePath) => {
     if (!imagePath) return null;
+    // Handle base64 data URLs
+    if (imagePath.startsWith('data:')) return imagePath;
+    // Handle HTTP URLs
     if (imagePath.startsWith('http')) return imagePath;
+    // Handle relative paths
     return `${axios.defaults.baseURL || ''}${imagePath}`;
   };
 

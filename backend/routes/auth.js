@@ -16,6 +16,7 @@ const TeamMember = require('../models/Team');
 const Feature = require('../models/Feature');
 const Service = require('../models/Service');
 const PaymentOption = require('../models/PaymentOption');
+const ProjectRequirement = require('../models/ProjectRequirement');
 const multer = require('multer');
 const path = require('path');
 
@@ -1331,6 +1332,116 @@ router.get('/payment-options', async (req, res) => {
   } catch (err) {
     console.error('Error fetching payment options:', err);
     res.status(500).json({ message: 'Could not fetch payment options.' });
+  }
+});
+
+// ========== PROJECT REQUIREMENT ROUTES ==========
+
+// User: Submit project requirement
+router.post('/project-requirement', authMiddleware, async (req, res) => {
+  try {
+    const { projectIdea, websitePreference, linkOption } = req.body;
+    
+    if (!projectIdea || !projectIdea.trim()) {
+      return res.status(400).json({ message: 'Project idea is required.' });
+    }
+    
+    const projectReq = await ProjectRequirement.create({
+      user: req.user.id,
+      projectIdea: projectIdea.trim(),
+      websitePreference: websitePreference || '',
+      linkOption: linkOption || '',
+      status: 'pending'
+    });
+    
+    res.status(201).json({ projectRequirement: projectReq, message: 'Project requirement submitted successfully.' });
+  } catch (err) {
+    console.error('Error creating project requirement:', err);
+    res.status(500).json({ message: 'Could not submit project requirement.' });
+  }
+});
+
+// User: Get own project requirements
+router.get('/project-requirements', authMiddleware, async (req, res) => {
+  try {
+    const projects = await ProjectRequirement.find({ user: req.user.id })
+      .sort({ createdAt: -1 })
+      .populate('user', 'name email');
+    res.json({ projectRequirements: projects });
+  } catch (err) {
+    console.error('Error fetching project requirements:', err);
+    res.status(500).json({ message: 'Could not fetch project requirements.' });
+  }
+});
+
+// Admin: Get all project requirements with filters
+router.get('/admin/project-requirements', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const { status, search } = req.query;
+    let query = {};
+    
+    if (status && status !== 'all') {
+      query.status = status;
+    }
+    
+    if (search) {
+      query.$or = [
+        { projectIdea: { $regex: search, $options: 'i' } },
+        { websitePreference: { $regex: search, $options: 'i' } }
+      ];
+    }
+    
+    const projects = await ProjectRequirement.find(query)
+      .populate('user', 'name email')
+      .sort({ createdAt: -1 });
+    
+    res.json({ projectRequirements: projects });
+  } catch (err) {
+    console.error('Error fetching project requirements:', err);
+    res.status(500).json({ message: 'Could not fetch project requirements.' });
+  }
+});
+
+// Admin: Update project requirement status
+router.patch('/admin/project-requirement/:id', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const { status, projectLink, adminNotes } = req.body;
+    const project = await ProjectRequirement.findById(req.params.id);
+    
+    if (!project) {
+      return res.status(404).json({ message: 'Project requirement not found.' });
+    }
+    
+    const updateData = {};
+    if (status) {
+      if (!['pending', 'under_review', 'under_development', 'last_stage', 'finished'].includes(status)) {
+        return res.status(400).json({ message: 'Invalid status.' });
+      }
+      updateData.status = status;
+      
+      // If status is finished, projectLink is required
+      if (status === 'finished') {
+        if (!projectLink || !projectLink.trim()) {
+          return res.status(400).json({ message: 'Project link is required when marking as finished.' });
+        }
+        updateData.projectLink = projectLink.trim();
+      }
+    }
+    
+    if (adminNotes !== undefined) {
+      updateData.adminNotes = adminNotes;
+    }
+    
+    const updatedProject = await ProjectRequirement.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { new: true }
+    ).populate('user', 'name email');
+    
+    res.json({ projectRequirement: updatedProject, message: 'Project requirement updated successfully.' });
+  } catch (err) {
+    console.error('Error updating project requirement:', err);
+    res.status(500).json({ message: 'Could not update project requirement.' });
   }
 });
 

@@ -31,7 +31,18 @@ function Navbar() {
 
   useEffect(() => {
     setIsMobileMenuOpen(false);
+    setDropdownOpen(false);
   }, [location]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownOpen && !event.target.closest('.relative')) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [dropdownOpen]);
 
   useEffect(() => {
     if (isMobileMenuOpen) {
@@ -145,28 +156,29 @@ function Navbar() {
                     <span>{user.name || 'User'}</span>
                     <span className="text-xs ml-1 transition-transform duration-200">▼</span>
                   </button>
-                  <div 
-                    className={`absolute right-0 top-[calc(100%+0.5rem)] min-w-[12rem] bg-white rounded-lg shadow-xl opacity-0 invisible -translate-y-2 transition-all duration-200 z-50 border border-gray-200 ${
-                      dropdownOpen ? 'opacity-100 visible translate-y-0' : ''
-                    }`}
-                    tabIndex={-1} 
-                    onBlur={() => setDropdownOpen(false)}
-                  >
-                    <Link 
-                      to={user.role === 'admin' ? '/admin-dashboard' : '/dashboard'} 
-                      className="block px-4 py-3 text-text-main no-underline text-[0.9375rem] transition-all duration-200 hover:bg-gray-light hover:text-accent-500 rounded-t-lg"
-                      onClick={() => setDropdownOpen(false)}
+                  {dropdownOpen && (
+                    <div 
+                      className="absolute right-0 top-[calc(100%+0.5rem)] min-w-[12rem] bg-white rounded-lg shadow-xl z-50 border border-gray-200 overflow-hidden"
+                      onClick={(e) => e.stopPropagation()}
                     >
-                      {user.role === 'admin' ? 'Admin Dashboard' : 'User Dashboard'}
-                    </Link>
-                    <div className="h-px bg-black/10 my-1" />
-                    <button 
-                      className="w-full text-left px-4 py-3 text-danger-500 bg-transparent border-none cursor-pointer transition-all duration-200 hover:bg-danger-500/5 rounded-b-lg"
-                      onClick={handleLogout}
-                    >
-                      Logout
-                    </button>
-                  </div>
+                      <Link 
+                        to={user.role === 'admin' ? '/admin-dashboard' : '/dashboard'} 
+                        className="block px-4 py-3 text-text-main no-underline text-[0.9375rem] transition-all duration-200 hover:bg-gray-light hover:text-accent-500 flex items-center gap-2"
+                        onClick={() => setDropdownOpen(false)}
+                      >
+                        <span>📊</span>
+                        <span>{user.role === 'admin' ? 'Admin Dashboard' : 'Dashboard'}</span>
+                      </Link>
+                      <div className="h-px bg-gray-200" />
+                      <button 
+                        className="w-full text-left px-4 py-3 text-danger-500 bg-transparent border-none cursor-pointer transition-all duration-200 hover:bg-danger-500/5 flex items-center gap-2"
+                        onClick={handleLogout}
+                      >
+                        <span>🚪</span>
+                        <span>Logout</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="flex gap-3">

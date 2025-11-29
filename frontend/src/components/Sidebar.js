@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: '🏠' },
+  { to: '/dashboard/project-requirement', label: 'Project Requirement', icon: '💼' },
   { to: '/dashboard/support', label: 'Help & Support', icon: '💬' },
   { to: '/dashboard/subscription', label: 'Subscription', icon: '📦' },
   { to: '/dashboard/purchases', label: 'My Purchases', icon: '🛒' },
@@ -12,6 +13,7 @@ const navItems = [
 
 const mobileNavItems = [
   { to: '/dashboard', label: 'Home', icon: '🏠' },
+  { to: '/dashboard/project-requirement', label: 'Project', icon: '💼' },
   { to: '/dashboard/support', label: 'Help', icon: '💬' },
   { to: '/dashboard/subscription', label: 'Subscription', icon: '📦' },
   { to: '/dashboard/purchases', label: 'Purchase', icon: '🛒' },
