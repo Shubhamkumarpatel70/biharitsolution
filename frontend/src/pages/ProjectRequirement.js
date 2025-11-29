@@ -39,12 +39,16 @@ const ProjectRequirement = () => {
       });
       const subscriptions = res.data.subscriptions || [];
       
-      // Check if user has an ACTIVE subscription (not cancelled, not expired)
-      const activeSubscription = subscriptions.find(sub => 
-        sub.status === 'active' && 
-        sub.cancellationStatus !== 'approved' &&
-        (!sub.expiresAt || new Date(sub.expiresAt) > new Date())
-      );
+      // Check if user has an ACTIVE subscription
+      // Must be: status='active', not cancelled, not expired, not canceled flag
+      const activeSubscription = subscriptions.find(sub => {
+        const isActiveStatus = sub.status === 'active';
+        const isNotCancelled = sub.cancellationStatus !== 'approved' && !sub.canceled;
+        const isNotExpired = !sub.expiresAt || new Date(sub.expiresAt) > new Date();
+        const isNotPendingCancellation = sub.cancellationStatus !== 'pending';
+        
+        return isActiveStatus && isNotCancelled && isNotExpired && isNotPendingCancellation;
+      });
       
       const hasActive = !!activeSubscription;
       setHasActiveSubscription(hasActive);
@@ -52,10 +56,18 @@ const ProjectRequirement = () => {
       // Store subscription status for messaging
       if (subscriptions.length > 0) {
         const latestSub = subscriptions.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
+        const now = new Date();
+        const isExpired = latestSub.expiresAt && new Date(latestSub.expiresAt) < now;
+        const isCancelled = latestSub.cancellationStatus === 'approved' || latestSub.canceled;
+        const isInactive = latestSub.status !== 'active' || isExpired || isCancelled;
+        
         setSubscriptionStatus({
           status: latestSub.status,
           cancellationStatus: latestSub.cancellationStatus,
-          isExpired: latestSub.expiresAt && new Date(latestSub.expiresAt) < new Date()
+          isExpired: isExpired,
+          isCancelled: isCancelled,
+          isInactive: isInactive,
+          canceled: latestSub.canceled
         });
       } else {
         setSubscriptionStatus(null);
@@ -144,32 +156,58 @@ const ProjectRequirement = () => {
           <div className="bg-gradient-to-r from-accent-500/10 to-primary-500/10 border-2 border-accent-500/30 rounded-xl p-8 text-center">
             <div className="text-6xl mb-4">🔒</div>
             <h3 className="text-2xl font-bold text-primary-600 mb-3">Active Subscription Required</h3>
-            {subscriptionStatus && subscriptionStatus.cancellationStatus === 'approved' ? (
+            {subscriptionStatus ? (
               <>
-                <p className="text-gray-600 mb-2">
-                  Your subscription has been cancelled and is inactive.
-                </p>
-                <p className="text-gray-600 mb-6">
-                  You need an active subscription to submit project requirements.
-                </p>
-              </>
-            ) : subscriptionStatus && subscriptionStatus.isExpired ? (
-              <>
-                <p className="text-gray-600 mb-2">
-                  Your subscription has expired.
-                </p>
-                <p className="text-gray-600 mb-6">
-                  You need an active subscription to submit project requirements.
-                </p>
-              </>
-            ) : subscriptionStatus && subscriptionStatus.status !== 'active' ? (
-              <>
-                <p className="text-gray-600 mb-2">
-                  Your subscription is not active.
-                </p>
-                <p className="text-gray-600 mb-6">
-                  You need an active subscription to submit project requirements.
-                </p>
+                {subscriptionStatus.isCancelled ? (
+                  <>
+                    <p className="text-gray-600 mb-2 font-semibold">
+                      ❌ Your subscription has been cancelled and is inactive.
+                    </p>
+                    <p className="text-gray-600 mb-6">
+                      You need an active subscription to submit project requirements.
+                    </p>
+                  </>
+                ) : subscriptionStatus.isExpired ? (
+                  <>
+                    <p className="text-gray-600 mb-2 font-semibold">
+                      ⏰ Your subscription has expired.
+                    </p>
+                    <p className="text-gray-600 mb-6">
+                      You need an active subscription to submit project requirements.
+                    </p>
+                  </>
+                ) : subscriptionStatus.status === 'pending' ? (
+                  <>
+                    <p className="text-gray-600 mb-2 font-semibold">
+                      ⏳ Your subscription is pending approval.
+                    </p>
+                    <p className="text-gray-600 mb-6">
+                      Please wait for admin approval before submitting project requirements.
+                    </p>
+                  </>
+                ) : subscriptionStatus.status === 'rejected' ? (
+                  <>
+                    <p className="text-gray-600 mb-2 font-semibold">
+                      ❌ Your subscription has been rejected.
+                    </p>
+                    <p className="text-gray-600 mb-6">
+                      You need an active subscription to submit project requirements.
+                    </p>
+                  </>
+                ) : subscriptionStatus.isInactive ? (
+                  <>
+                    <p className="text-gray-600 mb-2 font-semibold">
+                      ⚠️ Your subscription is inactive.
+                    </p>
+                    <p className="text-gray-600 mb-6">
+                      You need an active subscription to submit project requirements.
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-gray-600 mb-6">
+                    You need an active subscription to submit project requirements.
+                  </p>
+                )}
               </>
             ) : (
               <p className="text-gray-600 mb-6">
