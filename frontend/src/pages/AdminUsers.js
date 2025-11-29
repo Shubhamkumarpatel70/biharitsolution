@@ -43,7 +43,8 @@ const AdminUsers = () => {
         )
       );
       
-      setSuccess(`User role updated to ${newRole} successfully!`);
+      const roleDisplayName = newRole === 'coadmin' ? 'Co-Admin' : newRole.charAt(0).toUpperCase() + newRole.slice(1);
+      setSuccess(`User role updated to ${roleDisplayName} successfully!`);
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to update user role.');
@@ -127,10 +128,14 @@ const AdminUsers = () => {
                       borderRadius: '0.25rem', 
                       fontSize: '0.875rem',
                       fontWeight: '500',
-                      background: user.role === 'admin' ? '#DC2626' : '#059669',
+                      background: user.role === 'admin' 
+                        ? '#DC2626' 
+                        : user.role === 'coadmin' 
+                        ? '#F59E0B' 
+                        : '#059669',
                       color: 'white'
                     }}>
-                      {user.role}
+                      {user.role === 'coadmin' ? 'Co-Admin' : user.role.charAt(0).toUpperCase() + user.role.slice(1)}
                     </span>
                   </td>
                   <td style={{ padding: '0.7rem', borderBottom: '1px solid #333' }}>
@@ -148,6 +153,7 @@ const AdminUsers = () => {
                       }}
                     >
                       <option value="user">User</option>
+                      <option value="coadmin">Co-Admin</option>
                       <option value="admin">Admin</option>
                     </select>
                     {changingRole === user._id && (
