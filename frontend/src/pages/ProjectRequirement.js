@@ -17,7 +17,8 @@ const ProjectRequirement = () => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [hasSubscription, setHasSubscription] = useState(false);
+  const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
+  const [subscriptionStatus, setSubscriptionStatus] = useState(null);
   const [checkingSubscription, setCheckingSubscription] = useState(true);
   const [formData, setFormData] = useState({
     projectIdea: '',
@@ -37,12 +38,32 @@ const ProjectRequirement = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       const subscriptions = res.data.subscriptions || [];
-      // Check if user has any subscription (active, pending, or even expired)
-      const hasAnySubscription = subscriptions.length > 0;
-      setHasSubscription(hasAnySubscription);
+      
+      // Check if user has an ACTIVE subscription (not cancelled, not expired)
+      const activeSubscription = subscriptions.find(sub => 
+        sub.status === 'active' && 
+        sub.cancellationStatus !== 'approved' &&
+        (!sub.expiresAt || new Date(sub.expiresAt) > new Date())
+      );
+      
+      const hasActive = !!activeSubscription;
+      setHasActiveSubscription(hasActive);
+      
+      // Store subscription status for messaging
+      if (subscriptions.length > 0) {
+        const latestSub = subscriptions.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
+        setSubscriptionStatus({
+          status: latestSub.status,
+          cancellationStatus: latestSub.cancellationStatus,
+          isExpired: latestSub.expiresAt && new Date(latestSub.expiresAt) < new Date()
+        });
+      } else {
+        setSubscriptionStatus(null);
+      }
     } catch (err) {
       console.error('Error checking subscription:', err);
-      setHasSubscription(false);
+      setHasActiveSubscription(false);
+      setSubscriptionStatus(null);
     } finally {
       setCheckingSubscription(false);
     }
