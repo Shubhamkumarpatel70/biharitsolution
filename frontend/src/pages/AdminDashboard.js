@@ -5,6 +5,7 @@ import AdminBottomNav from '../components/AdminBottomNav';
 import AdminHelp from './AdminHelp';
 import AdminHome from './AdminHome';
 import AdminApprove from './AdminApprove';
+import AdminCancellations from './AdminCancellations';
 import AdminProjectRequests from './AdminProjectRequests';
 import AdminUserPlans from './AdminUserPlans';
 import AdminUsers from './AdminUsers';
