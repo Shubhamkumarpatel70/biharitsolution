@@ -9,7 +9,7 @@ cd frontend
 npm install
 
 echo "Building frontend..."
-npm exec react-scripts build
+node node_modules/react-scripts/bin/react-scripts.js build
 
 echo "Installing backend dependencies..."
 cd ../backend
