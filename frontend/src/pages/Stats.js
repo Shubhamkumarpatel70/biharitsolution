@@ -59,7 +59,9 @@ function CountUpNumber({ value }) {
   }, [config, prefersReduced, value]);
 
   return (
-    <span className="stat-number" aria-live="polite" aria-atomic="true">{display}</span>
+    <span className="text-3xl md:text-4xl lg:text-5xl font-black text-accent-500 mb-2" aria-live="polite" aria-atomic="true">
+      {display}
+    </span>
   );
 }
 
@@ -70,35 +72,67 @@ function Stats() {
 		return () => clearTimeout(timer);
 	}, []);
 
-		return (
-			<section className="stats-section" aria-labelledby="stats-title" aria-describedby="stats-subtitle">
-				<div className="container">
-					<header className="section-header">
-						<h2 id="stats-title" className="section-title">Our Impact in Numbers</h2>
-						<p id="stats-subtitle" className="section-subtitle">Trusted delivery, measurable results, and customer-first support.</p>
-					</header>
+	return (
+		<section 
+			className="py-16 md:py-24 bg-gray-light" 
+			aria-labelledby="stats-title" 
+			aria-describedby="stats-subtitle"
+		>
+			<div className="container">
+				<header className="section-header">
+					<h2 id="stats-title" className="section-title">Our Impact in Numbers</h2>
+					<p id="stats-subtitle" className="section-subtitle">
+						Trusted delivery, measurable results, and customer-first support.
+					</p>
+				</header>
 
-					<ul className="stats-grid" role="list">
-						{defaultStats.map((s, idx) => (
-							<li
-								key={s.label}
-								className={`stat-card ${isVisible ? 'animate-in' : ''}`}
-								style={{ animationDelay: `${idx * 0.1}s` }}
-								role="listitem"
+				<ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8" role="list">
+					{defaultStats.map((s, idx) => (
+						<li
+							key={s.label}
+							className={`group relative bg-white rounded-2xl p-6 md:p-8 border border-gray-200 shadow-md text-center transition-all duration-500 hover:bg-white hover:border-accent-500/50 hover:-translate-y-2 hover:shadow-gold-hover ${
+								isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+							}`}
+							style={{ 
+								animationDelay: `${idx * 0.1}s`,
+								transitionDelay: `${idx * 0.1}s`
+							}}
+							role="listitem"
+						>
+							{/* Icon */}
+							<div 
+								className="text-4xl md:text-5xl mb-4 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6"
+								aria-hidden="true"
 							>
-								<div className="stat-icon" aria-hidden="true">{s.icon}</div>
-								{/^(\d+)([^\/\-]*)$/.test(s.number) ? (
-									<CountUpNumber value={s.number} />
-								) : (
-									<span className="stat-number" aria-live="polite" aria-atomic="true">{s.number}</span>
-								)}
-								<div className="stat-label">{s.label}</div>
-							</li>
-						))}
-					</ul>
-				</div>
-			</section>
-		);
-	}
+								{s.icon}
+							</div>
+
+							{/* Number */}
+							{/^(\d+)([^\/\-]*)$/.test(s.number) ? (
+								<CountUpNumber value={s.number} />
+							) : (
+								<span 
+									className="block text-3xl md:text-4xl lg:text-5xl font-black text-accent-500 mb-2" 
+									aria-live="polite" 
+									aria-atomic="true"
+								>
+									{s.number}
+								</span>
+							)}
+
+							{/* Label */}
+							<div className="text-sm md:text-base text-text-muted font-medium uppercase tracking-wide">
+								{s.label}
+							</div>
+
+							{/* Decorative Gradient Line */}
+							<div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-accent rounded-b-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+						</li>
+					))}
+				</ul>
+			</div>
+		</section>
+	);
+}
 
 export default Stats;

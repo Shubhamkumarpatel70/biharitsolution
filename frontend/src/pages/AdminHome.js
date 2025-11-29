@@ -33,344 +33,190 @@ const AdminHome = () => {
 
   if (loading) {
     return (
-      <div style={{ color: '#E5E7EB', textAlign: 'center', marginTop: '2rem' }}>
-        Loading dashboard...
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-success-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading dashboard...</p>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div style={{ color: '#EF4444', textAlign: 'center', marginTop: '2rem' }}>
-        {error}
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center text-danger-500">
+          {error}
+        </div>
       </div>
     );
   }
 
+  const conversionRate = stats.userCount > 0 ? ((stats.activeSubs / stats.userCount) * 100).toFixed(1) : 0;
+  const avgRevenue = stats.userCount > 0 ? (stats.totalRevenue / stats.userCount).toFixed(2) : 0;
+  const activeRate = stats.subCount > 0 ? ((stats.activeSubs / stats.subCount) * 100).toFixed(1) : 0;
+
   return (
-    <div style={{ color: '#E5E7EB', padding: '2rem' }}>
-      <h1 style={{ color: '#2ECC71', fontWeight: 700, fontSize: '2rem', textAlign: 'center', marginBottom: '1rem' }}>
-        Welcome to the Admin Dashboard!
-      </h1>
-      <p style={{ 
-        textAlign: 'center', 
-        color: '#9CA3AF', 
-        fontSize: '1.1rem', 
-        marginBottom: '3rem',
-        maxWidth: '800px',
-        margin: '0 auto 3rem'
-      }}>
-        Manage your website, monitor user activity, and track business performance from this comprehensive admin panel.
-      </p>
-      
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
-        gap: '1.5rem',
-        maxWidth: '1200px',
-        margin: '0 auto'
-      }}>
+    <div className="max-w-7xl mx-auto space-y-6 pb-20 lg:pb-6">
+      {/* Welcome Header */}
+      <div className="bg-gradient-to-r from-success-500 to-success-600 rounded-2xl p-6 md:p-8 text-white">
+        <h1 className="text-2xl md:text-3xl font-black mb-2">
+          Welcome to the Admin Dashboard!
+        </h1>
+        <p className="text-white/90 text-sm md:text-base max-w-2xl">
+          Manage your website, monitor user activity, and track business performance from this comprehensive admin panel.
+        </p>
+      </div>
+
+      {/* Stats Cards Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         {/* Total Users Card */}
-        <div style={{
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          borderRadius: '1rem',
-          padding: '2rem',
-          textAlign: 'center',
-          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-          transition: 'transform 0.2s ease-in-out'
-        }}>
-          <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>👥</div>
-          <h3 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '0.5rem', color: 'white' }}>
-            Total Users
-          </h3>
-          <p style={{ fontSize: '2.5rem', fontWeight: 700, color: 'white', margin: 0 }}>
+        <div className="bg-gradient-to-br from-primary-500 to-secondary-500 rounded-xl p-6 text-white shadow-lg hover:shadow-xl transition-shadow">
+          <div className="text-5xl mb-3 text-center">👥</div>
+          <h3 className="text-lg font-semibold mb-2 text-center">Total Users</h3>
+          <p className="text-3xl font-black text-center">
             {stats.userCount.toLocaleString()}
           </p>
         </div>
 
         {/* Total Revenue Card */}
-        <div style={{
-          background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-          borderRadius: '1rem',
-          padding: '2rem',
-          textAlign: 'center',
-          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-          transition: 'transform 0.2s ease-in-out'
-        }}>
-          <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>💰</div>
-          <h3 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '0.5rem', color: 'white' }}>
-            Total Revenue
-          </h3>
-          <p style={{ fontSize: '2.5rem', fontWeight: 700, color: 'white', margin: 0 }}>
+        <div className="bg-gradient-to-br from-pink-500 to-red-500 rounded-xl p-6 text-white shadow-lg hover:shadow-xl transition-shadow">
+          <div className="text-5xl mb-3 text-center">💰</div>
+          <h3 className="text-lg font-semibold mb-2 text-center">Total Revenue</h3>
+          <p className="text-3xl font-black text-center">
             ${stats.totalRevenue.toLocaleString()}
           </p>
         </div>
 
         {/* Total Subscriptions Card */}
-        <div style={{
-          background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-          borderRadius: '1rem',
-          padding: '2rem',
-          textAlign: 'center',
-          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-          transition: 'transform 0.2s ease-in-out'
-        }}>
-          <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>📊</div>
-          <h3 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '0.5rem', color: 'white' }}>
-            Total Subscriptions
-          </h3>
-          <p style={{ fontSize: '2.5rem', fontWeight: 700, color: 'white', margin: 0 }}>
+        <div className="bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl p-6 text-white shadow-lg hover:shadow-xl transition-shadow">
+          <div className="text-5xl mb-3 text-center">📊</div>
+          <h3 className="text-lg font-semibold mb-2 text-center">Total Subscriptions</h3>
+          <p className="text-3xl font-black text-center">
             {stats.subCount.toLocaleString()}
           </p>
         </div>
 
         {/* Active Subscriptions Card */}
-        <div style={{
-          background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
-          borderRadius: '1rem',
-          padding: '2rem',
-          textAlign: 'center',
-          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-          transition: 'transform 0.2s ease-in-out'
-        }}>
-          <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>✅</div>
-          <h3 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '0.5rem', color: 'white' }}>
-            Active Subscriptions
-          </h3>
-          <p style={{ fontSize: '2.5rem', fontWeight: 700, color: 'white', margin: 0 }}>
+        <div className="bg-gradient-to-br from-green-500 to-teal-500 rounded-xl p-6 text-white shadow-lg hover:shadow-xl transition-shadow">
+          <div className="text-5xl mb-3 text-center">✅</div>
+          <h3 className="text-lg font-semibold mb-2 text-center">Active Subscriptions</h3>
+          <p className="text-3xl font-black text-center">
             {stats.activeSubs.toLocaleString()}
           </p>
         </div>
       </div>
 
       {/* Quick Stats Summary */}
-      <div style={{ 
-        marginTop: '3rem', 
-        background: '#23272F', 
-        borderRadius: '1rem', 
-        padding: '2rem',
-        maxWidth: '1200px',
-        margin: '3rem auto 0'
-      }}>
-        <h2 style={{ color: '#2ECC71', fontSize: '1.5rem', marginBottom: '1rem' }}>
-          Quick Overview
-        </h2>
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
-          gap: '1rem' 
-        }}>
-          <div style={{ textAlign: 'center' }}>
-            <p style={{ color: '#9CA3AF', fontSize: '0.875rem', margin: 0 }}>Conversion Rate</p>
-            <p style={{ color: '#E5E7EB', fontSize: '1.25rem', fontWeight: 600, margin: 0 }}>
-              {stats.userCount > 0 ? ((stats.activeSubs / stats.userCount) * 100).toFixed(1) : 0}%
+      <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+        <h2 className="text-xl font-bold text-success-500 mb-6">Quick Overview</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          <div className="text-center p-4 bg-gray-700/50 rounded-xl">
+            <p className="text-gray-400 text-sm mb-2">Conversion Rate</p>
+            <p className="text-2xl font-bold text-white">
+              {conversionRate}%
             </p>
           </div>
-          <div style={{ textAlign: 'center' }}>
-            <p style={{ color: '#9CA3AF', fontSize: '0.875rem', margin: 0 }}>Avg Revenue per User</p>
-            <p style={{ color: '#E5E7EB', fontSize: '1.25rem', fontWeight: 600, margin: 0 }}>
-              ${stats.userCount > 0 ? (stats.totalRevenue / stats.userCount).toFixed(2) : 0}
+          <div className="text-center p-4 bg-gray-700/50 rounded-xl">
+            <p className="text-gray-400 text-sm mb-2">Avg Revenue per User</p>
+            <p className="text-2xl font-bold text-white">
+              ${avgRevenue}
             </p>
           </div>
-          <div style={{ textAlign: 'center' }}>
-            <p style={{ color: '#9CA3AF', fontSize: '0.875rem', margin: 0 }}>Active Rate</p>
-            <p style={{ color: '#E5E7EB', fontSize: '1.25rem', fontWeight: 600, margin: 0 }}>
-              {stats.subCount > 0 ? ((stats.activeSubs / stats.subCount) * 100).toFixed(1) : 0}%
+          <div className="text-center p-4 bg-gray-700/50 rounded-xl">
+            <p className="text-gray-400 text-sm mb-2">Active Rate</p>
+            <p className="text-2xl font-bold text-white">
+              {activeRate}%
             </p>
           </div>
         </div>
       </div>
 
       {/* Quick Actions Section */}
-      <div style={{ 
-        marginTop: '3rem', 
-        background: '#23272F', 
-        borderRadius: '1rem', 
-        padding: '2rem',
-        maxWidth: '1200px',
-        margin: '3rem auto 0'
-      }}>
-        <h2 style={{ color: '#2ECC71', fontSize: '1.5rem', marginBottom: '1.5rem' }}>
-          Quick Actions
-        </h2>
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
-          gap: '1.5rem' 
-        }}>
-          <div style={{ 
-            background: '#374151', 
-            borderRadius: '0.75rem', 
-            padding: '1.5rem',
-            border: '1px solid #4B5563'
-          }}>
-            <h3 style={{ color: '#E5E7EB', fontSize: '1.1rem', marginBottom: '0.5rem' }}>👥 User Management</h3>
-            <p style={{ color: '#9CA3AF', fontSize: '0.9rem', marginBottom: '1rem' }}>
-              Manage user accounts, change roles, and monitor user activity. View user profiles and subscription status.
+      <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+        <h2 className="text-xl font-bold text-success-500 mb-6">Quick Actions</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-gray-700/50 rounded-xl p-5 border border-gray-600 hover:border-success-500/50 transition-colors">
+            <h3 className="text-white font-semibold mb-2 flex items-center gap-2">
+              <span className="text-2xl">👥</span>
+              User Management
+            </h3>
+            <p className="text-gray-400 text-sm mb-3">
+              Manage user accounts, change roles, and monitor user activity.
             </p>
-            <div style={{ color: '#10B981', fontSize: '0.875rem' }}>
+            <div className="text-success-500 text-sm font-medium">
               Navigate to "Manage Users" tab →
             </div>
           </div>
 
-          <div style={{ 
-            background: '#374151', 
-            borderRadius: '0.75rem', 
-            padding: '1.5rem',
-            border: '1px solid #4B5563'
-          }}>
-            <h3 style={{ color: '#E5E7EB', fontSize: '1.1rem', marginBottom: '0.5rem' }}>📊 Site Statistics</h3>
-            <p style={{ color: '#9CA3AF', fontSize: '0.9rem', marginBottom: '1rem' }}>
-              View detailed analytics, user growth trends, and subscription metrics. Monitor site performance.
+          <div className="bg-gray-700/50 rounded-xl p-5 border border-gray-600 hover:border-success-500/50 transition-colors">
+            <h3 className="text-white font-semibold mb-2 flex items-center gap-2">
+              <span className="text-2xl">📊</span>
+              Site Statistics
+            </h3>
+            <p className="text-gray-400 text-sm mb-3">
+              View detailed analytics, user growth trends, and subscription metrics.
             </p>
-            <div style={{ color: '#10B981', fontSize: '0.875rem' }}>
+            <div className="text-success-500 text-sm font-medium">
               Navigate to "Site Stats" tab →
             </div>
           </div>
 
-          <div style={{ 
-            background: '#374151', 
-            borderRadius: '0.75rem', 
-            padding: '1.5rem',
-            border: '1px solid #4B5563'
-          }}>
-            <h3 style={{ color: '#E5E7EB', fontSize: '1.1rem', marginBottom: '0.5rem' }}>🔔 Notifications</h3>
-            <p style={{ color: '#9CA3AF', fontSize: '0.9rem', marginBottom: '1rem' }}>
-              Send announcements to users, manage notification settings, and track message delivery.
+          <div className="bg-gray-700/50 rounded-xl p-5 border border-gray-600 hover:border-success-500/50 transition-colors">
+            <h3 className="text-white font-semibold mb-2 flex items-center gap-2">
+              <span className="text-2xl">🔔</span>
+              Notifications
+            </h3>
+            <p className="text-gray-400 text-sm mb-3">
+              Send announcements to users, manage notification settings.
             </p>
-            <div style={{ color: '#10B981', fontSize: '0.875rem' }}>
+            <div className="text-success-500 text-sm font-medium">
               Navigate to "Notifications" tab →
             </div>
           </div>
 
-          <div style={{ 
-            background: '#374151', 
-            borderRadius: '0.75rem', 
-            padding: '1.5rem',
-            border: '1px solid #4B5563'
-          }}>
-            <h3 style={{ color: '#E5E7EB', fontSize: '1.1rem', marginBottom: '0.5rem' }}>📦 Content Management</h3>
-            <p style={{ color: '#9CA3AF', fontSize: '0.9rem', marginBottom: '1rem' }}>
-              Manage features, services, team members, and plans. Update website content and pricing.
+          <div className="bg-gray-700/50 rounded-xl p-5 border border-gray-600 hover:border-success-500/50 transition-colors">
+            <h3 className="text-white font-semibold mb-2 flex items-center gap-2">
+              <span className="text-2xl">📦</span>
+              Content Management
+            </h3>
+            <p className="text-gray-400 text-sm mb-3">
+              Manage features, services, team members, and plans.
             </p>
-            <div style={{ color: '#10B981', fontSize: '0.875rem' }}>
-              Navigate to "Features", "Services", or "Team" tabs →
+            <div className="text-success-500 text-sm font-medium">
+              Navigate to content tabs →
             </div>
           </div>
         </div>
       </div>
 
-      {/* Recent Activity Section */}
-      <div style={{ 
-        marginTop: '3rem', 
-        background: '#23272F', 
-        borderRadius: '1rem', 
-        padding: '2rem',
-        maxWidth: '1200px',
-        margin: '3rem auto 0'
-      }}>
-        <h2 style={{ color: '#2ECC71', fontSize: '1.5rem', marginBottom: '1.5rem' }}>
-          System Status
-        </h2>
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
-          gap: '1rem' 
-        }}>
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            padding: '1rem',
-            background: '#374151',
-            borderRadius: '0.5rem'
-          }}>
-            <div style={{ 
-              width: '12px', 
-              height: '12px', 
-              borderRadius: '50%', 
-              background: '#10B981', 
-              marginRight: '1rem' 
-            }}></div>
-            <div>
-              <p style={{ color: '#E5E7EB', margin: 0, fontSize: '0.9rem' }}>Database Connection</p>
-              <p style={{ color: '#9CA3AF', margin: 0, fontSize: '0.8rem' }}>Connected & Healthy</p>
+      {/* System Status Section */}
+      <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+        <h2 className="text-xl font-bold text-success-500 mb-6">System Status</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[
+            { label: 'Database Connection', status: 'Connected & Healthy' },
+            { label: 'Notification System', status: 'Auto-cleanup Active' },
+            { label: 'API Services', status: 'All Systems Operational' },
+            { label: 'Security', status: 'All Checks Passed' }
+          ].map((item, index) => (
+            <div key={index} className="flex items-center gap-3 p-4 bg-gray-700/50 rounded-xl">
+              <div className="w-3 h-3 bg-success-500 rounded-full flex-shrink-0"></div>
+              <div className="flex-1 min-w-0">
+                <p className="text-white text-sm font-medium mb-1">{item.label}</p>
+                <p className="text-gray-400 text-xs">{item.status}</p>
+              </div>
             </div>
-          </div>
-
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            padding: '1rem',
-            background: '#374151',
-            borderRadius: '0.5rem'
-          }}>
-            <div style={{ 
-              width: '12px', 
-              height: '12px', 
-              borderRadius: '50%', 
-              background: '#10B981', 
-              marginRight: '1rem' 
-            }}></div>
-            <div>
-              <p style={{ color: '#E5E7EB', margin: 0, fontSize: '0.9rem' }}>Notification System</p>
-              <p style={{ color: '#9CA3AF', margin: 0, fontSize: '0.8rem' }}>Auto-cleanup Active</p>
-            </div>
-          </div>
-
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            padding: '1rem',
-            background: '#374151',
-            borderRadius: '0.5rem'
-          }}>
-            <div style={{ 
-              width: '12px', 
-              height: '12px', 
-              borderRadius: '50%', 
-              background: '#10B981', 
-              marginRight: '1rem' 
-            }}></div>
-            <div>
-              <p style={{ color: '#E5E7EB', margin: 0, fontSize: '0.9rem' }}>API Services</p>
-              <p style={{ color: '#9CA3AF', margin: 0, fontSize: '0.8rem' }}>All Systems Operational</p>
-            </div>
-          </div>
-
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            padding: '1rem',
-            background: '#374151',
-            borderRadius: '0.5rem'
-          }}>
-            <div style={{ 
-              width: '12px', 
-              height: '12px', 
-              borderRadius: '50%', 
-              background: '#10B981', 
-              marginRight: '1rem' 
-            }}></div>
-            <div>
-              <p style={{ color: '#E5E7EB', margin: 0, fontSize: '0.9rem' }}>Security</p>
-              <p style={{ color: '#9CA3AF', margin: 0, fontSize: '0.8rem' }}>All Checks Passed</p>
-            </div>
-          </div>
+          ))}
         </div>
       </div>
 
       {/* Footer Information */}
-      <div style={{ 
-        marginTop: '3rem', 
-        textAlign: 'center',
-        padding: '2rem',
-        color: '#9CA3AF',
-        fontSize: '0.9rem'
-      }}>
-        <p style={{ margin: '0 0 0.5rem 0' }}>
+      <div className="text-center py-6 text-gray-400 text-sm">
+        <p className="mb-2">
           Admin Dashboard v2.0 • Last updated: {new Date().toLocaleDateString()}
         </p>
-        <p style={{ margin: 0 }}>
+        <p>
           Need help? Check the "Help" tab or contact system administrator.
         </p>
       </div>
@@ -378,4 +224,4 @@ const AdminHome = () => {
   );
 };
 
-export default AdminHome; 
+export default AdminHome;

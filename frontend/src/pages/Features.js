@@ -1,69 +1,59 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import './Features.css';
 
 const defaultFeatures = [
   {
     title: 'Responsive Design',
     desc: 'Mobile-first approach ensuring your website looks perfect on all devices.',
     icon: '📱',
-    color: '#667eea',
     details: ['Mobile Optimized', 'Tablet Friendly', 'Desktop Perfect', 'Cross-Browser Compatible']
   },
   {
     title: 'SEO Optimization',
     desc: 'Built-in SEO features to help your website rank higher in search engines.',
     icon: '🔍',
-    color: '#764ba2',
     details: ['Meta Tags', 'Schema Markup', 'Fast Loading', 'Clean URLs']
   },
   {
     title: 'Security Features',
     desc: 'Advanced security measures to protect your website and user data.',
     icon: '🔒',
-    color: '#f093fb',
     details: ['SSL Certificate', 'Data Encryption', 'Regular Backups', 'Security Monitoring']
   },
   {
     title: 'Performance Optimization',
     desc: 'Lightning-fast loading speeds for better user experience and SEO.',
     icon: '⚡',
-    color: '#4facfe',
     details: ['CDN Integration', 'Image Optimization', 'Code Minification', 'Caching']
   },
   {
     title: 'Content Management',
     desc: 'Easy-to-use CMS to manage your website content without technical knowledge.',
     icon: '📝',
-    color: '#43e97b',
     details: ['User-Friendly Admin', 'Media Library', 'Content Editor', 'Role Management']
   },
   {
     title: 'Analytics Integration',
     desc: 'Built-in analytics to track your website performance and user behavior.',
     icon: '📊',
-    color: '#fa709a',
     details: ['Google Analytics', 'Conversion Tracking', 'User Insights', 'Performance Reports']
   },
   {
     title: 'E-commerce Ready',
     desc: 'Complete e-commerce functionality for online stores and businesses.',
     icon: '🛒',
-    color: '#ff9a9e',
     details: ['Payment Gateway', 'Inventory Management', 'Order Processing', 'Shopping Cart']
   },
   {
     title: '24/7 Support',
     desc: 'Round-the-clock support to help you with any questions or issues.',
     icon: '🛠️',
-    color: '#a8edea',
     details: ['Live Chat', 'Email Support', 'Phone Support', 'Knowledge Base']
   },
   {
     title: 'Custom Development',
     desc: 'Tailored solutions to meet your specific business requirements.',
     icon: '⚙️',
-    color: '#fed6e3',
     details: ['Custom Features', 'API Integration', 'Third-party Tools', 'Scalable Architecture']
   }
 ];
@@ -72,75 +62,35 @@ const benefits = [
   {
     title: 'Quality Assurance',
     desc: 'Rigorous testing and quality checks ensure your website works flawlessly.',
-    icon: '✅',
-    color: '#667eea'
+    icon: '✅'
   },
   {
     title: 'Fast Delivery',
     desc: 'Quick turnaround times without compromising on quality or features.',
-    icon: '🚀',
-    color: '#764ba2'
+    icon: '🚀'
   },
   {
     title: 'Affordable Pricing',
     desc: 'Competitive pricing with transparent costs and no hidden fees.',
-    icon: '💰',
-    color: '#f093fb'
+    icon: '💰'
   },
   {
     title: 'Ongoing Support',
     desc: 'Continuous support and maintenance to keep your website running smoothly.',
-    icon: '🔄',
-    color: '#4facfe'
+    icon: '🔄'
   }
 ];
 
 const comparison = [
-  {
-    feature: 'Responsive Design',
-    customWeb: true,
-    competitors: false
-  },
-  {
-    feature: 'SEO Optimization',
-    customWeb: true,
-    competitors: false
-  },
-  {
-    feature: 'Security Features',
-    customWeb: true,
-    competitors: false
-  },
-  {
-    feature: 'Performance Optimization',
-    customWeb: true,
-    competitors: false
-  },
-  {
-    feature: 'Content Management',
-    customWeb: true,
-    competitors: false
-  },
-  {
-    feature: 'Analytics Integration',
-    customWeb: true,
-    competitors: false
-  },
-  {
-    feature: 'E-commerce Ready',
-    customWeb: true,
-    competitors: false
-  },
-  {
-    feature: '24/7 Support',
-    customWeb: true,
-    competitors: false
-  },
-  {
-    feature: 'Custom Development',
-    customWeb: true,
-    competitors: false
-  }
+  { feature: 'Responsive Design', customWeb: true, competitors: false },
+  { feature: 'SEO Optimization', customWeb: true, competitors: false },
+  { feature: 'Security Features', customWeb: true, competitors: false },
+  { feature: 'Performance Optimization', customWeb: true, competitors: false },
+  { feature: 'Content Management', customWeb: true, competitors: false },
+  { feature: 'Analytics Integration', customWeb: true, competitors: false },
+  { feature: 'E-commerce Ready', customWeb: true, competitors: false },
+  { feature: '24/7 Support', customWeb: true, competitors: false },
+  { feature: 'Custom Development', customWeb: true, competitors: false }
 ];
 
 function Features() {
@@ -152,9 +102,9 @@ function Features() {
   }, []);
 
   return (
-    <div className="features-page">
+    <div className="min-h-screen bg-gray-light text-text-main pt-24">
       {/* Features Grid */}
-      <section className="features-section">
+      <section className="py-16 md:py-24 bg-white">
         <div className="container">
           <div className="section-header">
             <h2 className="section-title">What Makes Us Different</h2>
@@ -162,36 +112,36 @@ function Features() {
               Comprehensive features designed to give you the best web development experience
             </p>
           </div>
-          <div className="features-grid">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
             {features.map((feature, index) => (
               <div 
                 key={feature.title} 
-                className={`feature-card ${isVisible ? 'animate-in' : ''}`}
-                style={{ animationDelay: `${index * 0.1}s` }}
+                className={`group relative bg-white rounded-xl p-6 border border-gray-200 shadow-md hover:shadow-gold-hover hover:border-accent-500/50 transition-all duration-300 hover:-translate-y-1 ${
+                  isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+                }`}
+                style={{ transitionDelay: `${index * 0.1}s` }}
               >
-                <div className="feature-header">
-                  <div className="feature-icon" style={{ background: `${feature.color}20`, color: feature.color }}>
-                    <span>{feature.icon}</span>
+                <div className="mb-4">
+                  <div className="w-16 h-16 bg-accent-500/10 rounded-xl flex items-center justify-center text-3xl mb-4 group-hover:scale-110 transition-transform duration-300">
+                    {feature.icon}
                   </div>
                 </div>
-                <div className="feature-content">
-                  <h3 className="feature-title" style={{ color: feature.color }}>
-                    {feature.title}
-                  </h3>
-                  <p className="feature-description">{feature.desc}</p>
-                  <div className="feature-details">
-                    <h4>Includes:</h4>
-                    <ul>
-                      {feature.details.map((detail, idx) => (
-                        <li key={idx}>
-                          <span className="detail-check" style={{ color: feature.color }}>✓</span>
-                          <span>{detail}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+                <h3 className="text-xl font-bold text-primary-600 mb-2">
+                  {feature.title}
+                </h3>
+                <p className="text-text-muted text-sm mb-4 leading-relaxed">{feature.desc}</p>
+                <div className="border-t border-gray-200 pt-4">
+                  <h4 className="text-sm font-semibold text-text-main mb-3">Includes:</h4>
+                  <ul className="space-y-2">
+                    {feature.details.map((detail, idx) => (
+                      <li key={idx} className="flex items-center gap-2 text-sm text-text-main">
+                        <span className="text-accent-500 font-bold">✓</span>
+                        <span>{detail}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-                <div className="feature-highlight" style={{ background: feature.color }}></div>
+                <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-accent rounded-b-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               </div>
             ))}
           </div>
@@ -199,7 +149,7 @@ function Features() {
       </section>
 
       {/* Benefits Section */}
-      <section className="benefits-section">
+      <section className="py-16 md:py-24 bg-gray-light">
         <div className="container">
           <div className="section-header">
             <h2 className="section-title">Why Choose Custom Web</h2>
@@ -207,20 +157,22 @@ function Features() {
               The advantages that set us apart in the web development industry
             </p>
           </div>
-          <div className="benefits-grid">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
             {benefits.map((benefit, index) => (
               <div 
                 key={benefit.title} 
-                className={`benefit-card ${isVisible ? 'animate-in' : ''}`}
-                style={{ animationDelay: `${index * 0.1}s` }}
+                className={`bg-white rounded-xl p-6 border border-gray-200 shadow-md hover:shadow-gold-hover hover:border-accent-500/50 transition-all duration-300 hover:-translate-y-1 text-center ${
+                  isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+                }`}
+                style={{ transitionDelay: `${index * 0.1}s` }}
               >
-                <div className="benefit-icon" style={{ background: `${benefit.color}20`, color: benefit.color }}>
-                  <span>{benefit.icon}</span>
+                <div className="w-16 h-16 bg-accent-500/10 rounded-xl flex items-center justify-center text-3xl mx-auto mb-4">
+                  {benefit.icon}
                 </div>
-                <h3 className="benefit-title" style={{ color: benefit.color }}>
+                <h3 className="text-lg font-bold text-primary-600 mb-2">
                   {benefit.title}
                 </h3>
-                <p className="benefit-description">{benefit.desc}</p>
+                <p className="text-text-muted text-sm leading-relaxed">{benefit.desc}</p>
               </div>
             ))}
           </div>
@@ -228,7 +180,7 @@ function Features() {
       </section>
 
       {/* Comparison Section */}
-      <section className="comparison-section">
+      <section className="py-16 md:py-24 bg-white">
         <div className="container">
           <div className="section-header">
             <h2 className="section-title">How We Compare</h2>
@@ -236,43 +188,62 @@ function Features() {
               See how our comprehensive features stack up against the competition
             </p>
           </div>
-          <div className="comparison-table">
-            <div className="table-header">
-              <div className="feature-header">Feature</div>
-              <div className="custom-web-header">Custom Web</div>
-              <div className="competitors-header">Competitors</div>
-            </div>
-            <div className="table-body">
-              {comparison.map((item, index) => (
-                <div key={index} className="table-row">
-                  <div className="feature-name">{item.feature}</div>
-                  <div className="custom-web-cell">
-                    {item.customWeb ? <span className="check">✓</span> : <span className="cross">✗</span>}
+          <div className="max-w-4xl mx-auto">
+            <div className="bg-white rounded-xl border border-gray-200 shadow-md overflow-hidden">
+              {/* Table Header */}
+              <div className="grid grid-cols-3 gap-4 bg-gradient-primary p-4 text-white font-bold">
+                <div className="text-left">Feature</div>
+                <div className="text-center">Custom Web</div>
+                <div className="text-center">Competitors</div>
+              </div>
+              
+              {/* Table Body */}
+              <div className="divide-y divide-gray-200">
+                {comparison.map((item, index) => (
+                  <div 
+                    key={index} 
+                    className={`grid grid-cols-3 gap-4 p-4 hover:bg-gray-light transition-colors duration-200 ${
+                      isVisible ? 'opacity-100' : 'opacity-0'
+                    }`}
+                    style={{ transitionDelay: `${index * 0.05}s` }}
+                  >
+                    <div className="text-text-main font-medium">{item.feature}</div>
+                    <div className="text-center">
+                      {item.customWeb ? (
+                        <span className="inline-flex items-center justify-center w-8 h-8 bg-success-500/20 text-success-500 rounded-full font-bold">✓</span>
+                      ) : (
+                        <span className="inline-flex items-center justify-center w-8 h-8 bg-danger-500/20 text-danger-500 rounded-full font-bold">✗</span>
+                      )}
+                    </div>
+                    <div className="text-center">
+                      {item.competitors ? (
+                        <span className="inline-flex items-center justify-center w-8 h-8 bg-success-500/20 text-success-500 rounded-full font-bold">✓</span>
+                      ) : (
+                        <span className="inline-flex items-center justify-center w-8 h-8 bg-danger-500/20 text-danger-500 rounded-full font-bold">✗</span>
+                      )}
+                    </div>
                   </div>
-                  <div className="competitors-cell">
-                    {item.competitors ? <span className="check">✓</span> : <span className="cross">✗</span>}
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="features-cta">
+      <section className="py-16 md:py-24 bg-gradient-primary">
         <div className="container">
-          <div className="cta-content">
-            <h2 className="cta-title">Ready to Experience These Features?</h2>
-            <p className="cta-description">
+          <div className="max-w-3xl mx-auto text-center">
+            <h2 className="text-3xl md:text-4xl font-black text-white mb-4">Ready to Experience These Features?</h2>
+            <p className="text-white/90 text-lg mb-8">
               Get started with Custom Web and enjoy all these powerful features for your website.
             </p>
-            <div className="cta-actions">
-              <Link to="/contact" className="btn btn-primary">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link to="/contact" className="btn btn-primary bg-gradient-accent text-primary-900 hover:shadow-gold-hover">
                 Start Your Project
-                <span className="btn-icon">→</span>
+                <span className="transition-transform duration-300 group-hover:translate-x-1">→</span>
               </Link>
-              <Link to="/services" className="btn btn-outline">
+              <Link to="/services" className="btn btn-secondary bg-white text-primary-600 border-primary-600 hover:bg-primary-600 hover:text-white">
                 View Our Services
               </Link>
             </div>

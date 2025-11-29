@@ -1,5 +1,4 @@
 import React from 'react';
-import './Home.css';
 import Hero from './Hero.js';
 import Stats from './Stats.js';
 import Services from './Services.js';
@@ -14,7 +13,7 @@ import HomeIntro from './HomeIntro.js';
 
 function Home() {
   return (
-    <div className="modern-home">
+    <div className="min-h-screen bg-gray-light text-text-main overflow-x-hidden">
       <Hero />
       <Stats />
       <WhyChooseUs />

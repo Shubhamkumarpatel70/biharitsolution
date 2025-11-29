@@ -1,17 +1,19 @@
 {
-  "dependencies": {
-    "cookie-parser": "^1.4.7",
-    "express-session": "^1.18.1",
-    "passport": "^0.7.0",
-    "passport-google-oauth20": "^2.0.0",
-    "qrcode.react": "^3.1.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+  "name": "custom-web",
+  "version": "1.0.0",
+  "description": "Custom Web Application - Full Stack",
+  "scripts": {
+    "install-all": "npm install && cd frontend && npm install && cd ../backend && npm install",
+    "build": "cd frontend && npm run build",
+    "start": "cd backend && node server.js",
+    "dev": "concurrently \"cd backend && npm run dev\" \"cd frontend && npm start\"",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm start"
   },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
   "devDependencies": {
-    "@tailwindcss/postcss": "^4.1.11",
-    "autoprefixer": "^10.4.16",
-    "postcss": "^8.4.38",
-    "tailwindcss": "^3.4.1"
+    "concurrently": "^8.2.2"
   }
 }

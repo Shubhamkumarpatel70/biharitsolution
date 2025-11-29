@@ -110,6 +110,7 @@ app.use((req, res, next) => {
   const allowedOrigins = [
     'http://localhost:3000',
     'https://custom-web-frontend.onrender.com',
+    'https://custom-web-app.onrender.com',
     'https://capitalcove.me',
     'https://www.capitalcove.me'
   ];
@@ -223,6 +224,17 @@ mongoose.connection.on('disconnected', () => {
 const PORT = process.env.PORT || 5000;
 app.use('/api/auth', authRoutes);
 
+// Serve static files from React app in production
+if (process.env.NODE_ENV === 'production') {
+  const path = require('path');
+  app.use(express.static(path.join(__dirname, '../frontend/build')));
+  
+  // Serve React app for all non-API routes
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/build/index.html'));
+  });
+}
+
 // Protected user dashboard route with caching
 app.get('/api/dashboard', authMiddleware, async (req, res) => {
   try {
@@ -257,7 +269,9 @@ const io = new Server(server, {
     origin: [
       'http://localhost:3000',
       'https://custom-web-frontend.onrender.com',
-      'https://capitalcove.me'
+      'https://custom-web-app.onrender.com',
+      'https://capitalcove.me',
+      'https://www.capitalcove.me'
     ],
     methods: ['GET', 'POST'],
     credentials: true

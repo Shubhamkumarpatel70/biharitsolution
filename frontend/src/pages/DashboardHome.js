@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useOutletContext, Link } from 'react-router-dom';
 import axios from '../axios';
-import './DashboardHome.css';
 
 const planDisplayNames = {
   starter: 'Starter',
@@ -22,7 +21,6 @@ const DashboardHome = () => {
   const [complaintsError, setComplaintsError] = useState('');
 
   useEffect(() => {
-    // Fetch subscriptions
     const fetchSubs = async () => {
       setSubsLoading(true);
       setSubsError('');
@@ -37,7 +35,6 @@ const DashboardHome = () => {
       }
       setSubsLoading(false);
     };
-    // Fetch notifications
     const fetchNotifs = async () => {
       setNotifLoading(true);
       setNotifError('');
@@ -52,7 +49,6 @@ const DashboardHome = () => {
       }
       setNotifLoading(false);
     };
-    // Fetch complaints
     const fetchComplaints = async () => {
       setComplaintsLoading(true);
       setComplaintsError('');
@@ -72,7 +68,6 @@ const DashboardHome = () => {
     fetchComplaints();
   }, []);
 
-  // Current subscription logic
   let current = null;
   if (subs.length > 0) {
     current = subs.find(s => s.status === 'active' || s.status === 'pending') || subs[0];
@@ -81,132 +76,154 @@ const DashboardHome = () => {
   const isExpired = current && current.expiresAt && new Date(current.expiresAt) < new Date();
 
   return (
-    <div className="dashboard-home">
-      {/* Profile Overview */}
-      <section className="profile-widget">
-        <div className="profile-card">
-          <div className="profile-main">
-            <div className="profile-avatar">
-              <span>{(user?.name || 'U').split(' ').map(n => n[0]).join('')}</span>
-            </div>
-            <div className="profile-info">
-              <h2 className="profile-name">{user?.name || 'User'}</h2>
-              <div className="profile-meta">
-                <span className="meta-item">{user?.email || 'N/A'}</span>
-                <span className="meta-sep">•</span>
-                <span className="meta-item">{user?.role || 'User'}</span>
-              </div>
-            </div>
-          </div>
-          <div className="profile-actions">
-            <Link to="/dashboard/subscription" className="profile-action">
-              <span className="action-icon">💳</span>
-              <span>Manage Plan</span>
-            </Link>
-            <Link to="/dashboard/purchases" className="profile-action">
-              <span className="action-icon">🛒</span>
-              <span>Purchases</span>
-            </Link>
-            <Link to="/dashboard/notifications" className="profile-action">
-              <span className="action-icon">🔔</span>
-              <span>Notifications</span>
-            </Link>
-            <Link to="/dashboard/support" className="profile-action">
-              <span className="action-icon">💬</span>
-              <span>Support</span>
-            </Link>
-          </div>
-        </div>
-      </section>
-
+    <div className="max-w-7xl mx-auto space-y-6 pb-20 lg:pb-6">
       {/* Welcome Header */}
-      <div className="welcome-header">
-        <h1 className="welcome-title">
-          Welcome back, <span className="user-name">{user?.name || 'User'}</span>!
+      <div className="bg-gradient-primary rounded-2xl p-6 md:p-8 text-white">
+        <h1 className="text-2xl md:text-3xl font-black mb-2">
+          Welcome back, <span className="text-accent-500">{user?.name || 'User'}</span>!
         </h1>
-        <p className="welcome-subtitle">
+        <p className="text-white/90 text-sm md:text-base">
           Here's an overview of your account and recent activity
         </p>
       </div>
 
-      {/* User Info Cards */}
-      <div className="user-info-grid">
-        <div className="info-card">
-          <div className="info-icon">👤</div>
-          <div className="info-content">
-            <h3>Your Role</h3>
-            <p>{user?.role || 'User'}</p>
+      {/* Profile Card */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-md overflow-hidden">
+        <div className="p-6 border-b border-gray-200">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <div className="w-16 h-16 bg-gradient-accent rounded-xl flex items-center justify-center text-2xl font-black text-primary-900">
+              {user?.name ? user.name.split(' ').map(n => n[0]).join('') : 'U'}
+            </div>
+            <div className="flex-1">
+              <h2 className="text-xl font-bold text-primary-600 mb-1">{user?.name || 'User'}</h2>
+              <div className="flex flex-wrap gap-2 text-sm text-text-muted">
+                <span>{user?.email || 'N/A'}</span>
+                <span>•</span>
+                <span>{user?.role || 'User'}</span>
+              </div>
+            </div>
           </div>
         </div>
-        <div className="info-card">
-          <div className="info-icon">📧</div>
-          <div className="info-content">
-            <h3>Email</h3>
-            <p>{user?.email || 'N/A'}</p>
+        <div className="p-6 grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <Link to="/dashboard/subscription" className="flex flex-col items-center p-4 rounded-xl hover:bg-gray-light transition-colors">
+            <span className="text-2xl mb-2">💳</span>
+            <span className="text-sm font-medium text-text-main">Manage Plan</span>
+          </Link>
+          <Link to="/dashboard/purchases" className="flex flex-col items-center p-4 rounded-xl hover:bg-gray-light transition-colors">
+            <span className="text-2xl mb-2">🛒</span>
+            <span className="text-sm font-medium text-text-main">Purchases</span>
+          </Link>
+          <Link to="/dashboard/notifications" className="flex flex-col items-center p-4 rounded-xl hover:bg-gray-light transition-colors">
+            <span className="text-2xl mb-2">🔔</span>
+            <span className="text-sm font-medium text-text-main">Notifications</span>
+          </Link>
+          <Link to="/dashboard/support" className="flex flex-col items-center p-4 rounded-xl hover:bg-gray-light transition-colors">
+            <span className="text-2xl mb-2">💬</span>
+            <span className="text-sm font-medium text-text-main">Support</span>
+          </Link>
+        </div>
+      </div>
+
+      {/* Info Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6">
+        <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-md">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-primary-500/10 rounded-xl flex items-center justify-center text-2xl">
+              👤
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-text-muted mb-1">Your Role</h3>
+              <p className="text-lg font-bold text-text-main">{user?.role || 'User'}</p>
+            </div>
           </div>
         </div>
-        <div className="info-card">
-          <div className="info-icon">📅</div>
-          <div className="info-content">
-            <h3>Member Since</h3>
-            <p>{user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}</p>
+        <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-md">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-accent-500/10 rounded-xl flex items-center justify-center text-2xl">
+              📧
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-text-muted mb-1">Email</h3>
+              <p className="text-lg font-bold text-text-main truncate">{user?.email || 'N/A'}</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-md">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-secondary-500/10 rounded-xl flex items-center justify-center text-2xl">
+              📅
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-text-muted mb-1">Member Since</h3>
+              <p className="text-lg font-bold text-text-main">
+                {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
+              </p>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Main Widgets */}
-      <div className="widgets-grid">
+      {/* Main Widgets Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Subscription Widget */}
-        <div className="widget subscription-widget">
-          <div className="widget-header">
-            <h2>Current Plan</h2>
-            <div className="widget-icon">💳</div>
+        <div className="bg-white rounded-xl border border-gray-200 shadow-md overflow-hidden">
+          <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+            <h2 className="text-xl font-bold text-primary-600">Current Plan</h2>
+            <span className="text-2xl">💳</span>
           </div>
-          <div className="widget-content">
+          <div className="p-6">
             {subsLoading ? (
-              <div className="loading-state">
-                <div className="loading-spinner"></div>
-                <p>Loading subscription...</p>
+              <div className="text-center py-8">
+                <div className="w-12 h-12 border-4 border-accent-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                <p className="text-text-muted">Loading subscription...</p>
               </div>
             ) : subsError ? (
-              <div className="error-state">
-                <p>{subsError}</p>
-              </div>
+              <div className="text-center py-8 text-danger-500">{subsError}</div>
             ) : !current ? (
-              <div className="empty-state">
-                <p>No active plan</p>
-                <Link to="/plans" className="btn btn-primary">
+              <div className="text-center py-8">
+                <p className="text-text-muted mb-4">No active plan</p>
+                <Link to="/plans" className="btn btn-primary inline-block">
                   Choose a Plan
                 </Link>
               </div>
             ) : (
-              <div className="subscription-details">
-                <div className="plan-info">
-                  <div className="plan-name">{planDisplayNames[current.plan]}</div>
-                  <div className={`plan-status ${current.status}`}>
-                    {current.status}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-2xl font-bold text-primary-600 mb-1">
+                      {planDisplayNames[current.plan] || current.plan}
+                    </div>
+                    <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
+                      current.status === 'active' 
+                        ? 'bg-success-500/20 text-success-600' 
+                        : current.status === 'pending'
+                        ? 'bg-warning-500/20 text-warning-600'
+                        : 'bg-danger-500/20 text-danger-600'
+                    }`}>
+                      {current.status}
+                    </span>
                   </div>
                 </div>
-                <div className="plan-details">
-                  <div className="detail-item">
-                    <span className="detail-label">Expires:</span>
-                    <span className="detail-value">
+                <div className="space-y-2 pt-4 border-t border-gray-200">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-text-muted">Expires:</span>
+                    <span className="font-medium text-text-main">
                       {current.expiresAt ? new Date(current.expiresAt).toLocaleDateString() : 'N/A'}
                     </span>
                   </div>
                   {daysLeft !== null && !isExpired && (
-                    <div className="detail-item">
-                      <span className="detail-label">Days left:</span>
-                      <span className="detail-value days-left">{daysLeft}</span>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-text-muted">Days left:</span>
+                      <span className="font-bold text-accent-500">{daysLeft}</span>
                     </div>
                   )}
                   {isExpired && (
-                    <div className="expired-notice">
+                    <div className="text-center py-2 bg-danger-500/10 text-danger-600 rounded-lg text-sm font-semibold">
                       Plan Expired
                     </div>
                   )}
                 </div>
-                <Link to="/dashboard/subscription" className="widget-action">
+                <Link to="/dashboard/subscription" className="block text-center py-2 text-accent-500 hover:text-accent-600 font-semibold transition-colors">
                   Manage Plan →
                 </Link>
               </div>
@@ -215,119 +232,151 @@ const DashboardHome = () => {
         </div>
 
         {/* Notifications Widget */}
-        <div className="widget notifications-widget">
-          <div className="widget-header">
-            <h2>Recent Notifications</h2>
-            <div className="widget-icon">🔔</div>
+        <div className="bg-white rounded-xl border border-gray-200 shadow-md overflow-hidden">
+          <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+            <h2 className="text-xl font-bold text-primary-600">Recent Notifications</h2>
+            <span className="text-2xl">🔔</span>
           </div>
-          <div className="widget-content">
+          <div className="p-6">
             {notifLoading ? (
-              <div className="loading-state">
-                <div className="loading-spinner"></div>
-                <p>Loading notifications...</p>
+              <div className="text-center py-8">
+                <div className="w-12 h-12 border-4 border-accent-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                <p className="text-text-muted">Loading notifications...</p>
               </div>
             ) : notifError ? (
-              <div className="error-state">
-                <p>{notifError}</p>
-              </div>
+              <div className="text-center py-8 text-danger-500">{notifError}</div>
             ) : notifications.length === 0 ? (
-              <div className="empty-state">
-                <p>No notifications</p>
-              </div>
+              <div className="text-center py-8 text-text-muted">No notifications</div>
             ) : (
-              <div className="notifications-list">
+              <div className="space-y-4">
                 {notifications.slice(0, 3).map(n => (
-                  <div key={n._id} className={`notification-item ${n.read ? 'read' : 'unread'}`}>
-                    <div className="notification-content">
-                      <h4>{n.title || 'Notification'}</h4>
-                      <p>{n.message}</p>
-                      <span className="notification-date">
-                        {new Date(n.createdAt).toLocaleDateString()}
-                      </span>
+                  <div key={n._id} className={`p-4 rounded-xl border ${
+                    n.read ? 'bg-gray-light border-gray-200' : 'bg-accent-500/5 border-accent-500/20'
+                  }`}>
+                    <div className="flex items-start gap-3">
+                      {!n.read && <div className="w-2 h-2 bg-accent-500 rounded-full mt-2 flex-shrink-0"></div>}
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold text-text-main mb-1">{n.title || 'Notification'}</h4>
+                        <p className="text-sm text-text-muted mb-2">{n.message}</p>
+                        <span className="text-xs text-text-muted">
+                          {new Date(n.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
                     </div>
-                    {!n.read && <div className="unread-indicator"></div>}
                   </div>
                 ))}
-                <Link to="/dashboard/notifications" className="widget-action">
+                <Link to="/dashboard/notifications" className="block text-center py-2 text-accent-500 hover:text-accent-600 font-semibold transition-colors">
                   View All →
                 </Link>
               </div>
             )}
           </div>
         </div>
+      </div>
 
-        {/* Complaints Widget */}
-        <div className="widget complaints-widget">
-          <div className="widget-header">
-            <h2>Your Complaints</h2>
-            <div className="widget-icon">📝</div>
-          </div>
-          <div className="widget-content">
-            {complaintsLoading ? (
-              <div className="loading-state">
-                <div className="loading-spinner"></div>
-                <p>Loading complaints...</p>
-              </div>
-            ) : complaintsError ? (
-              <div className="error-state">
-                <p>{complaintsError}</p>
-              </div>
-            ) : complaints.length === 0 ? (
-              <div className="empty-state">
-                <p>No complaints raised yet.</p>
-              </div>
-            ) : (
-              <div className="complaints-list">
-                {complaints.map(c => {
-                  console.log('DashboardHome complaint:', c);
-                  return (
-                    <div key={c._id} className="complaint-item">
-                      <div><b>Issue:</b> {c.message}</div>
-                      <div><b>Status:</b> <span style={{ color: c.status === 'resolved' ? '#2ECC71' : '#FF6B35' }}>{c.status}</span></div>
-                      {(c._id && (c.status === 'open' || c.reopenStatus === 'accepted')) ? (
-                        <Link to={`/support-chat/${c._id}`}>Continue Chat</Link>
-                      ) : null}
-                      {c.status === 'resolved' && c.reopenStatus !== 'pending' && c.reopenStatus !== 'accepted' ? (
-                        <button onClick={async () => {
-                          const token = localStorage.getItem('token');
-                          await axios.post(`/api/auth/complaints/${c._id}/reopen`, {}, { headers: { Authorization: `Bearer ${token}` } });
-                          setComplaints(complaints => complaints.map(cc => cc._id === c._id ? { ...cc, reopenStatus: 'pending' } : cc));
-                        }}>Reopen Chat</button>
-                      ) : null}
-                      {c.reopenStatus === 'pending' && <span style={{ color: '#FFA500', marginLeft: '1rem' }}>Reopen requested (awaiting admin)</span>}
-                      {c.reopenStatus === 'rejected' && <span style={{ color: '#FF6B35', marginLeft: '1rem' }}>Reopen rejected</span>}
+      {/* Complaints Widget */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-md overflow-hidden">
+        <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+          <h2 className="text-xl font-bold text-primary-600">Your Complaints</h2>
+          <span className="text-2xl">📝</span>
+        </div>
+        <div className="p-6">
+          {complaintsLoading ? (
+            <div className="text-center py-8">
+              <div className="w-12 h-12 border-4 border-accent-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+              <p className="text-text-muted">Loading complaints...</p>
+            </div>
+          ) : complaintsError ? (
+            <div className="text-center py-8 text-danger-500">{complaintsError}</div>
+          ) : complaints.length === 0 ? (
+            <div className="text-center py-8 text-text-muted">No complaints raised yet.</div>
+          ) : (
+            <div className="space-y-4">
+              {complaints.map(c => (
+                <div key={c._id} className="p-4 rounded-xl border border-gray-200 bg-gray-light">
+                  <div className="space-y-2">
+                    <div><b className="text-text-main">Issue:</b> <span className="text-text-muted">{c.message}</span></div>
+                    <div className="flex items-center gap-2">
+                      <b className="text-text-main">Status:</b>
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                        c.status === 'resolved' 
+                          ? 'bg-success-500/20 text-success-600' 
+                          : 'bg-warning-500/20 text-warning-600'
+                      }`}>
+                        {c.status}
+                      </span>
                     </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+                    <div className="flex flex-wrap gap-2 pt-2">
+                      {(c._id && (c.status === 'open' || c.reopenStatus === 'accepted')) && (
+                        <Link 
+                          to={`/support-chat/${c._id}`}
+                          className="px-4 py-2 bg-accent-500 text-white rounded-lg text-sm font-semibold hover:bg-accent-600 transition-colors"
+                        >
+                          Continue Chat
+                        </Link>
+                      )}
+                      {c.status === 'resolved' && c.reopenStatus !== 'pending' && c.reopenStatus !== 'accepted' && (
+                        <button 
+                          onClick={async () => {
+                            const token = localStorage.getItem('token');
+                            await axios.post(`/api/auth/complaints/${c._id}/reopen`, {}, { headers: { Authorization: `Bearer ${token}` } });
+                            setComplaints(complaints => complaints.map(cc => cc._id === c._id ? { ...cc, reopenStatus: 'pending' } : cc));
+                          }}
+                          className="px-4 py-2 bg-warning-500 text-white rounded-lg text-sm font-semibold hover:bg-warning-600 transition-colors"
+                        >
+                          Reopen Chat
+                        </button>
+                      )}
+                      {c.reopenStatus === 'pending' && (
+                        <span className="px-3 py-1 bg-warning-500/20 text-warning-600 rounded-lg text-xs font-semibold">
+                          Reopen requested (awaiting admin)
+                        </span>
+                      )}
+                      {c.reopenStatus === 'rejected' && (
+                        <span className="px-3 py-1 bg-danger-500/20 text-danger-600 rounded-lg text-xs font-semibold">
+                          Reopen rejected
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
       {/* Quick Actions */}
-      <div className="quick-actions">
-        <h2 className="section-title">Quick Actions</h2>
-        <div className="actions-grid">
-          <Link to="/dashboard/subscription" className="action-card">
-            <div className="action-icon">💳</div>
-            <h3>Subscription</h3>
-            <p>Manage your plan and billing</p>
+      <div className="bg-white rounded-xl border border-gray-200 shadow-md p-6">
+        <h2 className="text-xl font-bold text-primary-600 mb-6">Quick Actions</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Link to="/dashboard/subscription" className="flex flex-col items-center p-6 rounded-xl border border-gray-200 hover:border-accent-500 hover:bg-accent-500/5 transition-all duration-200 group">
+            <div className="w-14 h-14 bg-accent-500/10 rounded-xl flex items-center justify-center text-3xl mb-3 group-hover:scale-110 transition-transform">
+              💳
+            </div>
+            <h3 className="font-semibold text-text-main mb-1">Subscription</h3>
+            <p className="text-xs text-text-muted text-center">Manage your plan</p>
           </Link>
-          <Link to="/dashboard/purchases" className="action-card">
-            <div className="action-icon">🛒</div>
-            <h3>My Purchases</h3>
-            <p>View your order history</p>
+          <Link to="/dashboard/purchases" className="flex flex-col items-center p-6 rounded-xl border border-gray-200 hover:border-accent-500 hover:bg-accent-500/5 transition-all duration-200 group">
+            <div className="w-14 h-14 bg-accent-500/10 rounded-xl flex items-center justify-center text-3xl mb-3 group-hover:scale-110 transition-transform">
+              🛒
+            </div>
+            <h3 className="font-semibold text-text-main mb-1">My Purchases</h3>
+            <p className="text-xs text-text-muted text-center">View order history</p>
           </Link>
-          <Link to="/dashboard/support" className="action-card">
-            <div className="action-icon">💬</div>
-            <h3>Support</h3>
-            <p>Get help from our team</p>
+          <Link to="/dashboard/support" className="flex flex-col items-center p-6 rounded-xl border border-gray-200 hover:border-accent-500 hover:bg-accent-500/5 transition-all duration-200 group">
+            <div className="w-14 h-14 bg-accent-500/10 rounded-xl flex items-center justify-center text-3xl mb-3 group-hover:scale-110 transition-transform">
+              💬
+            </div>
+            <h3 className="font-semibold text-text-main mb-1">Support</h3>
+            <p className="text-xs text-text-muted text-center">Get help</p>
           </Link>
-          <Link to="/plans" className="action-card">
-            <div className="action-icon">📋</div>
-            <h3>Browse Plans</h3>
-            <p>Explore our service plans</p>
+          <Link to="/plans" className="flex flex-col items-center p-6 rounded-xl border border-gray-200 hover:border-accent-500 hover:bg-accent-500/5 transition-all duration-200 group">
+            <div className="w-14 h-14 bg-accent-500/10 rounded-xl flex items-center justify-center text-3xl mb-3 group-hover:scale-110 transition-transform">
+              📋
+            </div>
+            <h3 className="font-semibold text-text-main mb-1">Browse Plans</h3>
+            <p className="text-xs text-text-muted text-center">Explore services</p>
           </Link>
         </div>
       </div>
@@ -335,4 +384,4 @@ const DashboardHome = () => {
   );
 };
 
-export default DashboardHome; 
+export default DashboardHome;

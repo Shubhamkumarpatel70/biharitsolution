@@ -22,6 +22,8 @@ const Payment = () => {
   const [paymentMethod, setPaymentMethod] = useState('upi');
   const [paymentOptions, setPaymentOptions] = useState([]);
   const [selectedPaymentOption, setSelectedPaymentOption] = useState(null);
+  const [paymentImage, setPaymentImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -106,9 +108,31 @@ const Payment = () => {
     setApplyingCoupon(false);
   };
 
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        setError('Image size should be less than 5MB');
+        return;
+      }
+      setPaymentImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+      setError('');
+    }
+  };
+
   const handlePayment = async () => {
     if (!transactionId) {
       setError('Please enter your transaction ID.');
+      return;
+    }
+    
+    if (!paymentImage) {
+      setError('Please upload payment screenshot/receipt.');
       return;
     }
     
@@ -125,15 +149,24 @@ const Payment = () => {
       if (coupon && discount > 0) {
         await axios.post('/api/auth/coupons/apply', { code: coupon, use: true }, { headers: { Authorization: `Bearer ${token}` } });
       }
-              const res = await axios.post(
-          '/api/auth/subscribe', 
-          { 
-            plan: planObj.name, 
-            transactionId, 
-            method: paymentMethod 
-          }, 
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+      
+      // Create FormData to send image
+      const formData = new FormData();
+      formData.append('plan', planObj.name);
+      formData.append('transactionId', transactionId);
+      formData.append('method', paymentMethod);
+      formData.append('paymentImage', paymentImage);
+      
+      const res = await axios.post(
+        '/api/auth/subscribe', 
+        formData, 
+        { 
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data'
+          } 
+        }
+      );
       setSubscription(res.data.subscription);
       setStatus('success');
     } catch (err) {
@@ -387,7 +420,7 @@ const Payment = () => {
                 </>
               )}
               
-              <div>
+              <div className="mb-4">
                 <label htmlFor="transactionId" className="block text-gray-400 text-sm mb-1">
                   Transaction/Reference ID
                 </label>
@@ -403,13 +436,41 @@ const Payment = () => {
                   After successful payment, enter the transaction ID from your confirmation.
                 </p>
               </div>
+              
+              {/* Payment Image Upload */}
+              <div>
+                <label htmlFor="paymentImage" className="block text-gray-400 text-sm mb-1">
+                  Payment Screenshot/Receipt <span className="text-red-400">*</span>
+                </label>
+                <input
+                  id="paymentImage"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="w-full bg-gray-800 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-500 file:text-gray-900 hover:file:bg-emerald-600"
+                  required
+                />
+                <p className="text-gray-500 text-xs mt-1">
+                  Upload screenshot or receipt of your payment confirmation (Required, Max 5MB)
+                </p>
+                {imagePreview && (
+                  <div className="mt-3">
+                    <p className="text-gray-400 text-sm mb-2">Preview:</p>
+                    <img 
+                      src={imagePreview} 
+                      alt="Payment preview" 
+                      className="max-w-full h-32 object-contain bg-gray-800 rounded-lg border border-gray-600 p-2"
+                    />
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Submit Button */}
             <button
               onClick={handlePayment}
               className="w-full bg-emerald-500 hover:bg-emerald-600 text-gray-900 font-bold py-3 px-4 rounded-lg transition-colors shadow-lg"
-              disabled={!transactionId || status === 'processing'}
+              disabled={!transactionId || !paymentImage || status === 'processing'}
             >
               {status === 'processing' ? 'Processing...' : 'Confirm Payment'}
             </button>

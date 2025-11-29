@@ -482,19 +482,21 @@
 }
 
 .complaint-item button {
-  background: #667eea;
+  background: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #06b6d4 100%);
   color: #ffffff;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   padding: 0.5rem 1rem;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
 }
 
 .complaint-item button:hover {
-  background: #5a67d8;
-  transform: translateY(-1px);
+  background: linear-gradient(135deg, #818cf8 0%, #c084fc 50%, #22d3ee 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
 }
 
 /* Quick Actions */

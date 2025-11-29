@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import axios from '../axios';
-import './Footer.css';
 
 const Footer = () => {
   const [email, setEmail] = useState('');
@@ -20,7 +19,6 @@ const Footer = () => {
     setNewsletterMsg('');
 
     try {
-      // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       if (subscribeOption === 'subscribe') {
@@ -39,186 +37,217 @@ const Footer = () => {
 
   const currentYear = new Date().getFullYear();
 
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
   return (
-    <footer className="footer">
-
-      <div className="footer-background">
-        <div className="footer-gradient"></div>
-        <div className="footer-pattern"></div>
+    <footer className="relative bg-primary-600 text-white overflow-hidden">
+      {/* Background Pattern */}
+      <div className="absolute inset-0 opacity-10">
+        <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-accent-500/20 to-accent-600/10"></div>
       </div>
 
-      <div className="footer-content">
-
-
-        <div className="container">
-          <div className="footer-grid">
-            {/* Company Info */}
-            <div className="footer-section company-info">
-              <div className="footer-logo" title="Bihar IT Solution">
-                <span className="logo-icon">🌐</span>
-                <span className="logo-text">BIS</span>
-              </div>
-              <p className="company-description">
-                We create amazing digital experiences with modern web technologies. 
-                From responsive websites to custom applications, we help businesses 
-                grow online with innovative solutions.
-              </p>
-              <div className="social-links" aria-label="Social media links">
-                <a href="#" className="social-link" aria-label="Facebook" title="Facebook">
-                  <span>📘</span>
-                </a>
-                <a href="#" className="social-link" aria-label="Twitter" title="Twitter/X">
-                  <span>🐦</span>
-                </a>
-                <a href="#" className="social-link" aria-label="LinkedIn" title="LinkedIn">
-                  <span>💼</span>
-                </a>
-                <a href="#" className="social-link" aria-label="Instagram" title="Instagram">
-                  <span>📷</span>
-                </a>
-                <a href="#" className="social-link" aria-label="GitHub" title="GitHub">
-                  <span>🐙</span>
-                </a>
-              </div>
+      <div className="container relative z-10 py-12 md:py-16">
+        {/* Main Footer Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-10 mb-12">
+          {/* Company Info */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 mb-4" title="Bihar IT Solution">
+              <span className="text-2xl">🌐</span>
+              <span className="text-2xl font-black bg-gradient-accent bg-clip-text text-transparent">BIS</span>
             </div>
-
-            {/* Quick Links */}
-            <div className="footer-section">
-              <h3 className="footer-title">Quick Links</h3>
-              <ul className="footer-links">
-                <li><Link to="/" className="footer-link">Home</Link></li>
-                <li><Link to="/about" className="footer-link">About Us</Link></li>
-                <li><Link to="/services" className="footer-link">Our Services</Link></li>
-                <li><Link to="/features" className="footer-link">Features</Link></li>
-                <li><Link to="/team" className="footer-link">Our Team</Link></li>
-                <li><Link to="/plans" className="footer-link">Pricing Plans</Link></li>
-                <li><Link to="/contact" className="footer-link">Contact Us</Link></li>
-              </ul>
-            </div>
-
-            {/* Services */}
-            <div className="footer-section">
-              <h3 className="footer-title">Our Services</h3>
-              <ul className="footer-links">
-                <li><Link to="/services" className="footer-link">Web Design & Development</Link></li>
-                <li><Link to="/services" className="footer-link">E-commerce Solutions</Link></li>
-                <li><Link to="/services" className="footer-link">Custom Web Applications</Link></li>
-                <li><Link to="/services" className="footer-link">Mobile-First Design</Link></li>
-                <li><Link to="/services" className="footer-link">SEO Optimization</Link></li>
-                <li><Link to="/services" className="footer-link">24/7 Support & Maintenance</Link></li>
-                <li><Link to="/services" className="footer-link">Performance Optimization</Link></li>
-              </ul>
-            </div>
-
-            {/* Contact Info */}
-            <div className="footer-section">
-              <h3 className="footer-title">Contact Info</h3>
-              <div className="contact-info">
-                <div className="contact-item">
-                  <span className="contact-icon">📍</span>
-                  <div className="contact-details">
-                    <span className="contact-label">Address</span>
-                    <span className="contact-value">Bihar, Patna, India</span>
-                  </div>
-                </div>
-                <div className="contact-item">
-                  <span className="contact-icon">📧</span>
-                  <div className="contact-details">
-                    <span className="contact-label">Email</span>
-                    <a href="mailto:official.customweb@gmail.com" className="contact-value">official.customweb@gmail.com</a>
-                  </div>
-                </div>
-                <div className="contact-item">
-                  <span className="contact-icon">📞</span>
-                  <div className="contact-details">
-                    <span className="contact-label">Phone</span>
-                    <a href="tel:+919876543210" className="contact-value">+91 9027880288</a>
-                  </div>
-                </div>
-                <div className="contact-item">
-                  <span className="contact-icon">🕒</span>
-                  <div className="contact-details">
-                    <span className="contact-label">Working Hours</span>
-                    <span className="contact-value">Mon - Fri: 11AM - 4PM</span>
-                  </div>
-                </div>
-              </div>
+            <p className="text-white/80 text-sm leading-relaxed">
+              We create amazing digital experiences with modern web technologies. 
+              From responsive websites to custom applications, we help businesses 
+              grow online with innovative solutions.
+            </p>
+            <div className="flex gap-3 pt-2" aria-label="Social media links">
+              {[
+                { icon: '📘', label: 'Facebook' },
+                { icon: '🐦', label: 'Twitter/X' },
+                { icon: '💼', label: 'LinkedIn' },
+                { icon: '📷', label: 'Instagram' },
+                { icon: '🐙', label: 'GitHub' }
+              ].map((social) => (
+                <a 
+                  key={social.label}
+                  href="#" 
+                  className="w-10 h-10 flex items-center justify-center bg-white/10 hover:bg-accent-500 rounded-lg transition-all duration-300 hover:scale-110 hover:shadow-gold"
+                  aria-label={social.label}
+                  title={social.label}
+                >
+                  <span className="text-lg">{social.icon}</span>
+                </a>
+              ))}
             </div>
           </div>
 
-          {/* Newsletter Section */}
-          <div className="newsletter-section">
-            <div className="newsletter-content">
-              <div className="newsletter-text">
-                <h3 className="newsletter-title">Stay Updated</h3>
-                <p className="newsletter-description">
-                  Subscribe to our newsletter for the latest updates, tips, and insights 
-                  about web development and digital solutions.
-                </p>
-              </div>
-              <form onSubmit={handleNewsletterSubmit} className="newsletter-form">
-                <div className="input-group">
-                  <input
-                    type="email"
-                    placeholder="Enter your email address"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="newsletter-input"
-                    required
-                    aria-label="Enter your email address"
-                    />
-                  <button type="submit" className="newsletter-btn" disabled={isSubmitting}>
-                    {isSubmitting ? (
-                      <span className="spinner" aria-label="Loading" role="status"></span>
+          {/* Quick Links */}
+          <div>
+            <h3 className="text-lg font-bold mb-4 text-accent-500">Quick Links</h3>
+            <ul className="space-y-2">
+              {[
+                { to: '/', label: 'Home' },
+                { to: '/about', label: 'About Us' },
+                { to: '/services', label: 'Our Services' },
+                { to: '/features', label: 'Features' },
+                { to: '/team', label: 'Our Team' },
+                { to: '/plans', label: 'Pricing Plans' },
+                { to: '/contact', label: 'Contact Us' }
+              ].map((link) => (
+                <li key={link.to}>
+                  <Link 
+                    to={link.to} 
+                    className="text-white/80 hover:text-accent-500 transition-colors duration-300 text-sm block py-1"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Services */}
+          <div>
+            <h3 className="text-lg font-bold mb-4 text-accent-500">Our Services</h3>
+            <ul className="space-y-2">
+              {[
+                'Web Design & Development',
+                'E-commerce Solutions',
+                'Custom Web Applications',
+                'Mobile-First Design',
+                'SEO Optimization',
+                '24/7 Support & Maintenance',
+                'Performance Optimization'
+              ].map((service) => (
+                <li key={service}>
+                  <Link 
+                    to="/services" 
+                    className="text-white/80 hover:text-accent-500 transition-colors duration-300 text-sm block py-1"
+                  >
+                    {service}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Contact Info */}
+          <div>
+            <h3 className="text-lg font-bold mb-4 text-accent-500">Contact Info</h3>
+            <div className="space-y-4">
+              {[
+                { icon: '📍', label: 'Address', value: 'Bihar, Patna, India' },
+                { icon: '📧', label: 'Email', value: 'official.customweb@gmail.com', link: 'mailto:official.customweb@gmail.com' },
+                { icon: '📞', label: 'Phone', value: '+91 9027880288', link: 'tel:+919027880288' },
+                { icon: '🕒', label: 'Working Hours', value: 'Mon - Fri: 11AM - 4PM' }
+              ].map((item, idx) => (
+                <div key={idx} className="flex gap-3">
+                  <span className="text-xl flex-shrink-0">{item.icon}</span>
+                  <div className="flex flex-col">
+                    <span className="text-xs text-white/60 uppercase tracking-wide mb-1">{item.label}</span>
+                    {item.link ? (
+                      <a 
+                        href={item.link} 
+                        className="text-white/80 hover:text-accent-500 transition-colors duration-300 text-sm"
+                      >
+                        {item.value}
+                      </a>
                     ) : (
-                      <span>Subscribe</span>
+                      <span className="text-white/80 text-sm">{item.value}</span>
                     )}
-                  </button>
-                </div>
-                <div className="newsletter-options" aria-label="Subscription options">
-                  <label className="radio-option">
-                    <input
-                      type="radio"
-                      name="subscribeOption"
-                      value="subscribe"
-                      checked={subscribeOption === 'subscribe'}
-                      onChange={(e) => setSubscribeOption(e.target.value)}
-                      aria-label="Subscribe to our newsletter"
-                    />
-                    <span className="radio-custom"></span>
-                    <span>Subscribe</span>
-                  </label>
-                  <label className="radio-option">
-                    <input
-                      type="radio"
-                      name="subscribeOption"
-                      value="unsubscribe"
-                      checked={subscribeOption === 'unsubscribe'}
-                      onChange={(e) => setSubscribeOption(e.target.value)}
-                      aria-label="Unsubscribe from our newsletter"
-                    />
-                    <span className="radio-custom"></span>
-                    <span>Unsubscribe</span>
-                  </label>
-                </div>
-                {newsletterMsg && (
-                  <div className={`newsletter-message ${newsletterMsg.includes('Thank you') || newsletterMsg.includes('unsubscribed') ? 'success' : 'error'}`} role="status" aria-live="polite">
-                    {newsletterMsg}
                   </div>
-                )}
-              </form>
+                </div>
+              ))}
             </div>
           </div>
-
         </div>
 
-      </div>
+        {/* Newsletter Section */}
+        <div className="border-t border-white/10 pt-8 md:pt-12">
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center mb-6">
+              <h3 className="text-2xl md:text-3xl font-bold mb-2 text-accent-500">Stay Updated</h3>
+              <p className="text-white/80 text-sm md:text-base">
+                Subscribe to our newsletter for the latest updates, tips, and insights 
+                about web development and digital solutions.
+              </p>
+            </div>
+            <form onSubmit={handleNewsletterSubmit} className="space-y-4">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <input
+                  type="email"
+                  placeholder="Enter your email address"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="flex-1 px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-accent-500 focus:ring-2 focus:ring-accent-500/50 transition-all duration-300"
+                  required
+                  aria-label="Enter your email address"
+                />
+                <button 
+                  type="submit" 
+                  className="btn btn-primary px-6 py-3 whitespace-nowrap"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <span className="flex items-center gap-2" aria-label="Loading" role="status">
+                      <span className="w-4 h-4 border-2 border-primary-900 border-t-transparent rounded-full animate-spin"></span>
+                      Subscribing...
+                    </span>
+                  ) : (
+                    <span>Subscribe</span>
+                  )}
+                </button>
+              </div>
+              <div className="flex gap-4 justify-center" aria-label="Subscription options">
+                <label className="flex items-center gap-2 cursor-pointer text-sm">
+                  <input
+                    type="radio"
+                    name="subscribeOption"
+                    value="subscribe"
+                    checked={subscribeOption === 'subscribe'}
+                    onChange={(e) => setSubscribeOption(e.target.value)}
+                    className="w-4 h-4 text-accent-500 focus:ring-accent-500"
+                    aria-label="Subscribe to our newsletter"
+                  />
+                  <span>Subscribe</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer text-sm">
+                  <input
+                    type="radio"
+                    name="subscribeOption"
+                    value="unsubscribe"
+                    checked={subscribeOption === 'unsubscribe'}
+                    onChange={(e) => setSubscribeOption(e.target.value)}
+                    className="w-4 h-4 text-accent-500 focus:ring-accent-500"
+                    aria-label="Unsubscribe from our newsletter"
+                  />
+                  <span>Unsubscribe</span>
+                </label>
+              </div>
+              {newsletterMsg && (
+                <div 
+                  className={`text-center py-3 px-4 rounded-lg ${
+                    newsletterMsg.includes('Thank you') || newsletterMsg.includes('unsubscribed')
+                      ? 'bg-success-500/20 text-success-400 border border-success-500/30'
+                      : 'bg-danger-500/20 text-danger-400 border border-danger-500/30'
+                  }`}
+                  role="status" 
+                  aria-live="polite"
+                >
+                  {newsletterMsg}
+                </div>
+              )}
+            </form>
+          </div>
+        </div>
 
+        {/* Copyright */}
+        <div className="border-t border-white/10 mt-8 pt-6 text-center">
+          <p className="text-white/60 text-sm">
+            © {currentYear} Bihar IT Solution. All rights reserved.
+          </p>
+        </div>
+      </div>
     </footer>
   );
 };
+
 export default Footer;

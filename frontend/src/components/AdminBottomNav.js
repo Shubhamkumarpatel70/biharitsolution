@@ -8,75 +8,37 @@ const AdminBottomNav = ({ activeTab, setActiveTab }) => {
     localStorage.removeItem('token');
     navigate('/login');
   };
+  
   return (
-    <nav className="admin-bottom-nav">
-      {adminNavItems.slice(0, 4).map(item => (
-        <button
-          key={item.id}
-          onClick={() => setActiveTab(item.id)}
-          className={`admin-bottom-nav-link ${activeTab === item.id ? 'active' : ''}`}
+    <nav className="fixed bottom-0 left-0 right-0 bg-gray-800 border-t border-gray-700 z-50 lg:hidden">
+      <div className="flex items-center justify-around h-16">
+        {adminNavItems.slice(0, 4).map(item => (
+          <button
+            key={item.id}
+            onClick={() => setActiveTab(item.id)}
+            className={`
+              flex flex-col items-center justify-center flex-1 h-full
+              transition-colors duration-200
+              ${activeTab === item.id 
+                ? 'text-success-500 bg-success-500/10' 
+                : 'text-gray-400 hover:text-gray-300'
+              }
+            `}
+          >
+            <span className="text-xl mb-1">{item.icon}</span>
+            <span className="text-xs font-medium">{item.label}</span>
+          </button>
+        ))}
+        <button 
+          onClick={handleLogout}
+          className="flex flex-col items-center justify-center flex-1 h-full text-danger-400 hover:text-danger-500 transition-colors duration-200"
         >
-          <span className="icon">{item.icon}</span>
-          <span className="label">{item.label}</span>
+          <span className="text-xl mb-1">🚪</span>
+          <span className="text-xs font-medium">Logout</span>
         </button>
-      ))}
-      <button className="admin-bottom-nav-link logout" onClick={handleLogout}>
-        <span className="icon">🚪</span>
-        <span className="label">Logout</span>
-      </button>
-      <style>{`
-        .admin-bottom-nav {
-          display: none;
-        }
-        @media (max-width: 1024px) {
-          .admin-bottom-nav {
-            display: flex;
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 60px;
-            background: #23272F;
-            border-top: 1px solid rgba(46, 204, 113, 0.3);
-            z-index: 1200;
-            justify-content: space-around;
-            align-items: center;
-            box-shadow: 0 -2px 12px rgba(0,0,0,0.13);
-          }
-          .admin-bottom-nav-link {
-            background: none;
-            border: none;
-            color: #E5E7EB;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            font-size: 1rem;
-            font-weight: 600;
-            padding: 0.2rem 0.5rem;
-            border-radius: 0.7rem;
-            transition: background 0.18s, color 0.18s;
-            text-decoration: none;
-            min-width: 48px;
-          }
-          .admin-bottom-nav-link .icon {
-            font-size: 1.2rem;
-            margin-bottom: 2px;
-          }
-          .admin-bottom-nav-link .label {
-            font-size: 0.7rem;
-          }
-          .admin-bottom-nav-link.active {
-            color: #2ECC71;
-            background: rgba(46,204,113,0.10);
-          }
-          .admin-bottom-nav-link.logout {
-            color: #FF6B35;
-          }
-        }
-      `}</style>
+      </div>
     </nav>
   );
 };
 
-export default AdminBottomNav; 
+export default AdminBottomNav;

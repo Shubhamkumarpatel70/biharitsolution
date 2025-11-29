@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import './Services.css';
 
 function Services() {
   const [isVisible, setIsVisible] = useState(false);
@@ -32,8 +31,8 @@ function Services() {
   }, []);
 
   return (
-    <div className="services-page">
-      <section className="services-section">
+    <div className="min-h-screen bg-gray-light text-text-main pt-24">
+      <section className="services-section py-16 md:py-24">
         <div className="container">
           {/* Section Header */}
           <div className="section-header">
@@ -43,30 +42,52 @@ function Services() {
             </p>
           </div>
 
-          {/* Mini Services - Quick Overview */}
-          <div className="mini-services">
-            <div className="mini-services-grid">
-              {miniServices.map((item, idx) => (
-                <div
-                  key={item.title}
-                  className={`mini-card ${isVisible ? 'animate-in' : ''}`}
-                  style={{ animationDelay: `${idx * 0.06}s` }}
+          {/* Services Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+            {miniServices.map((item, idx) => (
+              <div
+                key={item.title}
+                className={`group relative bg-white rounded-xl p-4 md:p-5 border border-gray-200 shadow-md transition-all duration-300 hover:bg-white hover:border-accent-500/50 hover:-translate-y-1 hover:shadow-gold-hover ${
+                  isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+                }`}
+                style={{ 
+                  animationDelay: `${idx * 0.06}s`,
+                  transitionDelay: `${idx * 0.06}s`
+                }}
+              >
+                {/* Icon */}
+                <div 
+                  className="w-12 h-12 md:w-14 md:h-14 rounded-xl flex items-center justify-center text-2xl md:text-3xl mb-3 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3"
+                  style={{ 
+                    background: `${item.color}20`, 
+                    color: item.color 
+                  }}
                 >
-                  <span
-                    className="mini-icon"
-                    style={{ background: `${item.color}20`, color: item.color }}
-                  >
-                    {item.icon}
-                  </span>
-                  <span className="mini-text">
-                    <span className="mini-title">{item.title}</span>
-                    {item.price && (
-                      <span className="mini-price" style={{ color: item.color }}>{item.price}</span>
-                    )}
-                  </span>
+                  {item.icon}
                 </div>
-              ))}
-            </div>
+
+                {/* Content */}
+                <div className="space-y-1">
+                  <h3 className="font-semibold text-sm md:text-base text-text-main group-hover:text-accent-500 transition-colors duration-300">
+                    {item.title}
+                  </h3>
+                  {item.price && (
+                    <p 
+                      className="text-xs md:text-sm font-medium"
+                      style={{ color: item.color }}
+                    >
+                      {item.price}
+                    </p>
+                  )}
+                </div>
+
+                {/* Hover Effect */}
+                <div 
+                  className="absolute bottom-0 left-0 right-0 h-1 rounded-b-xl transition-all duration-300 group-hover:h-1.5"
+                  style={{ background: item.color }}
+                ></div>
+              </div>
+            ))}
           </div>
         </div>
       </section>

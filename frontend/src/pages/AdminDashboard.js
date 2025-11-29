@@ -15,7 +15,6 @@ import AdminRenewalRequests from './AdminRenewalRequests';
 import AdminNewsletter from './AdminNewsletter';
 import AdminCoupons from './AdminCoupons';
 import AdminTeam from './AdminTeam';
-
 import AdminFeatures from './AdminFeatures';
 import AdminServices from './AdminServices';
 import AdminPaymentOptions from './AdminPaymentOptions';
@@ -24,6 +23,7 @@ const AdminDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('home');
   const navigate = useNavigate();
+  
   const handleLogout = () => {
     localStorage.removeItem('token');
     navigate('/login');
@@ -69,85 +69,54 @@ const AdminDashboard = () => {
   };
 
   return (
-    <div style={{ background: '#181A20', minHeight: '100vh', display: 'flex', flexDirection: 'row', position: 'relative' }}>
-      {/* Mobile menu button */}
+    <div className="min-h-screen bg-gray-900 flex">
+      {/* Mobile Sidebar Overlay */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        ></div>
+      )}
+
+      {/* Mobile Menu Button */}
       <button
-        onClick={() => setSidebarOpen(o => !o)}
-        style={{
-          position: 'fixed',
-          top: 18,
-          left: 18,
-          zIndex: 1001,
-          background: '#2ECC71',
-          color: '#181A20',
-          border: 'none',
-          borderRadius: '0.7rem',
-          padding: '0.7rem 1.2rem',
-          fontWeight: 700,
-          fontSize: '1.2rem',
-          display: 'none',
-        }}
-        className="dashboard-mobile-menu-btn"
+        onClick={() => setSidebarOpen(!sidebarOpen)}
+        className="lg:hidden fixed top-4 left-4 z-50 bg-success-500 text-gray-900 border-none rounded-xl px-4 py-2 font-bold text-lg shadow-lg hover:bg-success-600 transition-colors"
         aria-label="Open sidebar"
-      >☰</button>
+      >
+        ☰
+      </button>
+
       {/* Sidebar */}
-      <div
-        style={{
-          transition: 'left 0.3s',
-          position: 'fixed',
-          left: sidebarOpen ? 0 : -270,
-          top: 0,
-          height: '100vh',
-          zIndex: 1000,
-          background: '#23272F',
-          boxShadow: sidebarOpen ? '0 4px 24px rgba(0,0,0,0.13)' : 'none',
-          width: 250,
-          minWidth: 250,
-          maxWidth: 250,
-          display: 'block',
-        }}
-        className="dashboard-sidebar-mobile"
-      >
-        <AdminSidebar onLogout={handleLogout} activeTab={activeTab} setActiveTab={setActiveTab} />
-      </div>
-      {/* Desktop Sidebar */}
-      <div
-        style={{
-          display: 'block',
-          minWidth: 250,
-          maxWidth: 250,
-        }}
-        className="dashboard-sidebar-desktop"
-      >
-        <AdminSidebar onLogout={handleLogout} activeTab={activeTab} setActiveTab={setActiveTab} />
-      </div>
-      {/* Main content */}
-      <main style={{ marginLeft: 250, flex: 1, padding: '2.5rem 2rem', minHeight: '100vh', background: '#181A20', width: '100%' }}>
-        {renderContent()}
+      <aside className={`
+        fixed lg:static inset-y-0 left-0 z-50
+        transform transition-transform duration-300 ease-in-out
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+      `}>
+        <AdminSidebar 
+          onLogout={handleLogout} 
+          activeTab={activeTab} 
+          setActiveTab={setActiveTab}
+          onClose={() => setSidebarOpen(false)}
+        />
+      </aside>
+
+      {/* Main Content */}
+      <main className="flex-1 lg:ml-0 min-h-screen bg-gray-900">
+        {/* Mobile Header */}
+        <div className="lg:hidden bg-gray-800 border-b border-gray-700 px-4 py-3 flex items-center justify-between sticky top-0 z-30">
+          <h1 className="text-lg font-bold text-success-500">Admin Dashboard</h1>
+          <div className="w-10"></div>
+        </div>
+
+        {/* Dashboard Content */}
+        <div className="p-4 md:p-6 lg:p-8 lg:ml-0">
+          {renderContent()}
+        </div>
       </main>
-      <AdminBottomNav />
-      <style>{`
-        @media (max-width: 900px) {
-          .dashboard-sidebar-desktop { display: none !important; }
-          .dashboard-mobile-menu-btn { display: block !important; }
-          .dashboard-sidebar-mobile {
-            display: block !important;
-            left: ${sidebarOpen ? '0' : '-270px'} !important;
-            top: 0;
-            height: 100vh;
-            z-index: 1000;
-          }
-          main {
-            margin-left: 0 !important;
-            padding: 1.2rem 0.5rem !important;
-          }
-        }
-        @media (max-width: 600px) {
-          main {
-            padding: 0.5rem 0.2rem !important;
-          }
-        }
-      `}</style>
+
+      {/* Bottom Navigation */}
+      <AdminBottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
     </div>
   );
 };
