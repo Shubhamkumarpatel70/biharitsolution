@@ -265,23 +265,23 @@ const Payment = () => {
               <div className="flex gap-3">
                 <button
                   onClick={() => setPaymentMethod('upi')}
-                  className={`flex-1 py-2 px-4 rounded-lg border transition-colors ${
+                  className={`flex-1 py-3 px-4 rounded-lg border font-semibold transition-all duration-300 ${
                     paymentMethod === 'upi' 
-                      ? 'bg-blue-600 border-blue-500 text-white' 
-                      : 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600'
+                      ? 'bg-blue-600 border-blue-500 text-white shadow-lg scale-105' 
+                      : 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600 hover:scale-105 transform'
                   }`}
                 >
-                  UPI Payment
+                  💳 UPI Payment
                 </button>
                 <button
                   onClick={() => setPaymentMethod('qr')}
-                  className={`flex-1 py-2 px-4 rounded-lg border transition-colors ${
+                  className={`flex-1 py-3 px-4 rounded-lg border font-semibold transition-all duration-300 ${
                     paymentMethod === 'qr' 
-                      ? 'bg-blue-600 border-blue-500 text-white' 
-                      : 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600'
+                      ? 'bg-blue-600 border-blue-500 text-white shadow-lg scale-105' 
+                      : 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600 hover:scale-105 transform'
                   }`}
                 >
-                  Scan & Pay
+                  📱 Scan & Pay
                 </button>
               </div>
             </div>
@@ -308,7 +308,7 @@ const Payment = () => {
                       setDiscount(0);
                       setCouponMsg('');
                     }}
-                    className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                    className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-all duration-300 hover:scale-105 transform hover:shadow-lg"
                   >
                     Remove
                   </button>
@@ -316,7 +316,7 @@ const Payment = () => {
                   <button
                     onClick={handleApplyCoupon}
                     disabled={applyingCoupon || !coupon}
-                    className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:opacity-50 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                    className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:opacity-50 text-white px-4 py-2 rounded-lg font-medium transition-all duration-300 hover:scale-105 transform hover:shadow-lg disabled:hover:scale-100"
                   >
                     {applyingCoupon ? '...' : 'Apply'}
                   </button>
@@ -363,62 +363,82 @@ const Payment = () => {
                 <>
                   {paymentMethod === 'qr' ? (
                     <>
-                      <div className="mb-3">
-                        <p className="text-gray-400 text-sm mb-2">Scan QR code to pay ₹{totalAmount}:</p>
-                        <div className="bg-white p-4 rounded-lg flex justify-center">
+                      <div className="mb-4">
+                        <p className="text-white font-semibold text-base mb-3 flex items-center gap-2">
+                          <span>📱</span>
+                          <span>Scan QR Code to Pay ₹{totalAmount}</span>
+                        </p>
+                        <div className="bg-white p-6 rounded-xl shadow-lg border-2 border-emerald-500/30 hover:border-emerald-500/50 transition-all duration-300 flex justify-center">
                           <div className="text-center">
                             {/* QR image generated from the UPI deep link */}
-                            <img
-                              src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(generateUPIQR())}`}
-                              alt={`UPI QR for ₹${totalAmount}`}
-                              className="w-40 h-40 rounded-lg mb-2"
-                            />
-                            <p className="text-xs text-gray-600">Scan with any UPI app</p>
+                            <div className="bg-white p-3 rounded-lg shadow-md mb-3 inline-block">
+                              <img
+                                src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(generateUPIQR())}`}
+                                alt={`UPI QR for ₹${totalAmount}`}
+                                className="w-48 h-48 rounded-lg"
+                              />
+                            </div>
+                            <p className="text-sm text-gray-700 font-medium">Scan with any UPI app</p>
+                            <p className="text-xs text-gray-500 mt-1">Google Pay, PhonePe, Paytm, etc.</p>
                           </div>
                         </div>
                       </div>
-                      <div className="mb-3">
-                        <p className="text-gray-400 text-sm mb-1">Or pay manually:</p>
-                        <div className="bg-gray-800 p-3 rounded-lg flex items-center justify-between">
-                          <span className="font-mono text-emerald-400">{selectedPaymentOption.upiId}</span>
-                          <button 
-                            onClick={() => copyToClipboard(selectedPaymentOption.upiId)}
-                            className="text-blue-400 hover:text-blue-300 text-sm"
-                          >
-                            {copied ? 'Copied!' : 'Copy'}
-                          </button>
+                      <div className="mb-4">
+                        <p className="text-gray-300 font-medium text-sm mb-2 flex items-center gap-2">
+                          <span>💳</span>
+                          <span>Or Pay Manually</span>
+                        </p>
+                        <div className="bg-gray-800 p-4 rounded-lg border border-gray-600 hover:border-emerald-500/50 transition-all duration-300">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="font-mono text-emerald-400 text-lg font-semibold">{selectedPaymentOption.upiId}</span>
+                            <button 
+                              onClick={() => copyToClipboard(selectedPaymentOption.upiId)}
+                              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-all duration-300 hover:scale-105 transform"
+                            >
+                              {copied ? '✓ Copied!' : 'Copy'}
+                            </button>
+                          </div>
+                          {selectedPaymentOption.description && (
+                            <p className="text-gray-400 text-xs mt-2">{selectedPaymentOption.description}</p>
+                          )}
                         </div>
-                        <div className="flex items-center gap-2 mt-2">
+                        <div className="flex items-center gap-3 mt-3">
                           <button
                             onClick={() => copyToClipboard(generateUPIQR())}
-                            className="text-blue-400 hover:text-blue-300 text-xs"
+                            className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-blue-400 rounded-lg text-sm font-medium transition-all duration-300 hover:scale-105 transform"
                           >
-                            {copied ? 'UPI Link Copied!' : 'Copy UPI Link'}
+                            {copied ? '✓ UPI Link Copied!' : '📋 Copy UPI Link'}
                           </button>
                           <a
                             href={generateUPIQR()}
-                            className="text-emerald-400 hover:text-emerald-300 text-xs"
+                            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-all duration-300 hover:scale-105 transform inline-flex items-center gap-1"
                           >
-                            Open in UPI App
+                            <span>🚀</span>
+                            <span>Open in UPI App</span>
                           </a>
                         </div>
                       </div>
                     </>
                   ) : (
                     <div className="mb-3">
-                      <p className="text-gray-400 text-sm mb-1">Send payment to this {selectedPaymentOption.paymentType}:</p>
-                      <div className="bg-gray-800 p-3 rounded-lg flex items-center justify-between">
-                        <span className="font-mono text-emerald-400">{selectedPaymentOption.upiId}</span>
-                        <button 
-                          onClick={() => copyToClipboard(selectedPaymentOption.upiId)}
-                          className="text-blue-400 hover:text-blue-300 text-sm"
-                        >
-                          {copied ? 'Copied!' : 'Copy'}
-                        </button>
+                      <p className="text-gray-300 font-medium text-sm mb-2 flex items-center gap-2">
+                        <span>💳</span>
+                        <span>Send payment to this {selectedPaymentOption.paymentType}:</span>
+                      </p>
+                      <div className="bg-gray-800 p-4 rounded-lg border border-gray-600 hover:border-emerald-500/50 transition-all duration-300">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-mono text-emerald-400 text-lg font-semibold">{selectedPaymentOption.upiId}</span>
+                          <button 
+                            onClick={() => copyToClipboard(selectedPaymentOption.upiId)}
+                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-all duration-300 hover:scale-105 transform"
+                          >
+                            {copied ? '✓ Copied!' : 'Copy'}
+                          </button>
+                        </div>
+                        {selectedPaymentOption.description && (
+                          <p className="text-gray-400 text-xs mt-2">{selectedPaymentOption.description}</p>
+                        )}
                       </div>
-                      {selectedPaymentOption.description && (
-                        <p className="text-gray-500 text-xs mt-1">{selectedPaymentOption.description}</p>
-                      )}
                     </div>
                   )}
                 </>
@@ -473,7 +493,7 @@ const Payment = () => {
             {/* Submit Button */}
             <button
               onClick={handlePayment}
-              className="w-full bg-emerald-500 hover:bg-emerald-600 text-gray-900 font-bold py-3 px-4 rounded-lg transition-colors shadow-lg"
+              className="w-full bg-emerald-500 hover:bg-emerald-600 text-gray-900 font-bold py-3 px-4 rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-[1.02] transform disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
               disabled={!transactionId || !paymentImage || status === 'processing'}
             >
               {status === 'processing' ? 'Processing...' : 'Confirm Payment'}
@@ -518,7 +538,7 @@ const Payment = () => {
             </div>
             <button
               onClick={() => navigate('/dashboard/purchases')}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-all duration-300 hover:shadow-lg hover:scale-105 transform"
             >
               View My Purchases
             </button>

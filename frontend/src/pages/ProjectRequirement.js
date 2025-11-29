@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from '../axios';
-import { useOutletContext } from 'react-router-dom';
+import { useOutletContext, Link } from 'react-router-dom';
 
 const statusLabels = {
   pending: { label: 'Pending', color: 'text-yellow-600 bg-yellow-100', icon: '⏳' },
@@ -17,6 +17,8 @@ const ProjectRequirement = () => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [hasSubscription, setHasSubscription] = useState(false);
+  const [checkingSubscription, setCheckingSubscription] = useState(true);
   const [formData, setFormData] = useState({
     projectIdea: '',
     websitePreference: '',
@@ -25,7 +27,26 @@ const ProjectRequirement = () => {
 
   useEffect(() => {
     fetchProjects();
+    checkSubscription();
   }, []);
+
+  const checkSubscription = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.get('/api/auth/user-subscriptions', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const subscriptions = res.data.subscriptions || [];
+      // Check if user has any subscription (active, pending, or even expired)
+      const hasAnySubscription = subscriptions.length > 0;
+      setHasSubscription(hasAnySubscription);
+    } catch (err) {
+      console.error('Error checking subscription:', err);
+      setHasSubscription(false);
+    } finally {
+      setCheckingSubscription(false);
+    }
+  };
 
   const fetchProjects = async () => {
     try {
@@ -73,7 +94,7 @@ const ProjectRequirement = () => {
     });
   };
 
-  if (loading) {
+  if (loading || checkingSubscription) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
@@ -98,58 +119,75 @@ const ProjectRequirement = () => {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="projectIdea" className="block text-sm font-medium text-gray-700 mb-2">
-              Project Idea <span className="text-red-500">*</span>
-            </label>
-            <textarea
-              id="projectIdea"
-              value={formData.projectIdea}
-              onChange={(e) => setFormData({ ...formData, projectIdea: e.target.value })}
-              required
-              rows={6}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-none"
-              placeholder="Describe your project idea in detail..."
-            />
+        {!hasSubscription ? (
+          <div className="bg-gradient-to-r from-accent-500/10 to-primary-500/10 border-2 border-accent-500/30 rounded-xl p-8 text-center">
+            <div className="text-6xl mb-4">🔒</div>
+            <h3 className="text-2xl font-bold text-primary-600 mb-3">Subscription Required</h3>
+            <p className="text-gray-600 mb-6">
+              You need to purchase a subscription plan to submit project requirements.
+            </p>
+            <Link
+              to="/plans"
+              className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-accent text-primary-900 font-bold rounded-lg hover:shadow-xl hover:scale-105 transform transition-all duration-300"
+            >
+              <span>📦</span>
+              <span>Buy a Plan to Continue</span>
+            </Link>
           </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label htmlFor="projectIdea" className="block text-sm font-medium text-gray-700 mb-2">
+                Project Idea <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                id="projectIdea"
+                value={formData.projectIdea}
+                onChange={(e) => setFormData({ ...formData, projectIdea: e.target.value })}
+                required
+                rows={6}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-none transition-all"
+                placeholder="Describe your project idea in detail..."
+              />
+            </div>
 
-          <div>
-            <label htmlFor="websitePreference" className="block text-sm font-medium text-gray-700 mb-2">
-              Website Preference
-            </label>
-            <input
-              type="text"
-              id="websitePreference"
-              value={formData.websitePreference}
-              onChange={(e) => setFormData({ ...formData, websitePreference: e.target.value })}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              placeholder="e.g., Modern, Minimalist, E-commerce, Portfolio..."
-            />
-          </div>
+            <div>
+              <label htmlFor="websitePreference" className="block text-sm font-medium text-gray-700 mb-2">
+                Website Preference
+              </label>
+              <input
+                type="text"
+                id="websitePreference"
+                value={formData.websitePreference}
+                onChange={(e) => setFormData({ ...formData, websitePreference: e.target.value })}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+                placeholder="e.g., Modern, Minimalist, E-commerce, Portfolio..."
+              />
+            </div>
 
-          <div>
-            <label htmlFor="linkOption" className="block text-sm font-medium text-gray-700 mb-2">
-              Link Option / Reference
-            </label>
-            <input
-              type="text"
-              id="linkOption"
-              value={formData.linkOption}
-              onChange={(e) => setFormData({ ...formData, linkOption: e.target.value })}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              placeholder="Any reference website or link..."
-            />
-          </div>
+            <div>
+              <label htmlFor="linkOption" className="block text-sm font-medium text-gray-700 mb-2">
+                Link Option / Reference
+              </label>
+              <input
+                type="text"
+                id="linkOption"
+                value={formData.linkOption}
+                onChange={(e) => setFormData({ ...formData, linkOption: e.target.value })}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+                placeholder="Any reference website or link..."
+              />
+            </div>
 
-          <button
-            type="submit"
-            disabled={submitting}
-            className="w-full px-6 py-3 bg-gradient-accent text-primary-900 font-semibold rounded-lg hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {submitting ? 'Submitting...' : 'Submit Project Requirement'}
-          </button>
-        </form>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="w-full px-6 py-3 bg-gradient-accent text-primary-900 font-semibold rounded-lg hover:shadow-xl hover:scale-[1.02] transform transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+            >
+              {submitting ? 'Submitting...' : 'Submit Project Requirement'}
+            </button>
+          </form>
+        )}
       </div>
 
       {/* Existing Projects */}
@@ -218,7 +256,7 @@ const ProjectRequirement = () => {
                         href={project.projectLink}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 px-6 py-3 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition-colors"
+                        className="inline-flex items-center gap-2 px-6 py-3 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 hover:shadow-lg hover:scale-105 transform transition-all duration-300"
                       >
                         <span>🌐</span>
                         <span>View Project</span>
