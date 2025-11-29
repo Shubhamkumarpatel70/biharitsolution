@@ -68,7 +68,10 @@ const MyPurchases = () => {
             {subscriptions.map((sub) => {
               const isExpired = sub.status === 'expired';
               const isRenewalPending = sub.renewalStatus === 'pending';
-              const showRenewButton = isExpired && !isRenewalPending;
+              const cancellationPending = sub.cancellationStatus === 'pending';
+              const cancellationApproved = sub.cancellationStatus === 'approved';
+              const cancellationRejected = sub.cancellationStatus === 'rejected';
+              const showRenewButton = isExpired && !isRenewalPending && !cancellationApproved;
 
               return (
                 <li key={sub._id} style={{ marginBottom: '1.5rem', background: '#181A20', borderRadius: '0.5rem', padding: '1.5rem' }}>
