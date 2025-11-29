@@ -13,6 +13,9 @@ const Subscription = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [requestStatus, setRequestStatus] = useState({});
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+  const [canceling, setCanceling] = useState(false);
   const navigate = useNavigate();
 
   const fetchSubscription = async () => {
@@ -57,9 +60,37 @@ const Subscription = () => {
     }
   };
 
+  const handleCancelSubscription = async () => {
+    if (!cancelReason.trim()) {
+      setError('Please provide a reason for cancellation.');
+      return;
+    }
+    
+    setCanceling(true);
+    setError('');
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post(
+        `/api/auth/cancel-subscription/${subscription._id}`,
+        { reason: cancelReason },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setShowCancelModal(false);
+      setCancelReason('');
+      fetchSubscription();
+      setError('');
+    } catch (err) {
+      const errorMessage = err.response?.data?.message || 'Could not cancel subscription.';
+      setError(errorMessage);
+    } finally {
+      setCanceling(false);
+    }
+  };
+
   const isExpired = subscription && subscription.status === 'expired';
   const isRenewalPending = subscription && subscription.renewalStatus === 'pending';
   const showRenewButton = isExpired && !isRenewalPending;
+  const canCancel = subscription && subscription.status === 'active' && !subscription.canceled;
 
   if (loading) {
     return <div style={{ color: '#E5E7EB', textAlign: 'center', padding: '2rem' }}>Loading...</div>;
@@ -94,11 +125,129 @@ const Subscription = () => {
             </div>
           )}
 
-          {showRenewButton && (
-            <button onClick={handleRenewalRequest} disabled={requestStatus[subscription._id] === 'pending'} style={{ background: '#2ECC71', color: '#181A20', border: 'none', borderRadius: '0.5rem', padding: '0.7rem 1.5rem', fontWeight: 700, fontSize: '1rem', cursor: 'pointer', marginTop: '1rem' }}>
-              {requestStatus[subscription._id] === 'pending' ? 'Requesting...' : 'Request Renewal'}
-            </button>
-          )}
+          <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', flexWrap: 'wrap' }}>
+            {showRenewButton && (
+              <button onClick={handleRenewalRequest} disabled={requestStatus[subscription._id] === 'pending'} style={{ background: '#2ECC71', color: '#181A20', border: 'none', borderRadius: '0.5rem', padding: '0.7rem 1.5rem', fontWeight: 700, fontSize: '1rem', cursor: 'pointer' }}>
+                {requestStatus[subscription._id] === 'pending' ? 'Requesting...' : 'Request Renewal'}
+              </button>
+            )}
+            
+            {canCancel && (
+              <button 
+                onClick={() => setShowCancelModal(true)} 
+                style={{ background: '#FF6B35', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.7rem 1.5rem', fontWeight: 700, fontSize: '1rem', cursor: 'pointer' }}
+              >
+                Cancel Subscription
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Cancel Subscription Modal */}
+      {showCancelModal && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '1rem'
+          }}
+          onClick={() => !canceling && setShowCancelModal(false)}
+        >
+          <div 
+            style={{
+              background: '#23272F',
+              borderRadius: '1rem',
+              padding: '2rem',
+              maxWidth: '500px',
+              width: '100%',
+              border: '2px solid #FF6B35'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+              <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>⚠️</div>
+              <h3 style={{ color: '#FF6B35', fontSize: '1.5rem', fontWeight: 700, marginBottom: '0.5rem' }}>
+                Cancel Subscription Warning
+              </h3>
+              <p style={{ color: '#E5E7EB', fontSize: '1rem', lineHeight: '1.6' }}>
+                If you cancel your subscription, you will receive only <strong style={{ color: '#FF6B35' }}>50%</strong> of your total amount as a refund.
+              </p>
+            </div>
+            
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{ display: 'block', color: '#E5E7EB', marginBottom: '0.5rem', fontWeight: 600 }}>
+                Reason for Cancellation <span style={{ color: '#FF6B35' }}>*</span>
+              </label>
+              <textarea
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                placeholder="Please provide a reason for canceling your subscription..."
+                required
+                rows={4}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  background: '#181A20',
+                  border: '1px solid #3A3F47',
+                  borderRadius: '0.5rem',
+                  color: '#E5E7EB',
+                  fontSize: '0.9rem',
+                  resize: 'vertical'
+                }}
+              />
+            </div>
+            
+            <div style={{ display: 'flex', gap: '1rem' }}>
+              <button
+                onClick={handleCancelSubscription}
+                disabled={canceling || !cancelReason.trim()}
+                style={{
+                  flex: 1,
+                  background: canceling ? '#666' : '#FF6B35',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '0.5rem',
+                  padding: '0.75rem',
+                  fontWeight: 700,
+                  fontSize: '1rem',
+                  cursor: canceling ? 'not-allowed' : 'pointer',
+                  opacity: canceling || !cancelReason.trim() ? 0.6 : 1
+                }}
+              >
+                {canceling ? 'Canceling...' : 'Confirm Cancel'}
+              </button>
+              <button
+                onClick={() => {
+                  setShowCancelModal(false);
+                  setCancelReason('');
+                  setError('');
+                }}
+                disabled={canceling}
+                style={{
+                  flex: 1,
+                  background: '#3A3F47',
+                  color: '#E5E7EB',
+                  border: 'none',
+                  borderRadius: '0.5rem',
+                  padding: '0.75rem',
+                  fontWeight: 700,
+                  fontSize: '1rem',
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

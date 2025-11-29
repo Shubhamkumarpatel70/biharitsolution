@@ -8,6 +8,8 @@ const subscriptionSchema = new mongoose.Schema({
   rejectionReason: { type: String },
   expiresAt: { type: Date },
   canceled: { type: Boolean, default: false },
+  cancellationReason: { type: String },
+  cancellationRequestDate: { type: Date },
   // Payment fields
   transactionId: { type: String },
   paymentMethod: { type: String, enum: ['upi', 'card', 'netbanking'], default: 'upi' },

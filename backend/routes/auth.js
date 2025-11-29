@@ -1445,4 +1445,18 @@ router.patch('/admin/project-requirement/:id', authMiddleware, adminMiddleware, 
   }
 });
 
+// Admin: Get all subscription cancellations
+router.get('/admin/cancellations', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const cancellations = await Subscription.find({ canceled: true })
+      .populate('user', 'name email')
+      .sort({ cancellationRequestDate: -1 });
+    
+    res.json({ cancellations });
+  } catch (err) {
+    console.error('Error fetching cancellations:', err);
+    res.status(500).json({ message: 'Could not fetch cancellations.' });
+  }
+});
+
 module.exports = router; 

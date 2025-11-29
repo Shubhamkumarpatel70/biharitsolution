@@ -205,11 +205,19 @@ exports.markNotificationRead = async (req, res) => {
 
 exports.cancelUserSubscription = async (req, res) => {
   try {
+    const { reason } = req.body;
+    if (!reason || !reason.trim()) {
+      return res.status(400).json({ message: 'Cancellation reason is required.' });
+    }
+    
     const sub = await Subscription.findOne({ _id: req.params.id, user: req.user.id });
     if (!sub) return res.status(404).json({ message: 'Subscription not found.' });
     if (sub.canceled) return res.status(400).json({ message: 'Subscription already canceled.' });
     if (sub.status !== 'active') return res.status(400).json({ message: 'Only active subscriptions can be canceled.' });
+    
     sub.canceled = true;
+    sub.cancellationReason = reason.trim();
+    sub.cancellationRequestDate = new Date();
     await sub.save();
     res.json({ success: true, subscription: sub });
   } catch (err) {

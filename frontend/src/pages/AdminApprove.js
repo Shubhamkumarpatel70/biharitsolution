@@ -77,6 +77,11 @@ const AdminApprove = () => {
     return `${axios.defaults.baseURL || ''}${imagePath}`;
   };
 
+  // Always show View Image button if paymentImage exists, even if it's empty string
+  const hasPaymentImage = (sub) => {
+    return sub.paymentImage && sub.paymentImage.trim().length > 0;
+  };
+
   return (
     <div className="max-w-6xl mx-auto space-y-6 pb-20 lg:pb-6">
       <h2 className="text-2xl md:text-3xl font-bold text-success-500 mb-6">Approve Subscriptions</h2>
@@ -94,6 +99,7 @@ const AdminApprove = () => {
           <div className="space-y-4">
             {subs.map(sub => {
               const imageUrl = getImageUrl(sub.paymentImage);
+              const hasImage = hasPaymentImage(sub);
               return (
                 <div key={sub._id} className="bg-gray-700 rounded-xl p-6 border border-gray-600">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -130,29 +136,33 @@ const AdminApprove = () => {
                   </div>
 
                   {/* Payment Image Section */}
-                  {imageUrl && (
+                  {hasImage && (
                     <div className="mb-4 p-4 bg-gray-800 rounded-lg border border-gray-600">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-gray-400 text-sm font-medium">Payment Screenshot/Receipt:</span>
                         <button
                           onClick={() => setViewingImage(imageUrl)}
-                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-colors"
+                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-all duration-300 hover:scale-105 transform hover:shadow-lg"
                         >
-                          View Image
+                          📷 View Image
                         </button>
                       </div>
-                      <div className="mt-2">
-                        <img 
-                          src={imageUrl} 
-                          alt="Payment receipt" 
-                          className="max-w-xs h-32 object-contain bg-gray-900 rounded-lg border border-gray-600 p-2"
-                          onError={(e) => {
-                            e.target.style.display = 'none';
-                            e.target.nextSibling.style.display = 'block';
-                          }}
-                        />
-                        <div className="hidden text-gray-500 text-sm">Image failed to load</div>
-                      </div>
+                      {imageUrl && (
+                        <div className="mt-2">
+                          <img 
+                            src={imageUrl} 
+                            alt="Payment receipt" 
+                            className="max-w-xs h-32 object-contain bg-gray-900 rounded-lg border border-gray-600 p-2"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                              if (e.target.nextSibling) {
+                                e.target.nextSibling.style.display = 'block';
+                              }
+                            }}
+                          />
+                          <div className="hidden text-gray-500 text-sm">Image failed to load</div>
+                        </div>
+                      )}
                     </div>
                   )}
 

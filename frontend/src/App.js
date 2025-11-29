@@ -28,6 +28,8 @@ import AdminStats from './pages/AdminStats';
 import AdminNotifications from './pages/AdminNotifications';
 import AdminPlans from './pages/AdminPlans';
 import AdminContacts from './pages/AdminContacts';
+import AdminCancellations from './pages/AdminCancellations';
+import NotFound from './pages/NotFound';
 import { UserProvider, UserContext } from './UserContext';
 import axios from 'axios';
 
@@ -89,6 +91,7 @@ function AppContent() {
           <Route path='/admin-dashboard/*' element={<AdminDashboard />}>
             <Route index element={<AdminHome />} />
             <Route path='approve' element={<AdminApprove />} />
+            <Route path='cancellations' element={<AdminCancellations />} />
             <Route path='users' element={<AdminUsers />} />
             <Route path='stats' element={<AdminStats />} />
             <Route path='notifications' element={<AdminNotifications />} />
@@ -96,6 +99,7 @@ function AppContent() {
             <Route path='contacts' element={<AdminContacts />} />
           </Route>
           <Route path='/support-chat/:complaintId' element={<SupportChat />} />
+          <Route path='*' element={<NotFound />} />
         </Routes>
       </main>
     </>

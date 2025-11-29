@@ -36,6 +36,8 @@ const AdminDashboard = () => {
         return <AdminHome />;
       case 'approve':
         return <AdminApprove />;
+      case 'cancellations':
+        return <AdminCancellations />;
       case 'project-requests':
         return <AdminProjectRequests />;
       case 'user-plans':
