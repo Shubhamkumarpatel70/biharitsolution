@@ -105,8 +105,12 @@ router.post('/subscribe', authMiddleware, upload.single('paymentImage'), async (
   let { plan, transactionId, method } = req.body;
   const paymentImage = req.file;
   
+  // Debug: Log the entire request
+  console.log('Subscription request body:', req.body);
+  console.log('Subscription request file:', paymentImage ? { name: paymentImage.originalname, size: paymentImage.size } : 'none');
   console.log('Subscription request:', { 
     plan, 
+    planType: typeof plan,
     transactionId, 
     method, 
     hasImage: !!paymentImage,
@@ -114,8 +118,15 @@ router.post('/subscribe', authMiddleware, upload.single('paymentImage'), async (
     userEmail: req.user.email 
   });
   
-  // More flexible plan validation
-  if (!plan || typeof plan !== 'string') {
+  // More flexible plan validation - handle both string and other types
+  if (!plan) {
+    return res.status(400).json({ message: 'Plan is required.' });
+  }
+  
+  // Convert plan to string if it's not already
+  plan = String(plan).trim();
+  
+  if (!plan || plan.length === 0) {
     return res.status(400).json({ message: 'Plan is required.' });
   }
   
