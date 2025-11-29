@@ -3,6 +3,7 @@ import React from 'react';
 export const adminNavItems = [
   { id: 'home', label: 'Dashboard', icon: '🏠' },
   { id: 'approve', label: 'Approve Subs', icon: '✅' },
+  { id: 'approved-plans', label: 'Approved Plans', icon: '📋' },
   { id: 'cancellations', label: 'Cancellations', icon: '❌' },
   { id: 'project-requests', label: 'Project Requests', icon: '💼' },
   { id: 'user-plans', label: 'User Plans', icon: '👥' },

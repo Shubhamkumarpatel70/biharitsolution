@@ -84,7 +84,7 @@ const AdminHome = () => {
           <div className="text-5xl mb-3 text-center">💰</div>
           <h3 className="text-lg font-semibold mb-2 text-center">Total Revenue</h3>
           <p className="text-3xl font-black text-center">
-            ${stats.totalRevenue.toLocaleString()}
+            ₹{stats.totalRevenue.toLocaleString('en-IN')}
           </p>
         </div>
 
@@ -120,7 +120,7 @@ const AdminHome = () => {
           <div className="text-center p-4 bg-gray-700/50 rounded-xl">
             <p className="text-gray-400 text-sm mb-2">Avg Revenue per User</p>
             <p className="text-2xl font-bold text-white">
-              ${avgRevenue}
+              ₹{avgRevenue}
             </p>
           </div>
           <div className="text-center p-4 bg-gray-700/50 rounded-xl">

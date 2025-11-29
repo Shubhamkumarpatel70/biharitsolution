@@ -289,6 +289,37 @@ router.get('/admin/pending-subscriptions', authMiddleware, adminMiddleware, asyn
   }
 });
 
+// Admin: Get all approved subscriptions
+router.get('/admin/approved-subscriptions', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const { status, search } = req.query;
+    let query = {
+      status: { $in: ['active', 'expired'] },
+      cancellationStatus: { $ne: 'approved' } // Exclude cancelled subscriptions
+    };
+    
+    if (status && status !== 'all') {
+      query.status = status;
+    }
+    
+    if (search) {
+      query.$or = [
+        { uniqueId: { $regex: search, $options: 'i' } },
+        { transactionId: { $regex: search, $options: 'i' } }
+      ];
+    }
+    
+    const subs = await Subscription.find(query)
+      .populate('user', 'name email')
+      .sort({ createdAt: -1 });
+    
+    res.json({ subscriptions: subs });
+  } catch (err) {
+    console.error('Error fetching approved subscriptions:', err);
+    res.status(500).json({ message: 'Could not fetch approved subscriptions.' });
+  }
+});
+
 // Admin: Approve a subscription
 router.patch('/admin/approve-subscription/:id', authMiddleware, adminMiddleware, async (req, res) => {
   try {

@@ -23,6 +23,7 @@ import ProjectRequirement from './pages/ProjectRequirement';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminHome from './pages/AdminHome';
 import AdminApprove from './pages/AdminApprove';
+import AdminApprovedPlans from './pages/AdminApprovedPlans';
 import AdminUsers from './pages/AdminUsers';
 import AdminStats from './pages/AdminStats';
 import AdminNotifications from './pages/AdminNotifications';
@@ -91,6 +92,7 @@ function AppContent() {
           <Route path='/admin-dashboard/*' element={<AdminDashboard />}>
             <Route index element={<AdminHome />} />
             <Route path='approve' element={<AdminApprove />} />
+            <Route path='approved-plans' element={<AdminApprovedPlans />} />
             <Route path='cancellations' element={<AdminCancellations />} />
             <Route path='users' element={<AdminUsers />} />
             <Route path='stats' element={<AdminStats />} />
