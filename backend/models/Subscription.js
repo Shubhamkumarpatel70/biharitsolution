@@ -11,6 +11,7 @@ const subscriptionSchema = new mongoose.Schema({
   // Payment fields
   transactionId: { type: String },
   paymentMethod: { type: String, enum: ['upi', 'card', 'netbanking'], default: 'upi' },
+  paymentImage: { type: String }, // Base64 encoded image
   // Renewal request fields
   renewalRequested: { type: Boolean, default: false },
   renewalRequestDate: { type: Date },

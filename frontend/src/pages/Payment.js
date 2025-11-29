@@ -172,7 +172,10 @@ const Payment = () => {
     } catch (err) {
       setStatus('error');
       console.error('Payment error:', err);
-      if (err.response?.status === 500) {
+      console.error('API Error:', err.response?.data);
+      if (err.response?.data?.message) {
+        setError(err.response.data.message);
+      } else if (err.response?.status === 500) {
         setError('Server error occurred. Please try again later or contact support.');
       } else if (err.response?.status === 401) {
         setError('Authentication failed. Please log in again.');

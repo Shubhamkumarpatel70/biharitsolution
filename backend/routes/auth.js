@@ -100,13 +100,16 @@ function adminMiddleware(req, res, next) {
 }
 
 // Create a new subscription (after payment)
-router.post('/subscribe', authMiddleware, async (req, res) => {
+router.post('/subscribe', authMiddleware, upload.single('paymentImage'), async (req, res) => {
+  // Get data from FormData (req.body) or JSON (req.body)
   let { plan, transactionId, method } = req.body;
+  const paymentImage = req.file;
   
   console.log('Subscription request:', { 
     plan, 
     transactionId, 
     method, 
+    hasImage: !!paymentImage,
     userId: req.user.id,
     userEmail: req.user.email 
   });
@@ -163,6 +166,13 @@ router.post('/subscribe', authMiddleware, async (req, res) => {
   // Ensure plan duration is valid
   const durationInDays = planDoc.duration || 30; // Default to 30 days if not specified
   const expiresAt = new Date(now.getTime() + durationInDays * 24 * 60 * 60 * 1000);
+  
+  // Convert payment image to base64 if provided
+  let paymentImageBase64 = null;
+  if (paymentImage) {
+    paymentImageBase64 = bufferToBase64(paymentImage.buffer, paymentImage.mimetype);
+  }
+  
   try {
     const subscription = await Subscription.create({
       user: req.user.id,
@@ -172,6 +182,7 @@ router.post('/subscribe', authMiddleware, async (req, res) => {
       expiresAt,
       transactionId: transactionId || null,
       paymentMethod: method || 'upi',
+      paymentImage: paymentImageBase64,
     });
     res.status(201).json({ subscription });
   } catch (err) {
