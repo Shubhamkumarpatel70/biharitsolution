@@ -52,11 +52,16 @@ function Login() {
       // Store token immediately for faster subsequent requests
       localStorage.setItem('token', res.data.token);
       
+      // Store user data in localStorage for role checking
+      if (res.data.user) {
+        localStorage.setItem('user', JSON.stringify(res.data.user));
+      }
+      
       // Update user context
       setUser(res.data.user);
       
       // Navigate based on role
-      if (res.data.user && res.data.user.role === 'admin') {
+      if (res.data.user && (res.data.user.role === 'admin' || res.data.user.role === 'coadmin')) {
         navigate('/admin-dashboard');
       } else {
         navigate('/dashboard');

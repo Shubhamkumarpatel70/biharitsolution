@@ -45,6 +45,10 @@ function App() {
           axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
           const res = await axios.get('/api/auth/me');
           setUser(res.data.user);
+          // Store user data in localStorage for role checking
+          if (res.data.user) {
+            localStorage.setItem('user', JSON.stringify(res.data.user));
+          }
         }
       } catch (err) {
         console.error('Could not fetch user', err);

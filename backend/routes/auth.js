@@ -94,10 +94,16 @@ function authMiddleware(req, res, next) {
   }
 }
 
-// Admin middleware
+// Admin middleware (only admin)
 function adminMiddleware(req, res, next) {
   if (req.user && req.user.role === 'admin') return next();
   return res.status(403).json({ message: 'Admin access required.' });
+}
+
+// Co-admin middleware (admin or coadmin)
+function coAdminMiddleware(req, res, next) {
+  if (req.user && (req.user.role === 'admin' || req.user.role === 'coadmin')) return next();
+  return res.status(403).json({ message: 'Admin or Co-admin access required.' });
 }
 
 // Create a new subscription (after payment)
@@ -242,7 +248,7 @@ router.get('/plans', async (req, res) => {
   }
 });
 
-router.post('/plans', authMiddleware, adminMiddleware, async (req, res) => {
+router.post('/plans', authMiddleware, coAdminMiddleware, async (req, res) => {
   try {
     const plan = await Plan.create(req.body);
     res.status(201).json({ plan });
@@ -251,7 +257,7 @@ router.post('/plans', authMiddleware, adminMiddleware, async (req, res) => {
   }
 });
 
-router.put('/plans/:id', authMiddleware, adminMiddleware, async (req, res) => {
+router.put('/plans/:id', authMiddleware, coAdminMiddleware, async (req, res) => {
   try {
     const plan = await Plan.findByIdAndUpdate(req.params.id, req.body, { new: true });
     res.json({ plan });
@@ -270,7 +276,7 @@ router.post('/contact', async (req, res) => {
   }
 });
 
-router.get('/contacts', authMiddleware, adminMiddleware, async (req, res) => {
+router.get('/contacts', authMiddleware, coAdminMiddleware, async (req, res) => {
   try {
     const contacts = await Contact.find().sort({ createdAt: -1 });
     res.json({ contacts });
@@ -280,7 +286,7 @@ router.get('/contacts', authMiddleware, adminMiddleware, async (req, res) => {
 });
 
 // Admin: Get all pending subscriptions
-router.get('/admin/pending-subscriptions', authMiddleware, adminMiddleware, async (req, res) => {
+router.get('/admin/pending-subscriptions', authMiddleware, coAdminMiddleware, async (req, res) => {
   try {
     const subs = await Subscription.find({ status: 'pending' }).populate('user', 'name email');
     res.json({ subscriptions: subs });
@@ -290,7 +296,7 @@ router.get('/admin/pending-subscriptions', authMiddleware, adminMiddleware, asyn
 });
 
 // Admin: Get all approved subscriptions
-router.get('/admin/approved-subscriptions', authMiddleware, adminMiddleware, async (req, res) => {
+router.get('/admin/approved-subscriptions', authMiddleware, coAdminMiddleware, async (req, res) => {
   try {
     const { status, search } = req.query;
     let query = {
@@ -321,7 +327,7 @@ router.get('/admin/approved-subscriptions', authMiddleware, adminMiddleware, asy
 });
 
 // Admin: Approve a subscription
-router.patch('/admin/approve-subscription/:id', authMiddleware, adminMiddleware, async (req, res) => {
+router.patch('/admin/approve-subscription/:id', authMiddleware, coAdminMiddleware, async (req, res) => {
   try {
     const sub = await Subscription.findByIdAndUpdate(req.params.id, { status: 'active', rejectionReason: '' }, { new: true });
     res.json({ subscription: sub });
@@ -331,7 +337,7 @@ router.patch('/admin/approve-subscription/:id', authMiddleware, adminMiddleware,
 });
 
 // Admin: Reject a subscription with reason
-router.patch('/admin/reject-subscription/:id', authMiddleware, adminMiddleware, async (req, res) => {
+router.patch('/admin/reject-subscription/:id', authMiddleware, coAdminMiddleware, async (req, res) => {
   try {
     const { reason } = req.body;
     const sub = await Subscription.findByIdAndUpdate(req.params.id, { status: 'rejected', rejectionReason: reason }, { new: true });
@@ -357,8 +363,8 @@ router.put('/admin/users/:id/role', authMiddleware, adminMiddleware, async (req,
     const { role } = req.body;
     
     // Validate role
-    if (!role || !['user', 'admin'].includes(role)) {
-      return res.status(400).json({ message: 'Invalid role. Must be "user" or "admin".' });
+    if (!role || !['user', 'admin', 'coadmin'].includes(role)) {
+      return res.status(400).json({ message: 'Invalid role. Must be "user", "admin", or "coadmin".' });
     }
 
     // Prevent admin from changing their own role
@@ -384,7 +390,7 @@ router.put('/admin/users/:id/role', authMiddleware, adminMiddleware, async (req,
 });
 
 // Admin: Get site statistics
-router.get('/admin/stats', authMiddleware, adminMiddleware, async (req, res) => {
+router.get('/admin/stats', authMiddleware, coAdminMiddleware, async (req, res) => {
   try {
     const userCount = await User.countDocuments();
     const subCount = await Subscription.countDocuments();
@@ -438,7 +444,7 @@ router.get('/admin/stats', authMiddleware, adminMiddleware, async (req, res) => 
 });
 
 // Admin: Send notification
-router.post('/admin/notifications', authMiddleware, adminMiddleware, async (req, res) => {
+router.post('/admin/notifications', authMiddleware, coAdminMiddleware, async (req, res) => {
   try {
     const { message } = req.body;
     const notification = await Notification.create({ message });
@@ -449,7 +455,7 @@ router.post('/admin/notifications', authMiddleware, adminMiddleware, async (req,
 });
 
 // Admin: Get all notifications
-router.get('/admin/notifications', authMiddleware, adminMiddleware, async (req, res) => {
+router.get('/admin/notifications', authMiddleware, coAdminMiddleware, async (req, res) => {
   try {
     const notifications = await Notification.find().sort({ createdAt: -1 });
     res.json({ notifications });
@@ -459,7 +465,7 @@ router.get('/admin/notifications', authMiddleware, adminMiddleware, async (req, 
 });
 
 // Admin: Delete a plan
-router.delete('/plans/:id', authMiddleware, adminMiddleware, async (req, res) => {
+router.delete('/plans/:id', authMiddleware, coAdminMiddleware, async (req, res) => {
   try {
     await Plan.findByIdAndDelete(req.params.id);
     res.json({ success: true });
@@ -475,7 +481,7 @@ router.post('/notifications/read/:id', authMiddleware, markNotificationRead);
 router.post('/cancel-subscription/:id', authMiddleware, cancelUserSubscription);
 router.post('/renew-subscription', authMiddleware, renewUserSubscription);
 
-router.get('/admin/all-subscriptions', authMiddleware, adminMiddleware, async (req, res) => {
+router.get('/admin/all-subscriptions', authMiddleware, coAdminMiddleware, async (req, res) => {
   try {
     const subs = await Subscription.find().populate('user', 'name email').sort({ createdAt: -1 });
     
@@ -544,7 +550,7 @@ router.get('/complaints', authMiddleware, async (req, res) => {
 });
 
 // Admin: Get all complaints
-router.get('/admin/complaints', authMiddleware, adminMiddleware, async (req, res) => {
+router.get('/admin/complaints', authMiddleware, coAdminMiddleware, async (req, res) => {
   try {
     const complaints = await Complaint.find().populate('user', 'name email').sort({ createdAt: -1 });
     res.json({ complaints });
@@ -554,7 +560,7 @@ router.get('/admin/complaints', authMiddleware, adminMiddleware, async (req, res
 });
 
 // Admin: Update complaint status
-router.patch('/admin/complaints/:id', authMiddleware, adminMiddleware, async (req, res) => {
+router.patch('/admin/complaints/:id', authMiddleware, coAdminMiddleware, async (req, res) => {
   try {
     const complaint = await Complaint.findByIdAndUpdate(req.params.id, { status: req.body.status }, { new: true });
     res.json({ complaint });
@@ -652,7 +658,7 @@ router.post('/renewal-request', authMiddleware, async (req, res) => {
 });
 
 // Admin: Get all renewal requests
-router.get('/admin/renewal-requests', authMiddleware, adminMiddleware, async (req, res) => {
+router.get('/admin/renewal-requests', authMiddleware, coAdminMiddleware, async (req, res) => {
   try {
     const subscriptions = await Subscription.find({ 
       renewalRequested: true, 
@@ -665,7 +671,7 @@ router.get('/admin/renewal-requests', authMiddleware, adminMiddleware, async (re
 });
 
 // Admin: Approve renewal request
-router.patch('/admin/renewal-requests/:id/approve', authMiddleware, adminMiddleware, async (req, res) => {
+router.patch('/admin/renewal-requests/:id/approve', authMiddleware, coAdminMiddleware, async (req, res) => {
   try {
     const subscription = await Subscription.findById(req.params.id);
     if (!subscription) {
@@ -698,7 +704,7 @@ router.patch('/admin/renewal-requests/:id/approve', authMiddleware, adminMiddlew
 });
 
 // Admin: Reject renewal request
-router.patch('/admin/renewal-requests/:id/reject', authMiddleware, adminMiddleware, async (req, res) => {
+router.patch('/admin/renewal-requests/:id/reject', authMiddleware, coAdminMiddleware, async (req, res) => {
   try {
     const { reason } = req.body;
     if (!reason) {
@@ -764,7 +770,7 @@ router.post('/newsletter/unsubscribe', async (req, res) => {
 });
 
 // Admin: Get all newsletter subscribers (show all with status)
-router.get('/admin/newsletter-subscribers', authMiddleware, adminMiddleware, async (req, res) => {
+router.get('/admin/newsletter-subscribers', authMiddleware, coAdminMiddleware, async (req, res) => {
   try {
     const subscribers = await NewsletterSubscriber.find().sort({ createdAt: -1 });
     res.json({ subscribers });
@@ -774,7 +780,7 @@ router.get('/admin/newsletter-subscribers', authMiddleware, adminMiddleware, asy
 });
 
 // Mark contact as read
-router.patch('/contacts/:id/read', authMiddleware, adminMiddleware, async (req, res) => {
+router.patch('/contacts/:id/read', authMiddleware, coAdminMiddleware, async (req, res) => {
   try {
     const contact = await Contact.findByIdAndUpdate(req.params.id, { read: true }, { new: true });
     if (!contact) return res.status(404).json({ message: 'Contact not found.' });
@@ -785,7 +791,7 @@ router.patch('/contacts/:id/read', authMiddleware, adminMiddleware, async (req, 
 });
 
 // Mark contact as unread
-router.patch('/contacts/:id/unread', authMiddleware, adminMiddleware, async (req, res) => {
+router.patch('/contacts/:id/unread', authMiddleware, coAdminMiddleware, async (req, res) => {
   try {
     const contact = await Contact.findByIdAndUpdate(req.params.id, { read: false }, { new: true });
     if (!contact) return res.status(404).json({ message: 'Contact not found.' });
@@ -796,7 +802,7 @@ router.patch('/contacts/:id/unread', authMiddleware, adminMiddleware, async (req
 });
 
 // Admin: Create a new coupon
-router.post('/coupons', authMiddleware, adminMiddleware, async (req, res) => {
+router.post('/coupons', authMiddleware, coAdminMiddleware, async (req, res) => {
   try {
     const { code, amount, usageLimit } = req.body;
     if (!code || !amount) return res.status(400).json({ message: 'Code and amount are required.' });
@@ -808,7 +814,7 @@ router.post('/coupons', authMiddleware, adminMiddleware, async (req, res) => {
 });
 
 // Admin: List all coupons
-router.get('/coupons', authMiddleware, adminMiddleware, async (req, res) => {
+router.get('/coupons', authMiddleware, coAdminMiddleware, async (req, res) => {
   try {
     const coupons = await Coupon.find().sort({ createdAt: -1 });
     res.json({ coupons });
@@ -818,7 +824,7 @@ router.get('/coupons', authMiddleware, adminMiddleware, async (req, res) => {
 });
 
 // Admin: Deactivate a coupon
-router.patch('/coupons/:id/deactivate', authMiddleware, adminMiddleware, async (req, res) => {
+router.patch('/coupons/:id/deactivate', authMiddleware, coAdminMiddleware, async (req, res) => {
   try {
     const coupon = await Coupon.findByIdAndUpdate(req.params.id, { active: false }, { new: true });
     if (!coupon) return res.status(404).json({ message: 'Coupon not found.' });
@@ -829,7 +835,7 @@ router.patch('/coupons/:id/deactivate', authMiddleware, adminMiddleware, async (
 });
 
 // Admin: Delete a coupon
-router.delete('/coupons/:id', authMiddleware, adminMiddleware, async (req, res) => {
+router.delete('/coupons/:id', authMiddleware, coAdminMiddleware, async (req, res) => {
   try {
     await Coupon.findByIdAndDelete(req.params.id);
     res.json({ success: true });
@@ -891,7 +897,7 @@ router.post('/coupons/apply', async (req, res, next) => {
 // Team Management Routes
 
 // Get all team members (admin only)
-router.get('/admin/team', authMiddleware, adminMiddleware, async (req, res) => {
+router.get('/admin/team', authMiddleware, coAdminMiddleware, async (req, res) => {
   try {
     const teamMembers = await TeamMember.find({ isActive: true }).sort({ order: 1, createdAt: -1 });
     res.json({ teamMembers });
@@ -902,7 +908,7 @@ router.get('/admin/team', authMiddleware, adminMiddleware, async (req, res) => {
 });
 
 // Add new team member (admin only)
-router.post('/admin/team', authMiddleware, adminMiddleware, upload.single('profileImage'), async (req, res) => {
+router.post('/admin/team', authMiddleware, coAdminMiddleware, upload.single('profileImage'), async (req, res) => {
   try {
     const { name, position, email, phone, bio, order, socialLinks } = req.body;
     
@@ -949,7 +955,7 @@ router.post('/admin/team', authMiddleware, adminMiddleware, upload.single('profi
 });
 
 // Update team member (admin only)
-router.put('/admin/team/:id', authMiddleware, adminMiddleware, upload.single('profileImage'), async (req, res) => {
+router.put('/admin/team/:id', authMiddleware, coAdminMiddleware, upload.single('profileImage'), async (req, res) => {
   try {
     const { name, position, email, phone, bio, order, socialLinks } = req.body;
     
@@ -1001,7 +1007,7 @@ router.put('/admin/team/:id', authMiddleware, adminMiddleware, upload.single('pr
 });
 
 // Delete team member (admin only)
-router.delete('/admin/team/:id', authMiddleware, adminMiddleware, async (req, res) => {
+router.delete('/admin/team/:id', authMiddleware, coAdminMiddleware, async (req, res) => {
   try {
     const teamMember = await TeamMember.findByIdAndDelete(req.params.id);
     
@@ -1030,7 +1036,7 @@ router.get('/team', async (req, res) => {
 // Feature Management Routes
 
 // Get all features (admin only)
-router.get('/admin/features', authMiddleware, adminMiddleware, async (req, res) => {
+router.get('/admin/features', authMiddleware, coAdminMiddleware, async (req, res) => {
   try {
     const features = await Feature.find({ isActive: true }).sort({ order: 1, createdAt: -1 });
     res.json({ features });
@@ -1041,7 +1047,7 @@ router.get('/admin/features', authMiddleware, adminMiddleware, async (req, res) 
 });
 
 // Add new feature (admin only)
-router.post('/admin/features', authMiddleware, adminMiddleware, async (req, res) => {
+router.post('/admin/features', authMiddleware, coAdminMiddleware, async (req, res) => {
   try {
     const { title, description, icon, category, order, color, benefits } = req.body;
     
@@ -1081,7 +1087,7 @@ router.post('/admin/features', authMiddleware, adminMiddleware, async (req, res)
 });
 
 // Update feature (admin only)
-router.put('/admin/features/:id', authMiddleware, adminMiddleware, async (req, res) => {
+router.put('/admin/features/:id', authMiddleware, coAdminMiddleware, async (req, res) => {
   try {
     const { title, description, icon, category, order, color, benefits } = req.body;
     
@@ -1126,7 +1132,7 @@ router.put('/admin/features/:id', authMiddleware, adminMiddleware, async (req, r
 });
 
 // Delete feature (admin only)
-router.delete('/admin/features/:id', authMiddleware, adminMiddleware, async (req, res) => {
+router.delete('/admin/features/:id', authMiddleware, coAdminMiddleware, async (req, res) => {
   try {
     const feature = await Feature.findByIdAndDelete(req.params.id);
     
@@ -1155,7 +1161,7 @@ router.get('/features', async (req, res) => {
 // Service Management Routes
 
 // Get all services (admin only)
-router.get('/admin/services', authMiddleware, adminMiddleware, async (req, res) => {
+router.get('/admin/services', authMiddleware, coAdminMiddleware, async (req, res) => {
   try {
     const services = await Service.find({ isActive: true }).sort({ order: 1, createdAt: -1 });
     res.json({ services });
@@ -1166,7 +1172,7 @@ router.get('/admin/services', authMiddleware, adminMiddleware, async (req, res) 
 });
 
 // Add new service (admin only)
-router.post('/admin/services', authMiddleware, adminMiddleware, async (req, res) => {
+router.post('/admin/services', authMiddleware, coAdminMiddleware, async (req, res) => {
   try {
     const { name, description, shortDescription, icon, category, price, duration, features, order, color } = req.body;
     
@@ -1209,7 +1215,7 @@ router.post('/admin/services', authMiddleware, adminMiddleware, async (req, res)
 });
 
 // Update service (admin only)
-router.put('/admin/services/:id', authMiddleware, adminMiddleware, async (req, res) => {
+router.put('/admin/services/:id', authMiddleware, coAdminMiddleware, async (req, res) => {
   try {
     const { name, description, shortDescription, icon, category, price, duration, features, order, color } = req.body;
     
@@ -1257,7 +1263,7 @@ router.put('/admin/services/:id', authMiddleware, adminMiddleware, async (req, r
 });
 
 // Delete service (admin only)
-router.delete('/admin/services/:id', authMiddleware, adminMiddleware, async (req, res) => {
+router.delete('/admin/services/:id', authMiddleware, coAdminMiddleware, async (req, res) => {
   try {
     const service = await Service.findByIdAndDelete(req.params.id);
     
@@ -1284,7 +1290,7 @@ router.get('/services', async (req, res) => {
 });
 
 // Payment Options Management Routes
-router.get('/admin/payment-options', authMiddleware, adminMiddleware, async (req, res) => {
+router.get('/admin/payment-options', authMiddleware, coAdminMiddleware, async (req, res) => {
   try {
     const paymentOptions = await PaymentOption.find().sort({ order: 1, createdAt: -1 });
     res.json({ paymentOptions });
@@ -1294,7 +1300,7 @@ router.get('/admin/payment-options', authMiddleware, adminMiddleware, async (req
   }
 });
 
-router.post('/admin/payment-options', authMiddleware, adminMiddleware, async (req, res) => {
+router.post('/admin/payment-options', authMiddleware, coAdminMiddleware, async (req, res) => {
   try {
     const { name, upiId, description, paymentType, order } = req.body;
     
@@ -1324,7 +1330,7 @@ router.post('/admin/payment-options', authMiddleware, adminMiddleware, async (re
   }
 });
 
-router.put('/admin/payment-options/:id', authMiddleware, adminMiddleware, async (req, res) => {
+router.put('/admin/payment-options/:id', authMiddleware, coAdminMiddleware, async (req, res) => {
   try {
     const { name, upiId, description, paymentType, order, isActive } = req.body;
     
@@ -1365,7 +1371,7 @@ router.put('/admin/payment-options/:id', authMiddleware, adminMiddleware, async 
   }
 });
 
-router.delete('/admin/payment-options/:id', authMiddleware, adminMiddleware, async (req, res) => {
+router.delete('/admin/payment-options/:id', authMiddleware, coAdminMiddleware, async (req, res) => {
   try {
     const paymentOption = await PaymentOption.findByIdAndDelete(req.params.id);
     
@@ -1431,7 +1437,7 @@ router.get('/project-requirements', authMiddleware, async (req, res) => {
 });
 
 // Admin: Get all project requirements with filters
-router.get('/admin/project-requirements', authMiddleware, adminMiddleware, async (req, res) => {
+router.get('/admin/project-requirements', authMiddleware, coAdminMiddleware, async (req, res) => {
   try {
     const { status, search } = req.query;
     let query = {};
@@ -1459,7 +1465,7 @@ router.get('/admin/project-requirements', authMiddleware, adminMiddleware, async
 });
 
 // Admin: Update project requirement status
-router.patch('/admin/project-requirement/:id', authMiddleware, adminMiddleware, async (req, res) => {
+router.patch('/admin/project-requirement/:id', authMiddleware, coAdminMiddleware, async (req, res) => {
   try {
     const { status, projectLink, adminNotes } = req.body;
     const project = await ProjectRequirement.findById(req.params.id);
@@ -1502,7 +1508,7 @@ router.patch('/admin/project-requirement/:id', authMiddleware, adminMiddleware, 
 });
 
 // Admin: Get all subscription cancellations
-router.get('/admin/cancellations', authMiddleware, adminMiddleware, async (req, res) => {
+router.get('/admin/cancellations', authMiddleware, coAdminMiddleware, async (req, res) => {
   try {
     const { status } = req.query;
     let query = {};
@@ -1533,7 +1539,7 @@ router.get('/admin/cancellations', authMiddleware, adminMiddleware, async (req, 
 });
 
 // Admin: Approve cancellation
-router.patch('/admin/approve-cancellation/:id', authMiddleware, adminMiddleware, async (req, res) => {
+router.patch('/admin/approve-cancellation/:id', authMiddleware, coAdminMiddleware, async (req, res) => {
   try {
     const sub = await Subscription.findById(req.params.id);
     if (!sub) return res.status(404).json({ message: 'Subscription not found.' });
@@ -1556,7 +1562,7 @@ router.patch('/admin/approve-cancellation/:id', authMiddleware, adminMiddleware,
 });
 
 // Admin: Reject cancellation
-router.patch('/admin/reject-cancellation/:id', authMiddleware, adminMiddleware, async (req, res) => {
+router.patch('/admin/reject-cancellation/:id', authMiddleware, coAdminMiddleware, async (req, res) => {
   try {
     const { reason } = req.body;
     const sub = await Subscription.findById(req.params.id);

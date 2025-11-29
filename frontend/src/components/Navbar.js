@@ -162,7 +162,7 @@ function Navbar() {
                       onClick={(e) => e.stopPropagation()}
                     >
                       <Link 
-                        to={user.role === 'admin' ? '/admin-dashboard' : '/dashboard'} 
+                        to={(user.role === 'admin' || user.role === 'coadmin') ? '/admin-dashboard' : '/dashboard'} 
                         className="block px-4 py-3 text-text-main no-underline text-[0.9375rem] transition-all duration-200 hover:bg-gray-light hover:text-accent-500 flex items-center gap-2"
                         onClick={() => setDropdownOpen(false)}
                       >
@@ -293,7 +293,7 @@ function Navbar() {
                     tabIndex={-1}
                   >
                     <Link 
-                      to={user.role === 'admin' ? '/admin-dashboard' : '/dashboard'} 
+                      to={(user.role === 'admin' || user.role === 'coadmin') ? '/admin-dashboard' : '/dashboard'} 
                       className="block text-white px-4 py-3.5 rounded-lg mx-1 my-1 transition-all duration-200 hover:bg-white/10 hover:text-accent-500"
                       onClick={toggleMobileMenu}
                     >

@@ -2,17 +2,23 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { adminNavItems } from './AdminSidebar';
 
-const AdminBottomNav = ({ activeTab, setActiveTab }) => {
+const AdminBottomNav = ({ activeTab, setActiveTab, userRole = 'admin' }) => {
   const navigate = useNavigate();
   const handleLogout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('user');
     navigate('/login');
   };
+  
+  // Filter out "Manage Users" for co-admin
+  const filteredNavItems = userRole === 'coadmin' 
+    ? adminNavItems.filter(item => item.id !== 'users')
+    : adminNavItems;
   
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-gray-800 border-t border-gray-700 z-50 lg:hidden">
       <div className="flex items-center justify-around h-16">
-        {adminNavItems.slice(0, 4).map(item => (
+        {filteredNavItems.slice(0, 4).map(item => (
           <button
             key={item.id}
             onClick={() => setActiveTab(item.id)}

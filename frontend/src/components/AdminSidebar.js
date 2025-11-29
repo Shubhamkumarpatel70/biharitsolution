@@ -22,7 +22,14 @@ export const adminNavItems = [
   { id: 'coupons', label: 'Coupons', icon: '🏷️' },
 ];
 
-const AdminSidebar = ({ onLogout, activeTab, setActiveTab, onClose }) => {
+const AdminSidebar = ({ onLogout, activeTab, setActiveTab, onClose, userRole = 'admin' }) => {
+  // Filter out "Manage Users" for co-admin
+  const filteredNavItems = userRole === 'coadmin' 
+    ? adminNavItems.filter(item => item.id !== 'users')
+    : adminNavItems;
+
+  const isCoAdmin = userRole === 'coadmin';
+
   return (
     <div className="h-full w-64 bg-gray-800 border-r border-gray-700 flex flex-col">
       {/* Sidebar Header */}
@@ -32,7 +39,9 @@ const AdminSidebar = ({ onLogout, activeTab, setActiveTab, onClose }) => {
             🛡️
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="text-lg font-bold text-success-500">Admin Panel</h2>
+            <h2 className="text-lg font-bold text-success-500">
+              {isCoAdmin ? 'Co-Admin Panel' : 'Admin Panel'}
+            </h2>
             <p className="text-xs text-gray-400">Control Center</p>
           </div>
           <button
@@ -47,7 +56,7 @@ const AdminSidebar = ({ onLogout, activeTab, setActiveTab, onClose }) => {
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto p-4">
-        {adminNavItems.map(item => (
+        {filteredNavItems.map(item => (
           <button
             key={item.id}
             onClick={() => {

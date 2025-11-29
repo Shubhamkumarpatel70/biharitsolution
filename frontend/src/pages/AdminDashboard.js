@@ -27,12 +27,35 @@ const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('home');
   const navigate = useNavigate();
   
+  // Get user role from localStorage (stored during login)
+  const getUserRole = () => {
+    try {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        return user.role || 'admin';
+      }
+    } catch (e) {
+      console.error('Error parsing user from localStorage:', e);
+    }
+    return 'admin'; // Default to admin if not found
+  };
+
+  const userRole = getUserRole();
+  const isCoAdmin = userRole === 'coadmin';
+  
   const handleLogout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('user');
     navigate('/login');
   };
 
   const renderContent = () => {
+    // Prevent co-admin from accessing users tab
+    if (activeTab === 'users' && isCoAdmin) {
+      return <AdminHome />;
+    }
+
     switch (activeTab) {
       case 'home':
         return <AdminHome />;
@@ -107,6 +130,7 @@ const AdminDashboard = () => {
           activeTab={activeTab} 
           setActiveTab={setActiveTab}
           onClose={() => setSidebarOpen(false)}
+          userRole={userRole}
         />
       </aside>
 
@@ -114,7 +138,9 @@ const AdminDashboard = () => {
       <main className="flex-1 lg:ml-0 min-h-screen bg-gray-900">
         {/* Mobile Header */}
         <div className="lg:hidden bg-gray-800 border-b border-gray-700 px-4 py-3 flex items-center justify-between sticky top-0 z-30">
-          <h1 className="text-lg font-bold text-success-500">Admin Dashboard</h1>
+          <h1 className="text-lg font-bold text-success-500">
+            {isCoAdmin ? 'Co-Admin Dashboard' : 'Admin Dashboard'}
+          </h1>
           <div className="w-10"></div>
         </div>
 
@@ -125,7 +151,7 @@ const AdminDashboard = () => {
       </main>
 
       {/* Bottom Navigation */}
-      <AdminBottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
+      <AdminBottomNav activeTab={activeTab} setActiveTab={setActiveTab} userRole={userRole} />
     </div>
   );
 };
