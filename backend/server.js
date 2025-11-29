@@ -107,13 +107,14 @@ app.options('*', cors());
 
 // Manual CORS headers as backup - Handle multiple frontend URLs
 app.use((req, res, next) => {
-  const allowedOrigins = [
-    'http://localhost:3000',
-    'https://custom-web-frontend.onrender.com',
-    'https://custom-web-app.onrender.com',
-    'https://capitalcove.me',
-    'https://www.capitalcove.me'
-  ];
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'https://custom-web-frontend.onrender.com',
+      'https://custom-web-app.onrender.com',
+      'https://biharitsolution.onrender.com',
+      'https://capitalcove.me',
+      'https://www.capitalcove.me'
+    ];
   
   const origin = req.headers.origin;
   console.log('Manual CORS - Request Origin:', origin);
@@ -271,6 +272,7 @@ const io = new Server(server, {
       'http://localhost:3000',
       'https://custom-web-frontend.onrender.com',
       'https://custom-web-app.onrender.com',
+      'https://biharitsolution.onrender.com',
       'https://capitalcove.me',
       'https://www.capitalcove.me'
     ],
