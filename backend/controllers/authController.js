@@ -212,10 +212,16 @@ exports.cancelUserSubscription = async (req, res) => {
     
     const sub = await Subscription.findOne({ _id: req.params.id, user: req.user.id });
     if (!sub) return res.status(404).json({ message: 'Subscription not found.' });
-    if (sub.canceled) return res.status(400).json({ message: 'Subscription already canceled.' });
+    if (sub.canceled && sub.cancellationStatus === 'approved') {
+      return res.status(400).json({ message: 'Subscription cancellation already approved.' });
+    }
+    if (sub.cancellationStatus === 'pending') {
+      return res.status(400).json({ message: 'Cancellation request is already pending approval.' });
+    }
     if (sub.status !== 'active') return res.status(400).json({ message: 'Only active subscriptions can be canceled.' });
     
-    sub.canceled = true;
+    // Set cancellation status to pending (not immediately canceled)
+    sub.cancellationStatus = 'pending';
     sub.cancellationReason = reason.trim();
     sub.cancellationRequestDate = new Date();
     await sub.save();

@@ -90,7 +90,12 @@ const Subscription = () => {
   const isExpired = subscription && subscription.status === 'expired';
   const isRenewalPending = subscription && subscription.renewalStatus === 'pending';
   const showRenewButton = isExpired && !isRenewalPending;
-  const canCancel = subscription && subscription.status === 'active' && !subscription.canceled;
+  const canCancel = subscription && subscription.status === 'active' && 
+    subscription.cancellationStatus !== 'pending' && 
+    subscription.cancellationStatus !== 'approved';
+  const cancellationPending = subscription && subscription.cancellationStatus === 'pending';
+  const cancellationApproved = subscription && subscription.cancellationStatus === 'approved';
+  const cancellationRejected = subscription && subscription.cancellationStatus === 'rejected';
 
   if (loading) {
     return <div style={{ color: '#E5E7EB', textAlign: 'center', padding: '2rem' }}>Loading...</div>;
@@ -122,6 +127,24 @@ const Subscription = () => {
           {subscription.renewalStatus === 'rejected' && (
             <div style={{ background: 'rgba(255, 107, 53, 0.1)', padding: '1rem', borderRadius: '0.5rem', color: '#FF6B35', fontWeight: 600, marginTop: '1rem' }}>
               <strong>Renewal Rejected:</strong> {subscription.renewalRejectionReason}
+            </div>
+          )}
+
+          {cancellationPending && (
+            <div style={{ background: 'rgba(255, 165, 0, 0.1)', padding: '1rem', borderRadius: '0.5rem', color: '#FFA500', fontWeight: 600, marginTop: '1rem' }}>
+              ⏳ Cancellation request is pending approval from admin.
+            </div>
+          )}
+
+          {cancellationApproved && (
+            <div style={{ background: 'rgba(255, 107, 53, 0.1)', padding: '1rem', borderRadius: '0.5rem', color: '#FF6B35', fontWeight: 700, marginTop: '1rem', fontSize: '1.1rem' }}>
+              ❌ Plan Cancelled - Your subscription has been cancelled and is now inactive.
+            </div>
+          )}
+
+          {cancellationRejected && subscription.cancellationRejectionReason && (
+            <div style={{ background: 'rgba(59, 130, 246, 0.1)', padding: '1rem', borderRadius: '0.5rem', color: '#3B82F6', fontWeight: 600, marginTop: '1rem' }}>
+              <strong>Cancellation Rejected:</strong> {subscription.cancellationRejectionReason}
             </div>
           )}
 

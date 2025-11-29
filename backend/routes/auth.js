@@ -1448,7 +1448,24 @@ router.patch('/admin/project-requirement/:id', authMiddleware, adminMiddleware, 
 // Admin: Get all subscription cancellations
 router.get('/admin/cancellations', authMiddleware, adminMiddleware, async (req, res) => {
   try {
-    const cancellations = await Subscription.find({ canceled: true })
+    const { status } = req.query;
+    let query = {};
+    
+    if (status === 'pending') {
+      query = { cancellationStatus: 'pending' };
+    } else if (status === 'approved') {
+      query = { cancellationStatus: 'approved', canceled: true };
+    } else {
+      // Get all cancellations (pending, approved, rejected)
+      query = { 
+        $or: [
+          { cancellationStatus: { $ne: 'none' } },
+          { canceled: true }
+        ]
+      };
+    }
+    
+    const cancellations = await Subscription.find(query)
       .populate('user', 'name email')
       .sort({ cancellationRequestDate: -1 });
     
@@ -1456,6 +1473,51 @@ router.get('/admin/cancellations', authMiddleware, adminMiddleware, async (req, 
   } catch (err) {
     console.error('Error fetching cancellations:', err);
     res.status(500).json({ message: 'Could not fetch cancellations.' });
+  }
+});
+
+// Admin: Approve cancellation
+router.patch('/admin/approve-cancellation/:id', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const sub = await Subscription.findById(req.params.id);
+    if (!sub) return res.status(404).json({ message: 'Subscription not found.' });
+    if (sub.cancellationStatus !== 'pending') {
+      return res.status(400).json({ message: 'Cancellation request is not pending.' });
+    }
+    
+    // Approve cancellation: mark as canceled, set status to expired, and update cancellation status
+    sub.canceled = true;
+    sub.cancellationStatus = 'approved';
+    sub.cancellationApprovedDate = new Date();
+    sub.status = 'expired'; // Make subscription inactive
+    await sub.save();
+    
+    res.json({ subscription: sub, message: 'Cancellation approved successfully.' });
+  } catch (err) {
+    console.error('Error approving cancellation:', err);
+    res.status(500).json({ message: 'Could not approve cancellation.' });
+  }
+});
+
+// Admin: Reject cancellation
+router.patch('/admin/reject-cancellation/:id', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const { reason } = req.body;
+    const sub = await Subscription.findById(req.params.id);
+    if (!sub) return res.status(404).json({ message: 'Subscription not found.' });
+    if (sub.cancellationStatus !== 'pending') {
+      return res.status(400).json({ message: 'Cancellation request is not pending.' });
+    }
+    
+    // Reject cancellation: keep subscription active, set cancellation status to rejected
+    sub.cancellationStatus = 'rejected';
+    sub.cancellationRejectionReason = reason || 'Cancellation request rejected by admin.';
+    await sub.save();
+    
+    res.json({ subscription: sub, message: 'Cancellation rejected successfully.' });
+  } catch (err) {
+    console.error('Error rejecting cancellation:', err);
+    res.status(500).json({ message: 'Could not reject cancellation.' });
   }
 });
 
