@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from '../axios';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 const planDisplayNames = {
   starter: 'Starter',
@@ -12,7 +12,6 @@ const Subscription = () => {
   const [subscription, setSubscription] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [requestStatus, setRequestStatus] = useState({});
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [canceling, setCanceling] = useState(false);
@@ -40,25 +39,6 @@ const Subscription = () => {
     fetchSubscription();
   }, []);
 
-  const handleRenewalRequest = async () => {
-    if (!subscription) return;
-    setRequestStatus({ ...requestStatus, [subscription._id]: 'pending' });
-    setError('');
-    try {
-      const token = localStorage.getItem('token');
-      await axios.post(
-        '/api/auth/renewal-request',
-        { subscriptionId: subscription._id },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setRequestStatus({ ...requestStatus, [subscription._id]: 'success' });
-      fetchSubscription();
-    } catch (err) {
-      const errorMessage = err.response?.data?.message || 'Could not submit renewal request.';
-      setError(errorMessage);
-      setRequestStatus({ ...requestStatus, [subscription._id]: 'error' });
-    }
-  };
 
   const handleCancelSubscription = async () => {
     if (!cancelReason.trim()) {
@@ -88,14 +68,14 @@ const Subscription = () => {
   };
 
   const isExpired = subscription && subscription.status === 'expired';
-  const isRenewalPending = subscription && subscription.renewalStatus === 'pending';
-  const showRenewButton = isExpired && !isRenewalPending;
   const canCancel = subscription && subscription.status === 'active' && 
     subscription.cancellationStatus !== 'pending' && 
     subscription.cancellationStatus !== 'approved';
   const cancellationPending = subscription && subscription.cancellationStatus === 'pending';
   const cancellationApproved = subscription && subscription.cancellationStatus === 'approved';
   const cancellationRejected = subscription && subscription.cancellationStatus === 'rejected';
+  // Show Buy New Plan button if subscription is cancelled, expired, or user has no active subscription
+  const showBuyNewPlan = cancellationApproved || isExpired || !subscription || subscription.status !== 'active';
 
   if (loading) {
     return <div style={{ color: '#E5E7EB', textAlign: 'center', padding: '2rem' }}>Loading...</div>;
@@ -105,7 +85,8 @@ const Subscription = () => {
     <div style={{ maxWidth: 600, margin: '0 auto', color: '#E5E7EB' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.2rem' }}>
         <h2 style={{ color: '#2ECC71', fontWeight: 700, fontSize: '1.7rem', margin: 0 }}>My Subscription</h2>
-        {isExpired && !isRenewalPending && <span style={{ background: '#FF6B35', color: '#fff', borderRadius: '0.7rem', padding: '0.3rem 1.1rem', fontWeight: 700, fontSize: '1rem' }}>Expired</span>}
+        {isExpired && !cancellationPending && <span style={{ background: '#FF6B35', color: '#fff', borderRadius: '0.7rem', padding: '0.3rem 1.1rem', fontWeight: 700, fontSize: '1rem' }}>Expired</span>}
+        {cancellationApproved && <span style={{ background: '#FF6B35', color: '#fff', borderRadius: '0.7rem', padding: '0.3rem 1.1rem', fontWeight: 700, fontSize: '1rem' }}>Cancelled</span>}
       </div>
 
       {error && <div style={{ color: '#FF6B35', background: 'rgba(255, 107, 53, 0.1)', padding: '1rem', borderRadius: '0.5rem', marginBottom: '1rem' }}>{error}</div>}
@@ -118,18 +99,6 @@ const Subscription = () => {
           <div style={{ marginBottom: '1rem' }}><b>Status:</b> <span style={{ color: subscription.status === 'active' ? '#2ECC71' : '#FF6B35', fontWeight: 700, marginLeft: '0.5rem' }}>{subscription.status}</span></div>
           <div style={{ marginBottom: '1rem' }}><b>Expires At:</b> {subscription.expiresAt ? new Date(subscription.expiresAt).toLocaleDateString() : 'N/A'}</div>
           
-          {isRenewalPending && (
-            <div style={{ background: 'rgba(255, 165, 0, 0.1)', padding: '1rem', borderRadius: '0.5rem', color: '#FFA500', fontWeight: 600, marginTop: '1rem' }}>
-              Renewal request is pending approval.
-            </div>
-          )}
-
-          {subscription.renewalStatus === 'rejected' && (
-            <div style={{ background: 'rgba(255, 107, 53, 0.1)', padding: '1rem', borderRadius: '0.5rem', color: '#FF6B35', fontWeight: 600, marginTop: '1rem' }}>
-              <strong>Renewal Rejected:</strong> {subscription.renewalRejectionReason}
-            </div>
-          )}
-
           {cancellationPending && (
             <div style={{ background: 'rgba(255, 165, 0, 0.1)', padding: '1rem', borderRadius: '0.5rem', color: '#FFA500', fontWeight: 600, marginTop: '1rem' }}>
               ⏳ Cancellation request is pending approval from admin.
@@ -149,12 +118,6 @@ const Subscription = () => {
           )}
 
           <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', flexWrap: 'wrap' }}>
-            {showRenewButton && (
-              <button onClick={handleRenewalRequest} disabled={requestStatus[subscription._id] === 'pending'} style={{ background: '#2ECC71', color: '#181A20', border: 'none', borderRadius: '0.5rem', padding: '0.7rem 1.5rem', fontWeight: 700, fontSize: '1rem', cursor: 'pointer' }}>
-                {requestStatus[subscription._id] === 'pending' ? 'Requesting...' : 'Request Renewal'}
-              </button>
-            )}
-            
             {canCancel && (
               <button 
                 onClick={() => setShowCancelModal(true)} 
@@ -162,6 +125,35 @@ const Subscription = () => {
               >
                 Cancel Subscription
               </button>
+            )}
+            
+            {showBuyNewPlan && (
+              <Link
+                to="/plans"
+                style={{ 
+                  background: '#2ECC71', 
+                  color: '#181A20', 
+                  border: 'none', 
+                  borderRadius: '0.5rem', 
+                  padding: '0.7rem 1.5rem', 
+                  fontWeight: 700, 
+                  fontSize: '1rem', 
+                  cursor: 'pointer',
+                  textDecoration: 'none',
+                  display: 'inline-block',
+                  transition: 'all 0.3s'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = '#27AE60';
+                  e.target.style.transform = 'scale(1.05)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = '#2ECC71';
+                  e.target.style.transform = 'scale(1)';
+                }}
+              >
+                📦 Buy New Plan
+              </Link>
             )}
           </div>
         </div>
