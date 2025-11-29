@@ -140,7 +140,7 @@ const ProjectRequirement = () => {
           </div>
         )}
 
-        {!hasSubscription ? (
+        {!hasActiveSubscription ? (
           <div className="bg-gradient-to-r from-accent-500/10 to-primary-500/10 border-2 border-accent-500/30 rounded-xl p-8 text-center">
             <div className="text-6xl mb-4">🔒</div>
             <h3 className="text-2xl font-bold text-primary-600 mb-3">Subscription Required</h3>
