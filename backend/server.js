@@ -219,24 +219,7 @@ mongoose.connection.on('disconnected', () => {
 const PORT = process.env.PORT || 5000;
 app.use('/api/auth', authRoutes);
 
-// Serve static files from React app in production
-if (process.env.NODE_ENV === 'production') {
-  const path = require('path');
-  // Serve static files from React build
-  app.use(express.static(path.join(__dirname, '../frontend/build')));
-  
-  // Serve React app for all non-API routes (must be last)
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/build/index.html'));
-  });
-} else {
-  // Development: API info route
-  app.get('/', (req, res) => {
-    res.send('API is running...');
-  });
-}
-
-// Protected user dashboard route with caching
+// Protected user dashboard route with caching (must be before static file serving)
 app.get('/api/dashboard', authMiddleware, async (req, res) => {
   try {
     if (req.user.role === 'admin') {
@@ -263,6 +246,23 @@ app.get('/api/dashboard', authMiddleware, async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
+
+// Serve static files from React app in production (must be after all API routes)
+if (process.env.NODE_ENV === 'production') {
+  const path = require('path');
+  // Serve static files from React build
+  app.use(express.static(path.join(__dirname, '../frontend/build')));
+  
+  // Serve React app for all non-API routes (must be last)
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/build/index.html'));
+  });
+} else {
+  // Development: API info route
+  app.get('/', (req, res) => {
+    res.send('API is running...');
+  });
+}
 
 const server = http.createServer(app);
 const io = new Server(server, {
