@@ -217,19 +217,6 @@ function Team() {
                   ))}
                 </div>
 
-                {/* Social Links */}
-                <div className="flex items-center justify-center gap-3 pt-4 border-t border-gray-200">
-                  <a href={member.social.linkedin} className="w-8 h-8 flex items-center justify-center bg-gray-light hover:bg-accent-500/10 rounded-lg transition-colors duration-300">
-                    <span className="text-sm">💼</span>
-                  </a>
-                  <a href={member.social.github} className="w-8 h-8 flex items-center justify-center bg-gray-light hover:bg-accent-500/10 rounded-lg transition-colors duration-300">
-                    <span className="text-sm">🐙</span>
-                  </a>
-                  <a href={member.social.twitter} className="w-8 h-8 flex items-center justify-center bg-gray-light hover:bg-accent-500/10 rounded-lg transition-colors duration-300">
-                    <span className="text-sm">🐦</span>
-                  </a>
-                </div>
-
                 {/* Bottom Gradient */}
                 <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-accent rounded-b-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               </div>

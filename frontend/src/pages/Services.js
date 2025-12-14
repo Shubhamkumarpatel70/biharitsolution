@@ -71,14 +71,6 @@ function Services() {
                   <h3 className="font-semibold text-sm md:text-base text-text-main group-hover:text-accent-500 transition-colors duration-300">
                     {item.title}
                   </h3>
-                  {item.price && (
-                    <p 
-                      className="text-xs md:text-sm font-medium"
-                      style={{ color: item.color }}
-                    >
-                      {item.price}
-                    </p>
-                  )}
                 </div>
 
                 {/* Hover Effect */}
