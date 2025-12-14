@@ -202,10 +202,14 @@ mongoose.connect(process.env.MONGO_URI, {
 .then(() => {
   console.log('MongoDB connected successfully');
   console.log('Connection state:', mongoose.connection.readyState);
+  
+  // Run initial cleanup after connection is established
+  cleanupExpiredNotifications();
 })
 .catch((err) => {
   console.error('MongoDB connection error:', err);
-  process.exit(1); // Exit if database connection fails
+  // Don't exit immediately, allow retry
+  console.log('Will retry connection on next operation...');
 });
 
 // Handle MongoDB connection errors
@@ -215,6 +219,12 @@ mongoose.connection.on('error', (err) => {
 
 mongoose.connection.on('disconnected', () => {
   console.log('MongoDB disconnected');
+});
+
+mongoose.connection.on('connected', () => {
+  console.log('MongoDB connected - ready for operations');
+  // Run initial cleanup when connection is established
+  cleanupExpiredNotifications();
 });
 
 const PORT = process.env.PORT || 5000;
@@ -299,6 +309,12 @@ io.on('connection', (socket) => {
 
 // Scheduled task to clean expired notifications (runs every hour)
 const cleanupExpiredNotifications = async () => {
+  // Check if MongoDB is connected before running cleanup
+  if (mongoose.connection.readyState !== 1) {
+    console.log('MongoDB not connected, skipping notification cleanup');
+    return;
+  }
+  
   try {
     const deletedCount = await Notification.cleanExpired();
     if (deletedCount > 0) {
@@ -309,10 +325,7 @@ const cleanupExpiredNotifications = async () => {
   }
 };
 
-// Run cleanup immediately on startup
-cleanupExpiredNotifications();
-
-// Schedule cleanup to run every hour
+// Schedule cleanup to run every hour (only runs if MongoDB is connected)
 setInterval(cleanupExpiredNotifications, 60 * 60 * 1000); // 1 hour
 
 server.listen(PORT, () => {

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from '../axios';
 
 const defaultPlan = {
-  name: '', price: '', oldPrice: '', save: '', features: '', highlight: false, color: '', duration: ''
+  name: '', price: '', oldPrice: '', savings: '', features: '', highlight: false, color: '', duration: ''
 };
 
 const AdminPlans = () => {
@@ -73,7 +73,7 @@ const AdminPlans = () => {
           <input name="name" value={form.name} onChange={handleChange} placeholder="Name" required style={{ flex: 1 }} />
           <input name="price" value={form.price} onChange={handleChange} placeholder="Price" required style={{ flex: 1 }} />
           <input name="oldPrice" value={form.oldPrice} onChange={handleChange} placeholder="Old Price" style={{ flex: 1 }} />
-          <input name="save" value={form.save} onChange={handleChange} placeholder="Save" style={{ flex: 1 }} />
+          <input name="savings" value={form.savings} onChange={handleChange} placeholder="Savings" style={{ flex: 1 }} />
           <input name="color" value={form.color} onChange={handleChange} placeholder="Color (e.g. #2ECC71)" style={{ flex: 1 }} />
           <input name="duration" type="number" value={form.duration || ''} onChange={handleChange} placeholder="Duration (days)" required style={{ flex: 1 }} />
         </div>
@@ -112,7 +112,7 @@ const AdminPlans = () => {
                 Highlighted
               </span>
             )}
-            <b>{plan.name}</b> - {plan.price} <span style={{ color: plan.color }}>{plan.save}</span>
+            <b>{plan.name}</b> - {plan.price} <span style={{ color: plan.color }}>{plan.savings}</span>
             <div style={{ fontSize: '0.95rem', color: '#A0AEC0' }}>Features: {plan.features.join(', ')}</div>
             <div style={{ fontSize: '0.95rem', color: '#A0AEC0' }}>Duration: {plan.duration} days</div>
             <button onClick={() => handleEdit(plan)} style={{ background: '#0057D9', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.3rem 1rem', fontWeight: 600, marginTop: '0.5rem', cursor: 'pointer', marginRight: '0.5rem' }}>Edit</button>
