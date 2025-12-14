@@ -66,60 +66,141 @@ const AdminPlans = () => {
   const sortedPlans = [...plans].sort((a, b) => (b.highlight === a.highlight) ? 0 : b.highlight ? -1 : 1);
 
   return (
-    <div style={{ color: '#E5E7EB', maxWidth: '800px', margin: '0 auto' }}>
-      <h2 style={{ color: '#2ECC71', fontWeight: 700, fontSize: '1.7rem', marginBottom: '1.2rem' }}>Manage Plans</h2>
-      <form onSubmit={handleSubmit} style={{ background: '#23272F', borderRadius: '1rem', padding: '2rem', marginBottom: '2rem' }}>
-        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-          <input name="name" value={form.name} onChange={handleChange} placeholder="Name" required style={{ flex: 1 }} />
-          <input name="price" value={form.price} onChange={handleChange} placeholder="Price" required style={{ flex: 1 }} />
-          <input name="oldPrice" value={form.oldPrice} onChange={handleChange} placeholder="Old Price" style={{ flex: 1 }} />
-          <input name="savings" value={form.savings} onChange={handleChange} placeholder="Savings" style={{ flex: 1 }} />
-          <input name="color" value={form.color} onChange={handleChange} placeholder="Color (e.g. #2ECC71)" style={{ flex: 1 }} />
-          <input name="duration" type="number" value={form.duration || ''} onChange={handleChange} placeholder="Duration (days)" required style={{ flex: 1 }} />
+    <div className="text-gray-200 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+      <h2 className="text-green-500 font-bold text-2xl sm:text-3xl mb-4 sm:mb-6">Manage Plans</h2>
+      
+      <form onSubmit={handleSubmit} className="bg-gray-800 rounded-xl p-4 sm:p-6 lg:p-8 mb-6 shadow-lg">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+          <input 
+            name="name" 
+            value={form.name} 
+            onChange={handleChange} 
+            placeholder="Name" 
+            required 
+            className="px-4 py-2 rounded-lg bg-gray-700 text-gray-200 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+          />
+          <input 
+            name="price" 
+            value={form.price} 
+            onChange={handleChange} 
+            placeholder="Price" 
+            required 
+            className="px-4 py-2 rounded-lg bg-gray-700 text-gray-200 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+          />
+          <input 
+            name="oldPrice" 
+            value={form.oldPrice} 
+            onChange={handleChange} 
+            placeholder="Old Price" 
+            className="px-4 py-2 rounded-lg bg-gray-700 text-gray-200 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+          />
+          <input 
+            name="savings" 
+            value={form.savings} 
+            onChange={handleChange} 
+            placeholder="Savings" 
+            className="px-4 py-2 rounded-lg bg-gray-700 text-gray-200 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+          />
+          <input 
+            name="color" 
+            value={form.color} 
+            onChange={handleChange} 
+            placeholder="Color (e.g. #2ECC71)" 
+            className="px-4 py-2 rounded-lg bg-gray-700 text-gray-200 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+          />
+          <input 
+            name="duration" 
+            type="number" 
+            value={form.duration || ''} 
+            onChange={handleChange} 
+            placeholder="Duration (days)" 
+            required 
+            className="px-4 py-2 rounded-lg bg-gray-700 text-gray-200 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+          />
         </div>
-        <div style={{ margin: '1rem 0' }}>
-          <input name="features" value={form.features} onChange={handleChange} placeholder="Features (comma separated)" style={{ width: '100%' }} />
+        <div className="mb-4">
+          <input 
+            name="features" 
+            value={form.features} 
+            onChange={handleChange} 
+            placeholder="Features (comma separated)" 
+            className="w-full px-4 py-2 rounded-lg bg-gray-700 text-gray-200 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+          />
         </div>
-        <label style={{ display: 'block', marginBottom: '1rem' }}>
-          <input type="checkbox" name="highlight" checked={form.highlight} onChange={handleChange} /> Highlight
+        <label className="flex items-center gap-2 mb-4 cursor-pointer">
+          <input 
+            type="checkbox" 
+            name="highlight" 
+            checked={form.highlight} 
+            onChange={handleChange}
+            className="w-4 h-4 text-green-500 bg-gray-700 border-gray-600 rounded focus:ring-green-500"
+          />
+          <span className="text-gray-300">Highlight this plan</span>
         </label>
-        <button type="submit" style={{ background: '#2ECC71', color: '#181A20', border: 'none', borderRadius: '0.5rem', padding: '0.7rem 1.5rem', fontWeight: 700, fontSize: '1rem', cursor: 'pointer' }}>{editingId ? 'Update' : 'Add'} Plan</button>
-        {message && <span style={{ marginLeft: '1rem', color: '#2ECC71' }}>{message}</span>}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+          <button 
+            type="submit" 
+            className="bg-green-500 hover:bg-green-600 text-gray-900 border-none rounded-lg px-6 py-2.5 font-bold text-base cursor-pointer transition-colors duration-200 shadow-lg hover:shadow-xl"
+          >
+            {editingId ? 'Update' : 'Add'} Plan
+          </button>
+          {message && (
+            <span className={`text-sm sm:text-base ${message.includes('Error') ? 'text-red-400' : 'text-green-400'}`}>
+              {message}
+            </span>
+          )}
+        </div>
       </form>
-      <h3 style={{ color: '#2ECC71', fontWeight: 600, marginBottom: '1rem' }}>Existing Plans</h3>
-      <ul style={{ listStyle: 'none', padding: 0 }}>
+      
+      <h3 className="text-green-500 font-semibold text-xl sm:text-2xl mb-4">Existing Plans</h3>
+      <div className="space-y-4">
         {sortedPlans.map(plan => (
-          <li key={plan._id} style={{
-            background: plan.highlight ? '#23272F' : '#181A20',
-            border: plan.highlight ? '2px solid #2ECC71' : '2px solid transparent',
-            borderRadius: '0.5rem',
-            padding: '1rem',
-            marginBottom: '1rem',
-            position: 'relative'
-          }}>
+          <div 
+            key={plan._id} 
+            className={`rounded-lg p-4 sm:p-6 relative transition-all duration-200 ${
+              plan.highlight 
+                ? 'bg-gray-800 border-2 border-green-500 shadow-lg shadow-green-500/20' 
+                : 'bg-gray-900 border-2 border-transparent hover:border-gray-700'
+            }`}
+          >
             {plan.highlight && (
-              <span style={{
-                position: 'absolute',
-                top: 10,
-                right: 20,
-                background: '#2ECC71',
-                color: '#181A20',
-                borderRadius: '12px',
-                padding: '2px 10px',
-                fontWeight: 700,
-                fontSize: '0.85rem'
-              }}>
+              <span className="absolute top-3 right-3 sm:top-4 sm:right-4 bg-green-500 text-gray-900 rounded-full px-3 py-1 text-xs font-bold">
                 Highlighted
               </span>
             )}
-            <b>{plan.name}</b> - {plan.price} <span style={{ color: plan.color }}>{plan.savings}</span>
-            <div style={{ fontSize: '0.95rem', color: '#A0AEC0' }}>Features: {plan.features.join(', ')}</div>
-            <div style={{ fontSize: '0.95rem', color: '#A0AEC0' }}>Duration: {plan.duration} days</div>
-            <button onClick={() => handleEdit(plan)} style={{ background: '#0057D9', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.3rem 1rem', fontWeight: 600, marginTop: '0.5rem', cursor: 'pointer', marginRight: '0.5rem' }}>Edit</button>
-            <button onClick={() => handleDelete(plan._id)} style={{ background: '#FF6B35', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.3rem 1rem', fontWeight: 600, marginTop: '0.5rem', cursor: 'pointer' }}>Delete</button>
-          </li>
+            <div className="pr-20 sm:pr-24">
+              <h4 className="text-white font-bold text-lg sm:text-xl mb-2">
+                {plan.name} - {plan.price} 
+                {plan.savings && (
+                  <span className="ml-2" style={{ color: plan.color || '#2ECC71' }}>
+                    {plan.savings}
+                  </span>
+                )}
+              </h4>
+              <div className="text-sm sm:text-base text-gray-400 mb-2">
+                <strong>Features:</strong> {plan.features.join(', ')}
+              </div>
+              <div className="text-sm sm:text-base text-gray-400 mb-4">
+                <strong>Duration:</strong> {plan.duration} days
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <button 
+                  onClick={() => handleEdit(plan)} 
+                  className="bg-blue-600 hover:bg-blue-700 text-white border-none rounded-lg px-4 py-2 font-semibold text-sm cursor-pointer transition-colors duration-200"
+                >
+                  Edit
+                </button>
+                <button 
+                  onClick={() => handleDelete(plan._id)} 
+                  className="bg-red-600 hover:bg-red-700 text-white border-none rounded-lg px-4 py-2 font-semibold text-sm cursor-pointer transition-colors duration-200"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
         ))}
-      </ul>
+      </div>
     </div>
   );
 };

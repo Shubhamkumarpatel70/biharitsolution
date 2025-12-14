@@ -78,50 +78,90 @@ const Subscription = () => {
   const showBuyNewPlan = cancellationApproved || isExpired || !subscription || subscription.status !== 'active';
 
   if (loading) {
-    return <div style={{ color: '#E5E7EB', textAlign: 'center', padding: '2rem' }}>Loading...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-gray-200 text-center">
+          <div className="w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p>Loading subscription...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div style={{ maxWidth: 600, margin: '0 auto', color: '#E5E7EB' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.2rem' }}>
-        <h2 style={{ color: '#2ECC71', fontWeight: 700, fontSize: '1.7rem', margin: 0 }}>My Subscription</h2>
-        {isExpired && !cancellationPending && <span style={{ background: '#FF6B35', color: '#fff', borderRadius: '0.7rem', padding: '0.3rem 1.1rem', fontWeight: 700, fontSize: '1rem' }}>Expired</span>}
-        {cancellationApproved && <span style={{ background: '#FF6B35', color: '#fff', borderRadius: '0.7rem', padding: '0.3rem 1.1rem', fontWeight: 700, fontSize: '1rem' }}>Cancelled</span>}
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 text-gray-200">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <h2 className="text-green-500 font-bold text-2xl sm:text-3xl">My Subscription</h2>
+        <div className="flex gap-2">
+          {isExpired && !cancellationPending && (
+            <span className="bg-orange-500 text-white rounded-lg px-3 py-1.5 font-bold text-sm sm:text-base">
+              Expired
+            </span>
+          )}
+          {cancellationApproved && (
+            <span className="bg-orange-500 text-white rounded-lg px-3 py-1.5 font-bold text-sm sm:text-base">
+              Cancelled
+            </span>
+          )}
+        </div>
       </div>
 
-      {error && <div style={{ color: '#FF6B35', background: 'rgba(255, 107, 53, 0.1)', padding: '1rem', borderRadius: '0.5rem', marginBottom: '1rem' }}>{error}</div>}
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/30 text-red-400 p-4 rounded-lg mb-4">
+          {error}
+        </div>
+      )}
       
       {!subscription && !error ? (
-        <div style={{ color: '#A0AEC0', textAlign: 'center', background: '#23272F', padding: '2rem', borderRadius: '1rem' }}>No subscription found.</div>
+        <div className="text-gray-400 text-center bg-gray-800 p-8 rounded-xl">
+          No subscription found.
+        </div>
       ) : subscription && (
-        <div style={{ background: '#23272F', borderRadius: '1rem', padding: '2rem', boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}>
-          <div style={{ marginBottom: '1rem' }}><b>Current Plan:</b> {planDisplayNames[subscription.plan]}</div>
-          <div style={{ marginBottom: '1rem' }}><b>Status:</b> <span style={{ color: subscription.status === 'active' ? '#2ECC71' : '#FF6B35', fontWeight: 700, marginLeft: '0.5rem' }}>{subscription.status}</span></div>
-          <div style={{ marginBottom: '1rem' }}><b>Expires At:</b> {subscription.expiresAt ? new Date(subscription.expiresAt).toLocaleDateString() : 'N/A'}</div>
+        <div className="bg-gray-800 rounded-xl p-4 sm:p-6 lg:p-8 shadow-lg">
+          <div className="space-y-4 mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+              <span className="font-semibold text-gray-300">Current Plan:</span>
+              <span className="text-white text-lg">{planDisplayNames[subscription.plan] || subscription.plan}</span>
+            </div>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+              <span className="font-semibold text-gray-300">Status:</span>
+              <span className={`font-bold ${
+                subscription.status === 'active' ? 'text-green-500' : 'text-orange-500'
+              }`}>
+                {subscription.status.charAt(0).toUpperCase() + subscription.status.slice(1)}
+              </span>
+            </div>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+              <span className="font-semibold text-gray-300">Expires At:</span>
+              <span className="text-gray-200">
+                {subscription.expiresAt ? new Date(subscription.expiresAt).toLocaleDateString() : 'N/A'}
+              </span>
+            </div>
+          </div>
           
           {cancellationPending && (
-            <div style={{ background: 'rgba(255, 165, 0, 0.1)', padding: '1rem', borderRadius: '0.5rem', color: '#FFA500', fontWeight: 600, marginTop: '1rem' }}>
+            <div className="bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 p-4 rounded-lg mb-4">
               ⏳ Cancellation request is pending approval from admin.
             </div>
           )}
 
           {cancellationApproved && (
-            <div style={{ background: 'rgba(255, 107, 53, 0.1)', padding: '1rem', borderRadius: '0.5rem', color: '#FF6B35', fontWeight: 700, marginTop: '1rem', fontSize: '1.1rem' }}>
+            <div className="bg-orange-500/10 border border-orange-500/30 text-orange-400 p-4 rounded-lg mb-4 font-bold">
               ❌ Plan Cancelled - Your subscription has been cancelled and is now inactive.
             </div>
           )}
 
           {cancellationRejected && subscription.cancellationRejectionReason && (
-            <div style={{ background: 'rgba(59, 130, 246, 0.1)', padding: '1rem', borderRadius: '0.5rem', color: '#3B82F6', fontWeight: 600, marginTop: '1rem' }}>
+            <div className="bg-blue-500/10 border border-blue-500/30 text-blue-400 p-4 rounded-lg mb-4">
               <strong>Cancellation Rejected:</strong> {subscription.cancellationRejectionReason}
             </div>
           )}
 
-          <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', flexWrap: 'wrap' }}>
+          <div className="flex flex-col sm:flex-row gap-3 mt-6">
             {canCancel && (
               <button 
                 onClick={() => setShowCancelModal(true)} 
-                style={{ background: '#FF6B35', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.7rem 1.5rem', fontWeight: 700, fontSize: '1rem', cursor: 'pointer' }}
+                className="bg-orange-500 hover:bg-orange-600 text-white border-none rounded-lg px-6 py-3 font-bold text-base cursor-pointer transition-colors duration-200 shadow-lg hover:shadow-xl"
               >
                 Cancel Subscription
               </button>
@@ -130,27 +170,7 @@ const Subscription = () => {
             {showBuyNewPlan && (
               <Link
                 to="/plans"
-                style={{ 
-                  background: '#2ECC71', 
-                  color: '#181A20', 
-                  border: 'none', 
-                  borderRadius: '0.5rem', 
-                  padding: '0.7rem 1.5rem', 
-                  fontWeight: 700, 
-                  fontSize: '1rem', 
-                  cursor: 'pointer',
-                  textDecoration: 'none',
-                  display: 'inline-block',
-                  transition: 'all 0.3s'
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.background = '#27AE60';
-                  e.target.style.transform = 'scale(1.05)';
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.background = '#2ECC71';
-                  e.target.style.transform = 'scale(1)';
-                }}
+                className="bg-green-500 hover:bg-green-600 text-gray-900 border-none rounded-lg px-6 py-3 font-bold text-base cursor-pointer transition-all duration-200 shadow-lg hover:shadow-xl text-center no-underline inline-block transform hover:scale-105"
               >
                 📦 Buy New Plan
               </Link>
@@ -162,45 +182,26 @@ const Subscription = () => {
       {/* Cancel Subscription Modal */}
       {showCancelModal && (
         <div 
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            padding: '1rem'
-          }}
+          className="fixed inset-0 bg-black/80 flex items-center justify-center z-[1000] p-4"
           onClick={() => !canceling && setShowCancelModal(false)}
         >
           <div 
-            style={{
-              background: '#23272F',
-              borderRadius: '1rem',
-              padding: '2rem',
-              maxWidth: '500px',
-              width: '100%',
-              border: '2px solid #FF6B35'
-            }}
+            className="bg-gray-800 rounded-xl p-6 sm:p-8 max-w-lg w-full border-2 border-orange-500 animate-fade-in-up"
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-              <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>⚠️</div>
-              <h3 style={{ color: '#FF6B35', fontSize: '1.5rem', fontWeight: 700, marginBottom: '0.5rem' }}>
+            <div className="text-center mb-6">
+              <div className="text-6xl mb-4">⚠️</div>
+              <h3 className="text-orange-500 text-xl sm:text-2xl font-bold mb-2">
                 Cancel Subscription Warning
               </h3>
-              <p style={{ color: '#E5E7EB', fontSize: '1rem', lineHeight: '1.6' }}>
-                If you cancel your subscription, you will receive only <strong style={{ color: '#FF6B35' }}>50%</strong> of your total amount as a refund.
+              <p className="text-gray-200 text-sm sm:text-base leading-relaxed">
+                If you cancel your subscription, you will receive only <strong className="text-orange-500">50%</strong> of your total amount as a refund.
               </p>
             </div>
             
-            <div style={{ marginBottom: '1.5rem' }}>
-              <label style={{ display: 'block', color: '#E5E7EB', marginBottom: '0.5rem', fontWeight: 600 }}>
-                Reason for Cancellation <span style={{ color: '#FF6B35' }}>*</span>
+            <div className="mb-6">
+              <label className="block text-gray-200 mb-2 font-semibold">
+                Reason for Cancellation <span className="text-orange-500">*</span>
               </label>
               <textarea
                 value={cancelReason}
@@ -208,35 +209,19 @@ const Subscription = () => {
                 placeholder="Please provide a reason for canceling your subscription..."
                 required
                 rows={4}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  background: '#181A20',
-                  border: '1px solid #3A3F47',
-                  borderRadius: '0.5rem',
-                  color: '#E5E7EB',
-                  fontSize: '0.9rem',
-                  resize: 'vertical'
-                }}
+                className="w-full p-3 bg-gray-900 border border-gray-700 rounded-lg text-gray-200 text-sm resize-y focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
               />
             </div>
             
-            <div style={{ display: 'flex', gap: '1rem' }}>
+            <div className="flex flex-col sm:flex-row gap-3">
               <button
                 onClick={handleCancelSubscription}
                 disabled={canceling || !cancelReason.trim()}
-                style={{
-                  flex: 1,
-                  background: canceling ? '#666' : '#FF6B35',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '0.5rem',
-                  padding: '0.75rem',
-                  fontWeight: 700,
-                  fontSize: '1rem',
-                  cursor: canceling ? 'not-allowed' : 'pointer',
-                  opacity: canceling || !cancelReason.trim() ? 0.6 : 1
-                }}
+                className={`flex-1 rounded-lg py-3 font-bold text-base transition-all ${
+                  canceling || !cancelReason.trim()
+                    ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                    : 'bg-orange-500 hover:bg-orange-600 text-white cursor-pointer shadow-lg hover:shadow-xl'
+                }`}
               >
                 {canceling ? 'Canceling...' : 'Confirm Cancel'}
               </button>
@@ -247,17 +232,7 @@ const Subscription = () => {
                   setError('');
                 }}
                 disabled={canceling}
-                style={{
-                  flex: 1,
-                  background: '#3A3F47',
-                  color: '#E5E7EB',
-                  border: 'none',
-                  borderRadius: '0.5rem',
-                  padding: '0.75rem',
-                  fontWeight: 700,
-                  fontSize: '1rem',
-                  cursor: 'pointer'
-                }}
+                className="flex-1 bg-gray-700 hover:bg-gray-600 text-gray-200 border-none rounded-lg py-3 font-bold text-base cursor-pointer transition-colors"
               >
                 Cancel
               </button>

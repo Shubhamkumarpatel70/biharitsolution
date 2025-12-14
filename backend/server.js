@@ -190,40 +190,65 @@ function authMiddleware(req, res, next) {
   }
 }
 
-// MongoDB connection with optimized settings
-mongoose.connect(process.env.MONGO_URI, {
-  maxPoolSize: 10, // Maintain up to 10 socket connections
-  serverSelectionTimeoutMS: 5000, // Keep trying to send operations for 5 seconds
-  socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
-  bufferCommands: false, // Disable mongoose buffering
-  connectTimeoutMS: 10000, // Give up initial connection after 10 seconds
-  heartbeatFrequencyMS: 30000, // Send a heartbeat every 30 seconds
-})
-.then(() => {
-  console.log('MongoDB connected successfully');
-  console.log('Connection state:', mongoose.connection.readyState);
-  
-  // Run initial cleanup after connection is established
-  cleanupExpiredNotifications();
-})
-.catch((err) => {
-  console.error('MongoDB connection error:', err);
-  // Don't exit immediately, allow retry
-  console.log('Will retry connection on next operation...');
-});
+// MongoDB connection with optimized settings and retry logic
+const connectMongoDB = async (retries = 5, delay = 5000) => {
+  for (let i = 0; i < retries; i++) {
+    try {
+      await mongoose.connect(process.env.MONGO_URI, {
+        maxPoolSize: 10, // Maintain up to 10 socket connections
+        serverSelectionTimeoutMS: 10000, // Keep trying to send operations for 10 seconds
+        socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
+        bufferCommands: true, // Enable mongoose buffering for retry logic
+        connectTimeoutMS: 10000, // Give up initial connection after 10 seconds
+        heartbeatFrequencyMS: 30000, // Send a heartbeat every 30 seconds
+        retryWrites: true,
+        retryReads: true,
+      });
+      console.log('MongoDB connected successfully');
+      console.log('Connection state:', mongoose.connection.readyState);
+      return;
+    } catch (err) {
+      console.error(`MongoDB connection attempt ${i + 1}/${retries} failed:`, err.message);
+      if (i < retries - 1) {
+        console.log(`Retrying in ${delay / 1000} seconds...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        // Exponential backoff
+        delay = Math.min(delay * 1.5, 30000);
+      } else {
+        console.error('MongoDB connection failed after all retries. Server will continue but database operations may fail.');
+        console.log('Please check your MONGO_URI in .env file');
+      }
+    }
+  }
+};
+
+// Start connection
+connectMongoDB();
 
 // Handle MongoDB connection errors
 mongoose.connection.on('error', (err) => {
   console.error('MongoDB connection error:', err);
+  // Attempt to reconnect
+  if (mongoose.connection.readyState === 0) {
+    console.log('Attempting to reconnect to MongoDB...');
+    connectMongoDB(3, 5000);
+  }
 });
 
 mongoose.connection.on('disconnected', () => {
-  console.log('MongoDB disconnected');
+  console.log('MongoDB disconnected - attempting to reconnect...');
+  // Attempt to reconnect
+  connectMongoDB(3, 5000);
 });
 
 mongoose.connection.on('connected', () => {
   console.log('MongoDB connected - ready for operations');
   // Run initial cleanup when connection is established
+  cleanupExpiredNotifications();
+});
+
+mongoose.connection.on('reconnected', () => {
+  console.log('MongoDB reconnected successfully');
   cleanupExpiredNotifications();
 });
 
