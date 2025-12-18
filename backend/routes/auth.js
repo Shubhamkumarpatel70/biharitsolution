@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { registerUser, loginUser, registerAdmin, updateUserProfile, changeUserPassword, getUserNotifications, markNotificationRead, cancelUserSubscription, renewUserSubscription } = require('../controllers/authController');
+const { registerUser, loginUser, registerAdmin, updateUserProfile, changeUserPassword, getUserNotifications, markNotificationRead, cancelUserSubscription, renewUserSubscription, verifyEmailForPasswordReset, resetPassword } = require('../controllers/authController');
 const Subscription = require('../models/Subscription');
 const jwt = require('jsonwebtoken');
 const Plan = require('../models/Plan');
@@ -45,6 +45,10 @@ router.use(cookieParser());
 router.post('/register', registerUser);
 router.post('/login', loginUser);
 router.post('/register-admin', registerAdmin);
+
+// Forgot Password Routes
+router.post('/forgot-password/verify-email', verifyEmailForPasswordReset);
+router.post('/forgot-password/reset', resetPassword);
 
 // Google Auth Routes
 router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));

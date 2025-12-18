@@ -173,6 +173,64 @@ exports.changeUserPassword = async (req, res) => {
   }
 };
 
+// Forgot Password - Verify Email
+exports.verifyEmailForPasswordReset = async (req, res) => {
+  try {
+    console.log('Forgot password verify email endpoint called');
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ message: 'Email is required.' });
+    }
+    
+    const user = await User.findOne({ email: email.trim().toLowerCase() });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found with this email address.' });
+    }
+    
+    // Return user info (without password)
+    res.json({ 
+      user: {
+        name: user.name,
+        email: user.email
+      },
+      message: 'Email verified successfully.'
+    });
+  } catch (err) {
+    console.error('Error verifying email:', err);
+    res.status(500).json({ message: 'Could not verify email.' });
+  }
+};
+
+// Forgot Password - Reset Password
+exports.resetPassword = async (req, res) => {
+  try {
+    console.log('Forgot password reset endpoint called');
+    const { email, newPassword } = req.body;
+    if (!email || !newPassword) {
+      return res.status(400).json({ message: 'Email and new password are required.' });
+    }
+    
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters long.' });
+    }
+    
+    const user = await User.findOne({ email: email.trim().toLowerCase() });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+    
+    // Hash and update password
+    user.password = await bcrypt.hash(newPassword, 10);
+    await user.save();
+    
+    console.log('Password reset successful for:', email);
+    res.json({ message: 'Password reset successfully. Please login with your new password.' });
+  } catch (err) {
+    console.error('Error resetting password:', err);
+    res.status(500).json({ message: 'Could not reset password.' });
+  }
+};
+
 exports.getUserNotifications = async (req, res) => {
   try {
     const notifications = await Notification.find({ $or: [ { user: req.user.id }, { user: null } ] }).sort({ createdAt: -1 });
