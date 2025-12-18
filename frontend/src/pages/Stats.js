@@ -124,9 +124,6 @@ function Stats() {
 							<div className="text-sm md:text-base text-text-muted font-medium uppercase tracking-wide">
 								{s.label}
 							</div>
-
-							{/* Decorative Gradient Line */}
-							<div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-accent rounded-b-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
 						</li>
 					))}
 				</ul>

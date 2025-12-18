@@ -109,11 +109,6 @@ function Projects() {
 									))}
 								</div>
 							</div>
-							
-							{/* Bottom Gradient */}
-							<div 
-								className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-accent opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-							></div>
 						</div>
 					))}
 				</div>

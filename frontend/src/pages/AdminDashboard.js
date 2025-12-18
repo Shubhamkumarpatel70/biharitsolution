@@ -135,11 +135,29 @@ const AdminDashboard = () => {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 lg:ml-0 min-h-screen bg-gray-900">
+      <main className="flex-1 lg:ml-0 min-h-screen bg-gradient-to-br from-gray-900 via-gray-900 to-gray-800">
+        {/* Desktop Header */}
+        <div className="hidden lg:block bg-gray-800/80 backdrop-blur-sm border-b border-gray-700 px-6 py-4 sticky top-0 z-30">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-black text-success-500">
+                {isCoAdmin ? 'Co-Admin Dashboard' : 'Admin Dashboard'}
+              </h1>
+              <p className="text-sm text-gray-400 mt-1">Welcome back! Manage your platform efficiently.</p>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="text-right">
+                <p className="text-xs text-gray-400">Last updated</p>
+                <p className="text-sm text-gray-300 font-medium">{new Date().toLocaleTimeString()}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Mobile Header */}
-        <div className="lg:hidden bg-gray-800 border-b border-gray-700 px-4 py-3 flex items-center justify-between sticky top-0 z-30">
+        <div className="lg:hidden bg-gray-800/80 backdrop-blur-sm border-b border-gray-700 px-4 py-3 flex items-center justify-between sticky top-0 z-30">
           <h1 className="text-lg font-bold text-success-500">
-            {isCoAdmin ? 'Co-Admin Dashboard' : 'Admin Dashboard'}
+            {isCoAdmin ? 'Co-Admin' : 'Admin'}
           </h1>
           <div className="w-10"></div>
         </div>

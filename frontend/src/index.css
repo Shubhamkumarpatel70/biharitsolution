@@ -76,11 +76,19 @@
   }
 
   .btn-primary:hover {
-    @apply bg-gradient-button-primary-hover -translate-y-0.5 shadow-button-primary-hover border-accent-600/40;
+    @apply -translate-y-1 scale-105;
+    background: #fef08a !important; /* Light yellow */
+    color: #000000 !important; /* Black text */
+    box-shadow: 0 12px 35px rgba(254, 240, 138, 0.6), 0 0 50px rgba(254, 240, 138, 0.4);
+    border-color: rgba(254, 240, 138, 0.6);
+  }
+  
+  .btn-primary:hover * {
+    color: #000000 !important; /* Black text for all children */
   }
 
   .btn-primary:active {
-    @apply translate-y-0;
+    @apply translate-y-0 scale-100;
   }
 
   .btn-secondary {
@@ -88,7 +96,19 @@
   }
 
   .btn-secondary:hover {
-    @apply bg-primary-600 text-white border-primary-600 -translate-y-0.5 shadow-lg;
+    @apply -translate-y-1 scale-105;
+    background: #fef08a !important; /* Light yellow */
+    color: #000000 !important; /* Black text */
+    box-shadow: 0 12px 35px rgba(254, 240, 138, 0.6), 0 0 50px rgba(254, 240, 138, 0.4);
+    border-color: rgba(254, 240, 138, 0.6);
+  }
+  
+  .btn-secondary:hover * {
+    color: #000000 !important; /* Black text for all children */
+  }
+
+  .btn-secondary:active {
+    @apply scale-100;
   }
 
   .btn-outline {
@@ -96,7 +116,19 @@
   }
 
   .btn-outline:hover {
-    @apply bg-gradient-accent text-primary-900 border-accent-600 -translate-y-0.5 shadow-gold-hover;
+    @apply -translate-y-1 scale-105;
+    background: #fef08a !important; /* Light yellow */
+    color: #000000 !important; /* Black text */
+    box-shadow: 0 12px 35px rgba(254, 240, 138, 0.6), 0 0 50px rgba(254, 240, 138, 0.4);
+    border-color: rgba(254, 240, 138, 0.6);
+  }
+  
+  .btn-outline:hover * {
+    color: #000000 !important; /* Black text for all children */
+  }
+
+  .btn-outline:active {
+    @apply scale-100;
   }
 
   .btn-success {
@@ -104,7 +136,18 @@
   }
 
   .btn-success:hover {
-    @apply -translate-y-0.5 shadow-xl shadow-success/50;
+    @apply -translate-y-1 scale-105;
+    background: #fef08a !important; /* Light yellow */
+    color: #000000 !important; /* Black text */
+    box-shadow: 0 12px 35px rgba(254, 240, 138, 0.6), 0 0 50px rgba(254, 240, 138, 0.4);
+  }
+  
+  .btn-success:hover * {
+    color: #000000 !important; /* Black text for all children */
+  }
+
+  .btn-success:active {
+    @apply scale-100;
   }
 
   .btn-warning {
@@ -112,7 +155,18 @@
   }
 
   .btn-warning:hover {
-    @apply -translate-y-0.5 shadow-xl shadow-warning/50;
+    @apply -translate-y-1 scale-105;
+    background: #fef08a !important; /* Light yellow */
+    color: #000000 !important; /* Black text */
+    box-shadow: 0 12px 35px rgba(254, 240, 138, 0.6), 0 0 50px rgba(254, 240, 138, 0.4);
+  }
+  
+  .btn-warning:hover * {
+    color: #000000 !important; /* Black text for all children */
+  }
+
+  .btn-warning:active {
+    @apply scale-100;
   }
 
   .btn-danger {
@@ -120,7 +174,18 @@
   }
 
   .btn-danger:hover {
-    @apply -translate-y-0.5 shadow-xl shadow-danger/50;
+    @apply -translate-y-1 scale-105;
+    background: #fef08a !important; /* Light yellow */
+    color: #000000 !important; /* Black text */
+    box-shadow: 0 12px 35px rgba(254, 240, 138, 0.6), 0 0 50px rgba(254, 240, 138, 0.4);
+  }
+  
+  .btn-danger:hover * {
+    color: #000000 !important; /* Black text for all children */
+  }
+
+  .btn-danger:active {
+    @apply scale-100;
   }
 
   /* Section Headers */

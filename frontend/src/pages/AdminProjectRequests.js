@@ -35,10 +35,13 @@ const AdminProjectRequests = () => {
       if (filterStatus !== 'all') params.append('status', filterStatus);
       if (searchQuery) params.append('search', searchQuery);
       
-      const res = await axios.get(`/api/auth/admin/project-requirements?${params.toString()}`, {
+      const queryString = params.toString();
+      const url = `/api/auth/admin/project-requirements${queryString ? `?${queryString}` : ''}`;
+      
+      const res = await axios.get(url, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setProjects(res.data.projectRequirements);
+      setProjects(res.data.projectRequirements || []);
     } catch (err) {
       console.error('Error fetching projects:', err);
       setError('Could not fetch project requirements.');

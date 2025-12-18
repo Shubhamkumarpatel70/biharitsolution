@@ -49,9 +49,9 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-10 mb-12">
           {/* Company Info */}
           <div className="space-y-4">
-            <div className="flex items-center gap-2 mb-4" title="Bihar IT Solution">
+            <div className="flex items-center gap-2 mb-4" title="askc web">
               <span className="text-2xl">🌐</span>
-              <span className="text-2xl font-black bg-gradient-accent bg-clip-text text-transparent">BIS</span>
+              <span className="text-2xl font-black bg-gradient-accent bg-clip-text text-transparent">askc web</span>
             </div>
             <p className="text-white/80 text-sm leading-relaxed">
               We create amazing digital experiences with modern web technologies. 
@@ -242,7 +242,7 @@ const Footer = () => {
         {/* Copyright */}
         <div className="border-t border-white/10 mt-8 pt-6 text-center">
           <p className="text-white/60 text-sm">
-            © {currentYear} Bihar IT Solution. All rights reserved.
+            © {currentYear} askc web. All rights reserved.
           </p>
         </div>
       </div>

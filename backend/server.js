@@ -20,6 +20,9 @@ const Notification = require('./models/Notification');
 
 const app = express();
 
+// Trust proxy - Required when behind a reverse proxy (e.g., Render, Heroku, etc.)
+app.set('trust proxy', 1);
+
 // Security and performance middleware
 app.use(helmet());
 app.use(compression()); // Compress responses
@@ -192,8 +195,19 @@ function authMiddleware(req, res, next) {
 
 // MongoDB connection with optimized settings and retry logic
 const connectMongoDB = async (retries = 5, delay = 5000) => {
+  // Don't attempt to connect if already connected
+  if (mongoose.connection.readyState === 1) {
+    console.log('MongoDB already connected, skipping connection attempt');
+    return;
+  }
+
   for (let i = 0; i < retries; i++) {
     try {
+      // Disconnect existing connection if in a bad state
+      if (mongoose.connection.readyState !== 0) {
+        await mongoose.disconnect();
+      }
+
       await mongoose.connect(process.env.MONGO_URI, {
         maxPoolSize: 10, // Maintain up to 10 socket connections
         serverSelectionTimeoutMS: 10000, // Keep trying to send operations for 10 seconds
@@ -208,7 +222,13 @@ const connectMongoDB = async (retries = 5, delay = 5000) => {
       console.log('Connection state:', mongoose.connection.readyState);
       return;
     } catch (err) {
-      console.error(`MongoDB connection attempt ${i + 1}/${retries} failed:`, err.message);
+      // Only log full error details on first and last attempt to reduce spam
+      if (i === 0 || i === retries - 1) {
+        console.error(`MongoDB connection attempt ${i + 1}/${retries} failed:`, err.message);
+      } else {
+        console.error(`MongoDB connection attempt ${i + 1}/${retries} failed:`, err.message.split('\n')[0]);
+      }
+      
       if (i < retries - 1) {
         console.log(`Retrying in ${delay / 1000} seconds...`);
         await new Promise(resolve => setTimeout(resolve, delay));
@@ -217,6 +237,10 @@ const connectMongoDB = async (retries = 5, delay = 5000) => {
       } else {
         console.error('MongoDB connection failed after all retries. Server will continue but database operations may fail.');
         console.log('Please check your MONGO_URI in .env file');
+        console.log('Common issues:');
+        console.log('  - Network connectivity problems');
+        console.log('  - Incorrect MONGO_URI format');
+        console.log('  - MongoDB Atlas IP whitelist restrictions');
       }
     }
   }
@@ -226,19 +250,33 @@ const connectMongoDB = async (retries = 5, delay = 5000) => {
 connectMongoDB();
 
 // Handle MongoDB connection errors
+let isReconnecting = false;
+
 mongoose.connection.on('error', (err) => {
   console.error('MongoDB connection error:', err);
-  // Attempt to reconnect
-  if (mongoose.connection.readyState === 0) {
+  // Only attempt to reconnect if not already reconnecting and connection is actually closed
+  if (mongoose.connection.readyState === 0 && !isReconnecting) {
+    isReconnecting = true;
     console.log('Attempting to reconnect to MongoDB...');
-    connectMongoDB(3, 5000);
+    setTimeout(() => {
+      connectMongoDB(3, 5000).finally(() => {
+        isReconnecting = false;
+      });
+    }, 5000);
   }
 });
 
 mongoose.connection.on('disconnected', () => {
-  console.log('MongoDB disconnected - attempting to reconnect...');
-  // Attempt to reconnect
-  connectMongoDB(3, 5000);
+  // Only log if not already reconnecting to avoid spam
+  if (!isReconnecting) {
+    console.log('MongoDB disconnected - attempting to reconnect...');
+    isReconnecting = true;
+    setTimeout(() => {
+      connectMongoDB(3, 5000).finally(() => {
+        isReconnecting = false;
+      });
+    }, 5000);
+  }
 });
 
 mongoose.connection.on('connected', () => {

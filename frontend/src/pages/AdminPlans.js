@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import axios from '../axios';
+import AdminFilterBar from '../components/AdminFilterBar';
 
 const defaultPlan = {
   name: '', price: '', oldPrice: '', savings: '', features: '', highlight: false, color: '', duration: ''
@@ -7,9 +8,12 @@ const defaultPlan = {
 
 const AdminPlans = () => {
   const [plans, setPlans] = useState([]);
+  const [filteredPlans, setFilteredPlans] = useState([]);
   const [form, setForm] = useState(defaultPlan);
   const [editingId, setEditingId] = useState(null);
   const [message, setMessage] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filters, setFilters] = useState({});
 
   const fetchPlans = async () => {
     const res = await axios.get('/api/auth/plans');
@@ -62,12 +66,58 @@ const AdminPlans = () => {
     }
   };
 
-  // Sort plans: highlighted first
-  const sortedPlans = [...plans].sort((a, b) => (b.highlight === a.highlight) ? 0 : b.highlight ? -1 : 1);
+  // Filter and sort plans
+  useEffect(() => {
+    let filtered = [...plans];
+
+    // Search filter
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(plan => 
+        plan.name?.toLowerCase().includes(term) ||
+        plan.features?.some(f => f.toLowerCase().includes(term))
+      );
+    }
+
+    // Highlight filter
+    if (filters.highlight !== undefined && filters.highlight !== '') {
+      const isHighlighted = filters.highlight === 'true';
+      filtered = filtered.filter(plan => plan.highlight === isHighlighted);
+    }
+
+    // Sort plans: highlighted first
+    filtered.sort((a, b) => (b.highlight === a.highlight) ? 0 : b.highlight ? -1 : 1);
+    
+    setFilteredPlans(filtered);
+  }, [plans, searchTerm, filters]);
+
+  const highlightOptions = [
+    { value: 'true', label: 'Highlighted' },
+    { value: 'false', label: 'Not Highlighted' }
+  ];
 
   return (
     <div className="text-gray-200 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-      <h2 className="text-green-500 font-bold text-2xl sm:text-3xl mb-4 sm:mb-6">Manage Plans</h2>
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+        <h2 className="text-success-500 font-black text-2xl sm:text-3xl mb-4 md:mb-0">Manage Plans</h2>
+        <div className="text-sm text-gray-400">
+          Showing <span className="text-success-400 font-bold">{filteredPlans.length}</span> of <span className="text-gray-300 font-bold">{plans.length}</span> plans
+        </div>
+      </div>
+
+      {/* Filter Bar */}
+      <AdminFilterBar
+        onSearch={setSearchTerm}
+        onFilterChange={setFilters}
+        searchPlaceholder="Search plans by name or features..."
+        filters={[
+          {
+            key: 'highlight',
+            label: 'Status',
+            options: highlightOptions
+          }
+        ]}
+      />
       
       <form onSubmit={handleSubmit} className="bg-gray-800 rounded-xl p-4 sm:p-6 lg:p-8 mb-6 shadow-lg">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
@@ -152,9 +202,16 @@ const AdminPlans = () => {
         </div>
       </form>
       
-      <h3 className="text-green-500 font-semibold text-xl sm:text-2xl mb-4">Existing Plans</h3>
-      <div className="space-y-4">
-        {sortedPlans.map(plan => (
+      <h3 className="text-success-500 font-semibold text-xl sm:text-2xl mb-4">Existing Plans</h3>
+      {filteredPlans.length === 0 ? (
+        <div className="text-center py-12 text-gray-400 bg-gray-800 rounded-xl border border-gray-700">
+          <div className="text-5xl mb-4">📦</div>
+          <p className="text-lg mb-2">No plans found</p>
+          <p className="text-sm">Try adjusting your search or filters</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {filteredPlans.map(plan => (
           <div 
             key={plan._id} 
             className={`rounded-lg p-4 sm:p-6 relative transition-all duration-200 ${
@@ -199,8 +256,9 @@ const AdminPlans = () => {
               </div>
             </div>
           </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

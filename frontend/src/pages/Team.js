@@ -1,96 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-
-const defaultTeam = [
-  {
-    name: 'Shubham Patel',
-    role: 'Founder & Lead Developer',
-    bio: 'Passionate about building creative digital solutions and helping businesses grow online.',
-    skills: ['React', 'Node.js', 'MongoDB', 'JavaScript'],
-    experience: '3+ Years',
-    projects: '15+ Projects',
-    social: {
-      linkedin: '#',
-      github: '#',
-      twitter: '#'
-    }
-  },
-  {
-    name: 'Gulshan Kumar',
-    role: 'Full-Stack Developer',
-    bio: 'Expert team of developers specializing in scalable solutions.',
-    skills: ['MERN Stack', 'Python', 'Database Design', 'API Development'],
-    experience: '2+ Years',
-    projects: '20+ Projects',
-    social: {
-      linkedin: '#',
-      github: '#',
-      twitter: '#'
-    }
-  },
-  {
-    name: 'Design Team',
-    role: 'UI/UX Designers',
-    bio: 'Creative designers focused on user experience and modern, responsive web design.',
-    skills: ['UI/UX Design', 'Figma', 'Adobe Creative Suite', 'Responsive Design'],
-    experience: '2+ Years',
-    projects: '25+ Designs',
-    social: {
-      linkedin: '#',
-      github: '#',
-      twitter: '#'
-    }
-  },
-  {
-    name: 'Support Team',
-    role: '24/7 Customer Support',
-    bio: 'Dedicated support specialists ensuring smooth project delivery and client satisfaction.',
-    skills: ['Customer Service', 'Technical Support', 'Project Management', 'Communication'],
-    experience: '1+ Years',
-    projects: '50+ Clients',
-    social: {
-      linkedin: '#',
-      github: '#',
-      twitter: '#'
-    }
-  },
-  {
-    name: 'Priya Sharma',
-    role: 'Frontend Developer',
-    bio: 'Creates fast, accessible, and responsive interfaces with React.',
-    skills: ['React', 'TypeScript', 'Tailwind CSS', 'Accessibility'],
-    experience: '2+ Years',
-    projects: '10+ Projects',
-    social: { linkedin: '#', github: '#', twitter: '#' }
-  },
-  {
-    name: 'Amit Verma',
-    role: 'Backend Developer',
-    bio: 'Builds secure APIs and robust backend services.',
-    skills: ['Node.js', 'Express', 'MongoDB', 'REST'],
-    experience: '3+ Years',
-    projects: '12+ Projects',
-    social: { linkedin: '#', github: '#', twitter: '#' }
-  },
-  {
-    name: 'Neha Gupta',
-    role: 'UI/UX Designer',
-    bio: 'Designs delightful user experiences and design systems.',
-    skills: ['Figma', 'Wireframing', 'Prototyping', 'Design Systems'],
-    experience: '2+ Years',
-    projects: '20+ Designs',
-    social: { linkedin: '#', github: '#', twitter: '#' }
-  },
-  {
-    name: 'Rahul Singh',
-    role: 'DevOps Engineer',
-    bio: 'Automates deployments and ensures high availability.',
-    skills: ['CI/CD', 'Docker', 'NGINX', 'Linux'],
-    experience: '3+ Years',
-    projects: '15+ Projects',
-    social: { linkedin: '#', github: '#', twitter: '#' }
-  }
-];
+import axios from '../axios';
 
 const values = [
   {
@@ -140,11 +50,32 @@ const perks = [
 
 function Team() {
   const [isVisible, setIsVisible] = useState(false);
-  const [teamMembers] = useState(defaultTeam);
+  const [teamMembers, setTeamMembers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     setIsVisible(true);
+    fetchTeamMembers();
   }, []);
+
+  const fetchTeamMembers = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get('/api/auth/team');
+      const members = response.data.teamMembers || [];
+      // Sort by order field
+      const sortedMembers = members.sort((a, b) => (a.order || 0) - (b.order || 0));
+      setTeamMembers(sortedMembers);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching team members:', err);
+      setError('Failed to load team members');
+      setTeamMembers([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-light text-text-main pt-24">
@@ -157,71 +88,76 @@ function Team() {
               Meet the professionals who make your projects successful
             </p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
-            {teamMembers.map((member, index) => (
-              <div 
-                key={member.name} 
-                className={`group relative bg-white rounded-xl p-6 border border-gray-200 shadow-md hover:shadow-gold-hover hover:border-accent-500/50 transition-all duration-300 hover:-translate-y-1 text-center ${
-                  isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-                }`}
-                style={{ transitionDelay: `${index * 0.1}s` }}
-              >
-                {/* Avatar */}
-                <div className="mb-4">
-                  <div className="w-24 h-24 bg-gradient-accent rounded-full flex items-center justify-center text-2xl font-black text-primary-900 mx-auto border-4 border-white shadow-gold">
-                    {member.profileImage ? (
-                      <img
-                        src={member.profileImage}
-                        alt={member.name}
-                        className="w-full h-full rounded-full object-cover"
-                      />
-                    ) : (
-                      <span>{member.name.split(' ').map(n => n[0]).join('')}</span>
-                    )}
+          {loading ? (
+            <div className="text-center py-16">
+              <div className="w-16 h-16 border-4 border-accent-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+              <p className="text-text-muted">Loading team members...</p>
+            </div>
+          ) : error ? (
+            <div className="text-center py-16 bg-white rounded-xl border border-gray-200 p-8 max-w-md mx-auto">
+              <div className="text-5xl mb-4">⚠️</div>
+              <h3 className="text-2xl font-bold text-text-main mb-2">Oops! Something went wrong</h3>
+              <p className="text-text-muted mb-6">{error}</p>
+              <button onClick={fetchTeamMembers} className="btn btn-primary">
+                Try Again
+              </button>
+            </div>
+          ) : teamMembers.length === 0 ? (
+            <div className="text-center py-16 bg-white rounded-xl border border-gray-200 p-8 max-w-md mx-auto">
+              <div className="text-5xl mb-4">👥</div>
+              <h3 className="text-2xl font-bold text-text-main mb-2">No Team Members</h3>
+              <p className="text-text-muted">Team members will appear here once they are added.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+              {teamMembers.map((member, index) => (
+                <div 
+                  key={member._id || member.name} 
+                  className={`group relative bg-white rounded-xl p-5 border border-gray-200 shadow-md hover:shadow-gold-hover hover:border-accent-500/50 transition-all duration-300 hover:-translate-y-1 ${
+                    isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+                  }`}
+                  style={{ transitionDelay: `${index * 0.1}s` }}
+                >
+                  {/* Role Badge - Top Right Inside Container */}
+                  <div className="absolute top-3 right-3 z-10">
+                    <span className="inline-block px-4 py-2 bg-[#fef08a] text-black rounded-lg text-xs font-bold whitespace-nowrap shadow-md border border-yellow-300/30">
+                      {member.position || member.role}
+                    </span>
+                  </div>
+
+                  <div className="flex items-start gap-4">
+                    {/* Avatar - Left Side */}
+                    <div className="flex-shrink-0">
+                      <div className="w-20 h-20 bg-gradient-accent rounded-full flex items-center justify-center text-xl font-black text-primary-900 border-4 border-white shadow-gold">
+                        {member.profileImage ? (
+                          <img
+                            src={member.profileImage}
+                            alt={member.name}
+                            className="w-full h-full rounded-full object-cover"
+                          />
+                        ) : (
+                          <span>{member.name.split(' ').map(n => n[0]).join('')}</span>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {/* Content - Right Side */}
+                    <div className="flex-1 relative min-h-[80px]">
+                      {/* Name - Below Role Badge */}
+                      <h3 className="text-lg font-bold text-primary-600 mb-2 pr-32 pt-8 whitespace-nowrap overflow-hidden text-ellipsis">
+                        {member.name}
+                      </h3>
+
+                      {/* Bio */}
+                      <p className="text-text-muted text-sm leading-relaxed line-clamp-3">
+                        {member.bio || 'Team member at askc web'}
+                      </p>
+                    </div>
                   </div>
                 </div>
-                
-                {/* Role Badge */}
-                <div className="mb-3">
-                  <span className="inline-block px-3 py-1 bg-accent-500/10 text-accent-500 rounded-full text-xs font-semibold">
-                    {member.role}
-                  </span>
-                </div>
-
-                {/* Name */}
-                <h3 className="text-xl font-bold text-primary-600 mb-2">
-                  {member.name}
-                </h3>
-
-                {/* Bio */}
-                <p className="text-text-muted text-sm mb-4 leading-relaxed">
-                  {member.bio}
-                </p>
-
-                {/* Stats */}
-                <div className="flex items-center justify-center gap-4 mb-4 text-xs text-text-muted">
-                  <span>{member.experience}</span>
-                  <span>•</span>
-                  <span>{member.projects}</span>
-                </div>
-
-                {/* Skills */}
-                <div className="flex flex-wrap gap-2 justify-center mb-4">
-                  {member.skills.slice(0, 3).map((skill, idx) => (
-                    <span 
-                      key={idx} 
-                      className="px-2 py-1 bg-gray-light text-text-main rounded-lg text-xs font-medium"
-                    >
-                      {skill}
-                    </span>
-                  ))}
-                </div>
-
-                {/* Bottom Gradient */}
-                <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-accent rounded-b-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 

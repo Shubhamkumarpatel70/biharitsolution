@@ -442,7 +442,21 @@
   flex-wrap: wrap;
 }
 
-/* Button styles are standardized globally; local overrides removed */
+/* Plan Button Custom Hover Effect */
+.plan-button {
+  transition: all 0.3s ease;
+}
+
+.plan-button:hover {
+  background: #fef08a !important; /* Light yellow */
+  color: #000000 !important; /* Black text */
+  box-shadow: 0 12px 35px rgba(254, 240, 138, 0.6), 0 0 50px rgba(254, 240, 138, 0.4);
+}
+
+.plan-button:hover .plan-button-text,
+.plan-button:hover .plan-button-arrow {
+  color: #000000 !important; /* Black text on hover */
+}
 
 /* Loading and Error States */
 .loading-container,

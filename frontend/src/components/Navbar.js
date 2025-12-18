@@ -109,10 +109,10 @@ function Navbar() {
               to="/" 
               className="flex items-center no-underline font-extrabold text-2xl text-text-invert z-[1100]" 
               aria-label="Home" 
-              title="Bihar IT Solution"
+              title="askc web"
             >
               <span className="bg-gradient-accent bg-clip-text text-transparent tracking-wide font-black">
-                BIS
+                askc web
               </span>
             </Link>
 

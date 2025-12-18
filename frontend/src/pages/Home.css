@@ -230,8 +230,8 @@
 
 .hero-actions .btn-primary:hover {
   background: linear-gradient(135deg, #818cf8 0%, #c084fc 50%, #22d3ee 100%);
-  transform: translateY(-2px);
-  box-shadow: 0 14px 35px rgba(99, 102, 241, 0.5), 0 0 50px rgba(99, 102, 241, 0.3);
+  transform: translateY(-4px) scale(1.05);
+  box-shadow: 0 16px 45px rgba(99, 102, 241, 0.6), 0 0 70px rgba(99, 102, 241, 0.4), inset 0 0 25px rgba(255, 255, 255, 0.15);
 }
 
 .hero-actions .btn-secondary {
@@ -244,11 +244,11 @@
 }
 
 .hero-actions .btn-secondary:hover {
-  background: rgba(99, 102, 241, 0.25);
-  border-color: rgba(99, 102, 241, 0.6);
-  color: #c7d2fe;
-  transform: translateY(-2px);
-  box-shadow: 0 12px 30px rgba(99, 102, 241, 0.35);
+  background: rgba(99, 102, 241, 0.35);
+  border-color: rgba(99, 102, 241, 0.8);
+  color: #e0e7ff;
+  transform: translateY(-4px) scale(1.05);
+  box-shadow: 0 14px 40px rgba(99, 102, 241, 0.5), 0 0 50px rgba(99, 102, 241, 0.35);
 }
 
 .hero-visual {

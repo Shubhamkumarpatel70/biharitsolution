@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from '../axios';
+import './Plans.css';
 
 const planBenefits = [
   {
@@ -141,18 +142,20 @@ function Plans() {
                   style={{ transitionDelay: `${index * 0.1}s` }}
                   onClick={() => handlePlanSelect(plan)}
                 >
+                  {/* Discount Badge - Top Left */}
+                  {plan.oldPrice && (
+                    <div className="absolute top-2 left-2 bg-gradient-to-br from-red-500 to-pink-500 text-white px-3 py-1.5 rounded-full text-xs font-black shadow-lg z-10 border-2 border-white">
+                      {Math.round(((plan.oldPrice - plan.price) / plan.oldPrice) * 100)}% OFF
+                    </div>
+                  )}
+
                   {/* Best Value Badge */}
                   {plan.highlight && (
-                    <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-gradient-accent text-primary-900 px-4 py-2 rounded-full text-sm font-bold shadow-gold uppercase tracking-wide flex items-center gap-2">
+                    <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-gradient-to-br from-purple-500 via-pink-500 to-red-500 text-white px-4 py-2 rounded-full text-sm font-bold shadow-lg uppercase tracking-wide flex items-center gap-2 z-10 border-2 border-white">
                       <span>🏆</span>
                       <span>Best Value</span>
                     </div>
                   )}
-
-                  {/* Top Border Gradient */}
-                  <div className={`absolute top-0 left-0 right-0 h-1 rounded-t-2xl transition-opacity duration-300 ${
-                    plan.highlight ? 'opacity-100 bg-gradient-accent' : 'opacity-0 group-hover:opacity-100 bg-gradient-accent'
-                  }`}></div>
                   
                   {/* Plan Header */}
                   <div className="text-center mb-6">
@@ -172,7 +175,7 @@ function Plans() {
                     </div>
                     <div className="flex items-center justify-center gap-2 text-text-muted text-sm">
                       <span>⏰</span>
-                      <span>{plan.duration}</span>
+                      <span>{plan.duration} Days</span>
                     </div>
                   </div>
 
@@ -195,15 +198,11 @@ function Plans() {
                   {/* CTA Button */}
                   <Link 
                     to={`/payment/${plan.name.toLowerCase().replace(/\s+/g, '')}`}
-                    className={`btn w-full justify-center py-3 font-bold ${
-                      plan.highlight 
-                        ? 'bg-gradient-accent text-primary-900 shadow-gold hover:shadow-gold-hover' 
-                        : 'btn-primary'
-                    }`}
+                    className="plan-button btn btn-primary w-full justify-center py-3 font-bold group"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <span>Get Started</span>
-                    <span className="transition-transform duration-300 group-hover:translate-x-1">→</span>
+                    <span className="plan-button-text transition-colors duration-300">Get Started</span>
+                    <span className="plan-button-arrow transition-all duration-300 group-hover:translate-x-1">→</span>
                   </Link>
                 </div>
               ))}

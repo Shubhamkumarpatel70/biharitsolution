@@ -90,7 +90,7 @@ const Hero = () => {
               className="inline-block px-4 py-2 mb-6 rounded-full bg-accent-500/20 border border-accent-500/50 text-primary-900 backdrop-blur-md text-sm font-bold shadow-gold"
               aria-label="Brand"
             >
-              BIHAR IT SOLUTION
+              askc web
             </div>
 
             {/* Main Title */}
@@ -99,12 +99,12 @@ const Hero = () => {
               id="hero-title"
             >
               <span className="block text-white whitespace-nowrap">
-                Transforming Bihar with
+                Welcome to
               </span>
               <span className="block mt-2">
                 <span className="inline-block px-4 py-2 rounded-xl bg-accent-500/20 border border-accent-500/40 backdrop-blur-md shadow-gold">
                   <span className="text-gradient-gold font-black">
-                    BIHAR IT SOLUTION
+                    askc web
                   </span>
                 </span>
               </span>

@@ -72,12 +72,6 @@ function Services() {
                     {item.title}
                   </h3>
                 </div>
-
-                {/* Hover Effect */}
-                <div 
-                  className="absolute bottom-0 left-0 right-0 h-1 rounded-b-xl transition-all duration-300 group-hover:h-1.5"
-                  style={{ background: item.color }}
-                ></div>
               </div>
             ))}
           </div>

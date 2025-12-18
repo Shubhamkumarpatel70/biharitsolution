@@ -30,7 +30,10 @@ const AdminCancellations = () => {
         params.append('status', filterStatus);
       }
       
-      const res = await axios.get(`/api/auth/admin/cancellations?${params.toString()}`, {
+      const queryString = params.toString();
+      const url = `/api/auth/admin/cancellations${queryString ? `?${queryString}` : ''}`;
+      
+      const res = await axios.get(url, {
         headers: { Authorization: `Bearer ${token}` }
       });
       

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 
 const testimonials = [
-	{ name: 'Sarah Johnson', role: 'CEO, TechStart', content: 'Bihar IT Solution delivered an amazing website that exceeded our expectations. The team was professional and responsive throughout the entire process.', rating: 5, avatar: '👩\u00100' },
+	{ name: 'Sarah Johnson', role: 'CEO, TechStart', content: 'askc web delivered an amazing website that exceeded our expectations. The team was professional and responsive throughout the entire process.', rating: 5, avatar: '👩\u00100' },
 	{ name: 'Mike Chen', role: 'Founder, DigitalCraft', content: 'Outstanding service and quality! Our e-commerce site is performing better than ever. Highly recommended for any web development needs.', rating: 5, avatar: '👨\u0010b' },
 	{ name: 'Emily Rodriguez', role: 'Marketing Director, GrowthCo', content: 'The SEO and marketing services helped us increase our online visibility by 300%. The results speak for themselves!', rating: 5, avatar: '👩\u00103' },
 ];

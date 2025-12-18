@@ -59,51 +59,67 @@ const AdminHome = () => {
   return (
     <div className="max-w-7xl mx-auto space-y-6 pb-20 lg:pb-6">
       {/* Welcome Header */}
-      <div className="bg-gradient-to-r from-success-500 to-success-600 rounded-2xl p-6 md:p-8 text-white">
-        <h1 className="text-2xl md:text-3xl font-black mb-2">
-          Welcome to the Admin Dashboard!
-        </h1>
-        <p className="text-white/90 text-sm md:text-base max-w-2xl">
-          Manage your website, monitor user activity, and track business performance from this comprehensive admin panel.
-        </p>
+      <div className="bg-gradient-to-r from-success-500 via-success-600 to-success-700 rounded-2xl p-6 md:p-8 text-white shadow-xl relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32"></div>
+        <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full -ml-24 -mb-24"></div>
+        <div className="relative z-10">
+          <h1 className="text-2xl md:text-3xl font-black mb-2">
+            Welcome to the Admin Dashboard! 👋
+          </h1>
+          <p className="text-white/90 text-sm md:text-base max-w-2xl">
+            Manage your website, monitor user activity, and track business performance from this comprehensive admin panel.
+          </p>
+        </div>
       </div>
 
       {/* Stats Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         {/* Total Users Card */}
-        <div className="bg-gradient-to-br from-primary-500 to-secondary-500 rounded-xl p-6 text-white shadow-lg hover:shadow-xl transition-shadow">
-          <div className="text-5xl mb-3 text-center">👥</div>
-          <h3 className="text-lg font-semibold mb-2 text-center">Total Users</h3>
-          <p className="text-3xl font-black text-center">
-            {stats.userCount.toLocaleString()}
-          </p>
+        <div className="bg-gradient-to-br from-primary-500 to-secondary-500 rounded-xl p-6 text-white shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500"></div>
+          <div className="relative z-10">
+            <div className="text-5xl mb-3 text-center transform group-hover:scale-110 transition-transform duration-300">👥</div>
+            <h3 className="text-lg font-semibold mb-2 text-center">Total Users</h3>
+            <p className="text-3xl font-black text-center">
+              {stats.userCount.toLocaleString()}
+            </p>
+          </div>
         </div>
 
         {/* Total Revenue Card */}
-        <div className="bg-gradient-to-br from-pink-500 to-red-500 rounded-xl p-6 text-white shadow-lg hover:shadow-xl transition-shadow">
-          <div className="text-5xl mb-3 text-center">💰</div>
-          <h3 className="text-lg font-semibold mb-2 text-center">Total Revenue</h3>
-          <p className="text-3xl font-black text-center">
-            ₹{stats.totalRevenue.toLocaleString('en-IN')}
-          </p>
+        <div className="bg-gradient-to-br from-pink-500 to-red-500 rounded-xl p-6 text-white shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500"></div>
+          <div className="relative z-10">
+            <div className="text-5xl mb-3 text-center transform group-hover:scale-110 transition-transform duration-300">💰</div>
+            <h3 className="text-lg font-semibold mb-2 text-center">Total Revenue</h3>
+            <p className="text-3xl font-black text-center">
+              ₹{stats.totalRevenue.toLocaleString('en-IN')}
+            </p>
+          </div>
         </div>
 
         {/* Total Subscriptions Card */}
-        <div className="bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl p-6 text-white shadow-lg hover:shadow-xl transition-shadow">
-          <div className="text-5xl mb-3 text-center">📊</div>
-          <h3 className="text-lg font-semibold mb-2 text-center">Total Subscriptions</h3>
-          <p className="text-3xl font-black text-center">
-            {stats.subCount.toLocaleString()}
-          </p>
+        <div className="bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl p-6 text-white shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500"></div>
+          <div className="relative z-10">
+            <div className="text-5xl mb-3 text-center transform group-hover:scale-110 transition-transform duration-300">📊</div>
+            <h3 className="text-lg font-semibold mb-2 text-center">Total Subscriptions</h3>
+            <p className="text-3xl font-black text-center">
+              {stats.subCount.toLocaleString()}
+            </p>
+          </div>
         </div>
 
         {/* Active Subscriptions Card */}
-        <div className="bg-gradient-to-br from-green-500 to-teal-500 rounded-xl p-6 text-white shadow-lg hover:shadow-xl transition-shadow">
-          <div className="text-5xl mb-3 text-center">✅</div>
-          <h3 className="text-lg font-semibold mb-2 text-center">Active Subscriptions</h3>
-          <p className="text-3xl font-black text-center">
-            {stats.activeSubs.toLocaleString()}
-          </p>
+        <div className="bg-gradient-to-br from-green-500 to-teal-500 rounded-xl p-6 text-white shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500"></div>
+          <div className="relative z-10">
+            <div className="text-5xl mb-3 text-center transform group-hover:scale-110 transition-transform duration-300">✅</div>
+            <h3 className="text-lg font-semibold mb-2 text-center">Active Subscriptions</h3>
+            <p className="text-3xl font-black text-center">
+              {stats.activeSubs.toLocaleString()}
+            </p>
+          </div>
         </div>
       </div>
 
