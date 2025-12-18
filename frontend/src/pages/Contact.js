@@ -3,8 +3,8 @@ import React, { useState, useEffect } from 'react';
 const contactMethods = [
   {
     title: 'Email Us',
-    content: 'official.customweb@gmail.com',
-    link: 'mailto:official.customweb@gmail.com',
+    content: 'askcweb@gmail.com',
+    link: 'mailto:askcweb@gmail.com',
     icon: '📧'
   },
   {
@@ -313,7 +313,7 @@ function Contact() {
               Let's discuss your requirements and create something amazing together.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <a href="mailto:official.customweb@gmail.com" className="btn btn-primary bg-gradient-accent text-primary-900 hover:shadow-gold-hover">
+              <a href="mailto:askcweb@gmail.com" className="btn btn-primary bg-gradient-accent text-primary-900 hover:shadow-gold-hover">
                 Email Us Now
                 <span className="transition-transform duration-300 group-hover:translate-x-1">→</span>
               </a>

@@ -135,7 +135,7 @@ const Footer = () => {
             <div className="space-y-4">
               {[
                 { icon: '📍', label: 'Address', value: 'Bihar, Patna, India' },
-                { icon: '📧', label: 'Email', value: 'official.customweb@gmail.com', link: 'mailto:official.customweb@gmail.com' },
+                { icon: '📧', label: 'Email', value: 'askcweb@gmail.com', link: 'mailto:askcweb@gmail.com' },
                 { icon: '📞', label: 'Phone', value: '+91 9027880288', link: 'tel:+919027880288' },
                 { icon: '🕒', label: 'Working Hours', value: 'Mon - Fri: 11AM - 4PM' }
               ].map((item, idx) => (
