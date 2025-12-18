@@ -90,7 +90,7 @@ const Hero = () => {
               className="inline-block px-4 py-2 mb-6 rounded-full bg-accent-500/20 border border-accent-500/50 text-primary-900 backdrop-blur-md text-sm font-bold shadow-gold"
               aria-label="Brand"
             >
-              askc web
+              ASKC DIGITAL WEB
             </div>
 
             {/* Main Title */}
