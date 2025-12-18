@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import axios from '../axios';
+import Logo from './Logo';
 
 const Footer = () => {
   const [email, setEmail] = useState('');
@@ -49,9 +50,8 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-10 mb-12">
           {/* Company Info */}
           <div className="space-y-4">
-            <div className="flex items-center gap-2 mb-4" title="askc web">
-              <span className="text-2xl">🌐</span>
-              <span className="text-2xl font-black bg-gradient-accent bg-clip-text text-transparent">askc web</span>
+            <div className="mb-4" title="askc web">
+              <Logo showText={true} size="large" />
             </div>
             <p className="text-white/80 text-sm leading-relaxed">
               We create amazing digital experiences with modern web technologies. 

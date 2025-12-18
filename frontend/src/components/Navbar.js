@@ -1,6 +1,7 @@
 import React, { useContext, useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { UserContext } from '../UserContext';
+import Logo from './Logo';
 
 const navLinks = [
   { to: '/', label: 'Home' },
@@ -107,13 +108,11 @@ function Navbar() {
             {/* Logo */}
             <Link 
               to="/" 
-              className="flex items-center no-underline font-extrabold text-2xl text-text-invert z-[1100]" 
+              className="flex items-center no-underline z-[1100]" 
               aria-label="Home" 
               title="askc web"
             >
-              <span className="bg-gradient-accent bg-clip-text text-transparent tracking-wide font-black">
-                askc web
-              </span>
+              <Logo showText={true} size="default" />
             </Link>
 
             {/* Desktop Navigation */}
