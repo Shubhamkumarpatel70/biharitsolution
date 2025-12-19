@@ -24,7 +24,18 @@ const app = express();
 app.set('trust proxy', 1);
 
 // Security and performance middleware
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      imgSrc: ["'self'", "data:", "https://api.qrserver.com"],
+      scriptSrc: ["'self'"],
+      connectSrc: ["'self'"],
+    },
+  },
+}));
 app.use(compression()); // Compress responses
 
 // Rate limiting for auth endpoints - More lenient
