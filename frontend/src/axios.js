@@ -1,10 +1,10 @@
-import axios from 'axios';
+import axios from "axios";
 
 const instance = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'https://custom-web-backend.onrender.com',
+  baseURL: process.env.REACT_APP_API_URL || "https://askcweb.in",
   timeout: 30000, // Increased timeout to 30 seconds
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 });
 
@@ -13,18 +13,18 @@ instance.interceptors.request.use(
   (config) => {
     // Add timestamp for caching
     config.metadata = { startTime: new Date() };
-    
+
     // Add auth token if available
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    
+
     return config;
   },
   (error) => {
     return Promise.reject(error);
-  }
+  },
 );
 
 // Response interceptor for performance monitoring and error handling
@@ -37,33 +37,35 @@ instance.interceptors.response.use(
       const duration = endTime.getTime() - startTime.getTime();
       console.log(`API call to ${response.config.url} took ${duration}ms`);
     }
-    
+
     return response;
   },
   async (error) => {
     // Retry logic for network errors
-    if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
-      console.log('Request timeout, retrying...');
-      
+    if (error.code === "ECONNABORTED" || error.message.includes("timeout")) {
+      console.log("Request timeout, retrying...");
+
       // Retry once for timeout errors
-      const isLoginRequest = typeof error.config?.url === 'string' && error.config.url.includes('/api/auth/login');
+      const isLoginRequest =
+        typeof error.config?.url === "string" &&
+        error.config.url.includes("/api/auth/login");
       if (error.config && !error.config._retry && !isLoginRequest) {
         error.config._retry = true;
-        console.log('Retrying request:', error.config.url);
+        console.log("Retrying request:", error.config.url);
         return instance.request(error.config);
       }
     }
-    
+
     // Log error details for debugging
-    console.error('API Error:', {
+    console.error("API Error:", {
       url: error.config?.url,
       method: error.config?.method,
       status: error.response?.status,
-      message: error.message
+      message: error.message,
     });
-    
+
     return Promise.reject(error);
-  }
+  },
 );
 
-export default instance; 
+export default instance;
