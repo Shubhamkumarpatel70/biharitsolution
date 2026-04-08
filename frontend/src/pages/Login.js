@@ -281,14 +281,16 @@ function Login() {
               type="button"
               onClick={() => !captchaLoading && !loading && loadCaptcha()}
               disabled={captchaLoading || loading}
-              className="text-xs font-semibold text-primary-600 hover:text-primary-700 disabled:opacity-50 bg-transparent border-none cursor-pointer"
+              className="inline-flex items-center justify-center w-10 h-10 rounded-xl border border-gray-200 bg-white text-primary-600 hover:bg-primary-50 hover:border-primary-200 disabled:opacity-50 transition-colors"
+              aria-label="Load new verification code"
+              title="New code"
             >
-              New code
+              <Icon name="refresh" className="w-5 h-5" strokeWidth={2} />
             </button>
           </div>
-          <p className="text-xs text-text-muted leading-snug">
+          {/* <p className="text-xs text-text-muted leading-snug">
             Enter the characters shown (0–9, A–Z, a–z). Matching is case-sensitive.
-          </p>
+          </p> */}
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
             <div className="shrink-0 rounded-lg border border-gray-200 bg-white overflow-hidden min-h-[4rem] flex items-center justify-center px-2 py-2">
               {captchaLoading ? (

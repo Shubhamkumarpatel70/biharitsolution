@@ -9,6 +9,31 @@ const statusLabels = {
   finished: { label: 'Finished', color: 'text-green-600 bg-green-100', icon: '✅' },
 };
 
+function formatDateOnly(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+function getTimelineEntries(project) {
+  const raw = project.statusTimeline;
+  if (Array.isArray(raw) && raw.length > 0) {
+    return [...raw].sort((a, b) => new Date(a.at) - new Date(b.at));
+  }
+  const entries = [{ status: 'pending', at: project.createdAt }];
+  if (project.status !== 'pending') {
+    entries.push({ status: project.status, at: project.updatedAt || project.createdAt });
+  }
+  return entries;
+}
+
+function timelineStepTitle(status, index) {
+  if (index === 0 && status === 'pending') return 'Requirement submitted';
+  if (status === 'finished') return 'Project delivered';
+  return `Status updated — ${statusLabels[status]?.label || status}`;
+}
+
 const AdminProjectRequests = () => {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -21,6 +46,7 @@ const AdminProjectRequests = () => {
     status: '',
     projectLink: '',
     adminNotes: '',
+    estimatedCompletionDate: '',
   });
 
   useEffect(() => {
@@ -52,44 +78,56 @@ const AdminProjectRequests = () => {
 
   const handleEdit = (project) => {
     setEditingId(project._id);
+    const est = project.estimatedCompletionDate
+      ? new Date(project.estimatedCompletionDate).toISOString().slice(0, 10)
+      : '';
     setEditData({
       status: project.status,
       projectLink: project.projectLink || '',
       adminNotes: project.adminNotes || '',
+      estimatedCompletionDate: est,
     });
   };
 
   const handleCancel = () => {
     setEditingId(null);
-    setEditData({ status: '', projectLink: '', adminNotes: '' });
+    setEditData({ status: '', projectLink: '', adminNotes: '', estimatedCompletionDate: '' });
   };
 
-  const handleUpdate = async (id) => {
+  const handleUpdate = async (id, project) => {
     setError('');
     setSuccess('');
-    
+
+    const movingOffPending = project.status === 'pending' && editData.status !== 'pending';
+    const hasEst =
+      (editData.estimatedCompletionDate && editData.estimatedCompletionDate.trim()) ||
+      project.estimatedCompletionDate;
+    if (movingOffPending && !hasEst) {
+      setError('Set an estimated completion date before moving this request out of pending.');
+      return;
+    }
+
+    const payload = {
+      status: editData.status,
+      adminNotes: editData.adminNotes,
+      estimatedCompletionDate: editData.estimatedCompletionDate?.trim() || null,
+    };
+    if (editData.status === 'finished') {
+      payload.projectLink = editData.projectLink;
+    }
+
     try {
       const token = localStorage.getItem('token');
-      await axios.patch(`/api/auth/admin/project-requirement/${id}`, editData, {
-        headers: { Authorization: `Bearer ${token}` }
+      await axios.patch(`/api/auth/admin/project-requirement/${id}`, payload, {
+        headers: { Authorization: `Bearer ${token}` },
       });
       setSuccess('Project requirement updated successfully!');
       setEditingId(null);
-      setEditData({ status: '', projectLink: '', adminNotes: '' });
+      setEditData({ status: '', projectLink: '', adminNotes: '', estimatedCompletionDate: '' });
       fetchProjects();
     } catch (err) {
       setError(err.response?.data?.message || 'Could not update project requirement.');
     }
-  };
-
-  const formatDate = (date) => {
-    return new Date(date).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
   };
 
   return (
@@ -121,7 +159,7 @@ const AdminProjectRequests = () => {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by project idea or preference..."
+              placeholder="Search by reference ID, idea, or preference..."
               className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-success-500"
             />
           </div>
@@ -159,6 +197,14 @@ const AdminProjectRequests = () => {
                 <div key={project._id} className="bg-gray-700 rounded-xl p-6 border border-gray-600">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div>
+                      {project.submissionId && (
+                        <div className="mb-3">
+                          <span className="text-gray-400 text-sm">Reference ID:</span>
+                          <span className="ml-2 font-mono font-bold text-yellow-400 text-base tracking-tight">
+                            {project.submissionId}
+                          </span>
+                        </div>
+                      )}
                       <div className="mb-2">
                         <span className="text-gray-400 text-sm">User:</span>
                         <span className="text-white ml-2 font-medium">
@@ -174,8 +220,24 @@ const AdminProjectRequests = () => {
                       </div>
                       <div className="mb-2">
                         <span className="text-gray-400 text-sm">Submitted:</span>
-                        <span className="text-gray-300 ml-2 text-sm">{formatDate(project.createdAt)}</span>
+                        <span className="text-gray-300 ml-2 text-sm">{formatDateOnly(project.createdAt)}</span>
                       </div>
+                      {project.estimatedCompletionDate && (
+                        <div className="mb-2">
+                          <span className="text-gray-400 text-sm">Estimated completion:</span>
+                          <span className="text-amber-300 ml-2 text-sm font-semibold">
+                            {formatDateOnly(project.estimatedCompletionDate)}
+                          </span>
+                        </div>
+                      )}
+                      {project.finishedAt && (
+                        <div className="mb-2">
+                          <span className="text-gray-400 text-sm">Delivered:</span>
+                          <span className="text-green-300 ml-2 text-sm font-semibold">
+                            {formatDateOnly(project.finishedAt)}
+                          </span>
+                        </div>
+                      )}
                     </div>
                     
                     <div>
@@ -194,6 +256,28 @@ const AdminProjectRequests = () => {
                       )}
                     </div>
                   </div>
+
+                  {!isEditing && (
+                    <div className="mb-4 p-4 bg-gray-800/80 rounded-lg border border-gray-600">
+                      <h4 className="text-gray-400 text-xs font-bold uppercase tracking-wide mb-3">Status timeline</h4>
+                      <div className="space-y-0">
+                        {getTimelineEntries(project).map((entry, idx, arr) => (
+                          <div key={`${idx}-${entry.at}`} className="flex gap-3">
+                            <div className="flex flex-col items-center w-3 shrink-0 pt-1">
+                              <span className="w-2.5 h-2.5 rounded-full bg-success-500 shrink-0 z-10" />
+                              {idx < arr.length - 1 ? (
+                                <span className="w-0.5 flex-1 min-h-[1.75rem] bg-gray-600" aria-hidden />
+                              ) : null}
+                            </div>
+                            <div className={`pb-4 ${idx === arr.length - 1 ? 'pb-0' : ''}`}>
+                              <p className="text-sm font-medium text-white">{timelineStepTitle(entry.status, idx)}</p>
+                              <p className="text-xs text-gray-400 mt-0.5">{formatDateOnly(entry.at)}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   <div className="mb-4">
                     <h3 className="text-gray-300 font-semibold mb-2">Project Idea:</h3>
@@ -251,6 +335,21 @@ const AdminProjectRequests = () => {
                           </select>
                         </div>
 
+                        <div>
+                          <label className="block text-sm font-medium text-gray-300 mb-2">
+                            Estimated completion date <span className="text-amber-400">*</span>
+                          </label>
+                          <input
+                            type="date"
+                            value={editData.estimatedCompletionDate}
+                            onChange={(e) => setEditData({ ...editData, estimatedCompletionDate: e.target.value })}
+                            className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-success-500"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">
+                            Required before moving out of pending. Shown to the user (date only, no time).
+                          </p>
+                        </div>
+
                         {editData.status === 'finished' && (
                           <div>
                             <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -280,7 +379,8 @@ const AdminProjectRequests = () => {
 
                         <div className="flex gap-3">
                           <button
-                            onClick={() => handleUpdate(project._id)}
+                            type="button"
+                            onClick={() => handleUpdate(project._id, project)}
                             className="px-6 py-2 bg-success-500 hover:bg-success-600 text-white rounded-lg font-semibold transition-colors"
                           >
                             Update

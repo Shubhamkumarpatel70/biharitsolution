@@ -21,17 +21,62 @@ const Career = require('../models/Career');
 const CareerApplication = require('../models/CareerApplication');
 const multer = require('multer');
 const path = require('path');
+const crypto = require('crypto');
+
+function generateProjectSubmissionId() {
+  const y = new Date().getFullYear();
+  const rand = crypto.randomBytes(5).toString('hex').toUpperCase();
+  return `PR-${y}-${rand}`;
+}
+
+function normalizeResumeMime(mimetype, originalname) {
+  const ext = path.extname(originalname || '').toLowerCase();
+  const allowed = [
+    'application/pdf',
+    'application/x-pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/octet-stream',
+    'binary/octet-stream',
+  ];
+  if (mimetype && allowed.includes(mimetype)) {
+    if (mimetype === 'application/octet-stream' || mimetype === 'binary/octet-stream') {
+      if (ext === '.pdf') return 'application/pdf';
+      if (ext === '.doc') return 'application/msword';
+      if (ext === '.docx') {
+        return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      }
+    }
+    return mimetype === 'application/x-pdf' ? 'application/pdf' : mimetype;
+  }
+  if (ext === '.pdf') return 'application/pdf';
+  if (ext === '.doc') return 'application/msword';
+  if (ext === '.docx') {
+    return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+  }
+  return mimetype || 'application/octet-stream';
+}
 
 const resumeUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter(req, file, cb) {
-    const allowed = [
+    const ext = path.extname(file.originalname || '').toLowerCase();
+    const allowedExt = ['.pdf', '.doc', '.docx'];
+    const allowedMime = [
       'application/pdf',
+      'application/x-pdf',
       'application/msword',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     ];
-    if (allowed.includes(file.mimetype)) return cb(null, true);
+    if (allowedExt.includes(ext)) return cb(null, true);
+    if (allowedMime.includes(file.mimetype)) return cb(null, true);
+    if (
+      (file.mimetype === 'application/octet-stream' || file.mimetype === 'binary/octet-stream') &&
+      allowedExt.includes(ext)
+    ) {
+      return cb(null, true);
+    }
     cb(new Error('Resume must be PDF or Word (.doc, .docx).'), false);
   },
 });
@@ -1428,15 +1473,32 @@ router.post('/project-requirement', authMiddleware, async (req, res) => {
     if (!projectIdea || !projectIdea.trim()) {
       return res.status(400).json({ message: 'Project idea is required.' });
     }
-    
-    const projectReq = await ProjectRequirement.create({
-      user: req.user.id,
-      projectIdea: projectIdea.trim(),
-      websitePreference: websitePreference || '',
-      linkOption: linkOption || '',
-      status: 'pending'
-    });
-    
+
+    let projectReq;
+    for (let attempt = 0; attempt < 10; attempt++) {
+      try {
+        projectReq = await ProjectRequirement.create({
+          user: req.user.id,
+          submissionId: generateProjectSubmissionId(),
+          projectIdea: projectIdea.trim(),
+          websitePreference: websitePreference || '',
+          linkOption: linkOption || '',
+          status: 'pending',
+          statusTimeline: [{ status: 'pending', at: new Date() }],
+        });
+        break;
+      } catch (err) {
+        if (err.code === 11000 && String(err.message || '').includes('submissionId')) {
+          continue;
+        }
+        throw err;
+      }
+    }
+
+    if (!projectReq) {
+      return res.status(500).json({ message: 'Could not create submission reference. Please try again.' });
+    }
+
     res.status(201).json({ projectRequirement: projectReq, message: 'Project requirement submitted successfully.' });
   } catch (err) {
     console.error('Error creating project requirement:', err);
@@ -1470,7 +1532,8 @@ router.get('/admin/project-requirements', authMiddleware, coAdminMiddleware, asy
     if (search) {
       query.$or = [
         { projectIdea: { $regex: search, $options: 'i' } },
-        { websitePreference: { $regex: search, $options: 'i' } }
+        { websitePreference: { $regex: search, $options: 'i' } },
+        { submissionId: { $regex: search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' } },
       ];
     }
     
@@ -1488,39 +1551,79 @@ router.get('/admin/project-requirements', authMiddleware, coAdminMiddleware, asy
 // Admin: Update project requirement status
 router.patch('/admin/project-requirement/:id', authMiddleware, coAdminMiddleware, async (req, res) => {
   try {
-    const { status, projectLink, adminNotes } = req.body;
+    const { status, projectLink, adminNotes, estimatedCompletionDate } = req.body;
     const project = await ProjectRequirement.findById(req.params.id);
-    
+
     if (!project) {
       return res.status(404).json({ message: 'Project requirement not found.' });
     }
-    
-    const updateData = {};
+
+    const prevStatus = project.status;
+    const setFields = {};
+    let pushTimeline = null;
+
+    if (estimatedCompletionDate !== undefined) {
+      if (estimatedCompletionDate === null || estimatedCompletionDate === '') {
+        setFields.estimatedCompletionDate = null;
+      } else {
+        const d = new Date(estimatedCompletionDate);
+        if (Number.isNaN(d.getTime())) {
+          return res.status(400).json({ message: 'Invalid estimated completion date.' });
+        }
+        setFields.estimatedCompletionDate = d;
+      }
+    }
+
     if (status) {
       if (!['pending', 'under_review', 'under_development', 'last_stage', 'finished'].includes(status)) {
         return res.status(400).json({ message: 'Invalid status.' });
       }
-      updateData.status = status;
-      
-      // If status is finished, projectLink is required
-      if (status === 'finished') {
-        if (!projectLink || !projectLink.trim()) {
-          return res.status(400).json({ message: 'Project link is required when marking as finished.' });
+
+      if (status !== prevStatus) {
+        const nextEst =
+          estimatedCompletionDate !== undefined
+            ? setFields.estimatedCompletionDate !== undefined
+              ? setFields.estimatedCompletionDate
+              : project.estimatedCompletionDate
+            : project.estimatedCompletionDate;
+        if (prevStatus === 'pending' && status !== 'pending' && !nextEst) {
+          return res.status(400).json({
+            message: 'Estimated completion date is required when moving the request out of pending.',
+          });
         }
-        updateData.projectLink = projectLink.trim();
+
+        setFields.status = status;
+        pushTimeline = { status, at: new Date() };
+
+        if (status === 'finished') {
+          if (!(projectLink || '').trim()) {
+            return res.status(400).json({ message: 'Project link is required when marking as finished.' });
+          }
+          setFields.projectLink = projectLink.trim();
+          if (prevStatus !== 'finished') {
+            setFields.finishedAt = new Date();
+          }
+        }
       }
     }
-    
+
     if (adminNotes !== undefined) {
-      updateData.adminNotes = adminNotes;
+      setFields.adminNotes = adminNotes;
     }
-    
-    const updatedProject = await ProjectRequirement.findByIdAndUpdate(
-      req.params.id,
-      updateData,
-      { new: true }
-    ).populate('user', 'name email');
-    
+
+    const mongoUpdate = { $set: setFields };
+    if (pushTimeline) {
+      mongoUpdate.$push = { statusTimeline: pushTimeline };
+    }
+
+    if (Object.keys(setFields).length === 0 && !pushTimeline) {
+      return res.status(400).json({ message: 'No changes to apply.' });
+    }
+
+    const updatedProject = await ProjectRequirement.findByIdAndUpdate(req.params.id, mongoUpdate, {
+      new: true,
+    }).populate('user', 'name email');
+
     res.json({ projectRequirement: updatedProject, message: 'Project requirement updated successfully.' });
   } catch (err) {
     console.error('Error updating project requirement:', err);
@@ -1635,7 +1738,8 @@ router.post('/careers/apply', (req, res, next) => {
     if (!career || !career.isActive) {
       return res.status(400).json({ message: 'This position is not open for applications.' });
     }
-    const resumeData = bufferToBase64(req.file.buffer, req.file.mimetype);
+    const resumeMimeType = normalizeResumeMime(req.file.mimetype, req.file.originalname);
+    const resumeData = bufferToBase64(req.file.buffer, resumeMimeType);
     await CareerApplication.create({
       career: careerId,
       name: name.trim(),
@@ -1644,7 +1748,7 @@ router.post('/careers/apply', (req, res, next) => {
       city: city.trim(),
       state: state.trim(),
       resumeData,
-      resumeMimeType: req.file.mimetype,
+      resumeMimeType,
       resumeFileName: req.file.originalname || 'resume',
     });
     res.status(201).json({ message: 'Application submitted successfully.' });

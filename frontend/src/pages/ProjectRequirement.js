@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from '../axios';
-import { useOutletContext, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Icon } from '../components/icons';
 
 const statusLabels = {
@@ -11,13 +11,48 @@ const statusLabels = {
   finished: { label: 'Finished', color: 'text-green-800 bg-green-100 border-green-200/80', iconName: 'check' },
 };
 
+function formatDateOnly(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+function localDayStart(d) {
+  const x = new Date(d);
+  return new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+}
+
+function isDeliveredBeforeEstimate(project) {
+  if (project.status !== 'finished' || !project.finishedAt || !project.estimatedCompletionDate) return false;
+  return localDayStart(project.finishedAt) < localDayStart(project.estimatedCompletionDate);
+}
+
+function getTimelineEntries(project) {
+  const raw = project.statusTimeline;
+  if (Array.isArray(raw) && raw.length > 0) {
+    return [...raw].sort((a, b) => new Date(a.at) - new Date(b.at));
+  }
+  const entries = [{ status: 'pending', at: project.createdAt }];
+  if (project.status !== 'pending') {
+    entries.push({ status: project.status, at: project.updatedAt || project.createdAt });
+  }
+  return entries;
+}
+
+function timelineStepTitle(status, index) {
+  if (index === 0 && status === 'pending') return 'Requirement submitted';
+  if (status === 'finished') return 'Project delivered';
+  return `Status updated — ${statusLabels[status]?.label || status}`;
+}
+
 const ProjectRequirement = () => {
-  const { user } = useOutletContext();
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [submissionRef, setSubmissionRef] = useState(null);
   const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
   const [subscriptionStatus, setSubscriptionStatus] = useState(null);
   const [checkingSubscription, setCheckingSubscription] = useState(true);
@@ -101,13 +136,16 @@ const ProjectRequirement = () => {
     e.preventDefault();
     setError('');
     setSuccess('');
+    setSubmissionRef(null);
     setSubmitting(true);
 
     try {
       const token = localStorage.getItem('token');
-      await axios.post('/api/auth/project-requirement', formData, {
+      const res = await axios.post('/api/auth/project-requirement', formData, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      const ref = res.data.projectRequirement?.submissionId;
+      setSubmissionRef(ref || null);
       setSuccess('Project requirement submitted successfully!');
       setFormData({ projectIdea: '', websitePreference: '', linkOption: '' });
       fetchProjects();
@@ -116,16 +154,6 @@ const ProjectRequirement = () => {
     } finally {
       setSubmitting(false);
     }
-  };
-
-  const formatDate = (date) => {
-    return new Date(date).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
   };
 
   if (loading || checkingSubscription) {
@@ -150,8 +178,19 @@ const ProjectRequirement = () => {
         )}
         
         {success && (
-          <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg text-green-700">
-            {success}
+          <div className="mb-4 space-y-3">
+            <div className="p-4 bg-green-50 border border-green-200 rounded-lg text-green-800">{success}</div>
+            {submissionRef && (
+              <div className="p-4 sm:p-5 rounded-xl border-2 border-emerald-200 bg-emerald-50/90 shadow-sm">
+                <p className="text-xs font-bold uppercase tracking-wide text-emerald-800 mb-1">Your submission reference ID</p>
+                <p className="text-xl sm:text-2xl font-mono font-bold text-emerald-950 tracking-tight break-all select-all">
+                  {submissionRef}
+                </p>
+                <p className="text-sm text-emerald-900/90 mt-2 leading-relaxed">
+                  Save this ID. You can use it when talking to support or matching your request in the dashboard.
+                </p>
+              </div>
+            )}
           </div>
         )}
 
@@ -305,20 +344,67 @@ const ProjectRequirement = () => {
           <div className="space-y-4">
             {projects.map((project) => {
               const statusInfo = statusLabels[project.status] || statusLabels.pending;
+              const timelineEntries = getTimelineEntries(project);
               return (
-                <div key={project._id} className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
-                  <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-3">
-                        <span className={`px-3 py-1 rounded-full text-xs sm:text-sm font-semibold border ${statusInfo.color} inline-flex items-center gap-1.5 max-w-full`}>
-                          <Icon name={statusInfo.iconName} className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" strokeWidth={2.25} />
-                          <span className="truncate">{statusInfo.label}</span>
-                        </span>
-                        <span className="text-sm text-gray-500">
-                          Submitted: {formatDate(project.createdAt)}
-                        </span>
-                      </div>
-                      
+                <div key={project._id} className="border border-gray-200 rounded-xl p-5 sm:p-6 hover:shadow-md transition-shadow">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-4">
+                    {project.submissionId && (
+                      <span
+                        className="px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-slate-100 text-slate-800 border border-slate-200"
+                        title="Submission reference"
+                      >
+                        {project.submissionId}
+                      </span>
+                    )}
+                    <span className={`px-3 py-1 rounded-full text-xs sm:text-sm font-semibold border ${statusInfo.color} inline-flex items-center gap-1.5 max-w-full`}>
+                      <Icon name={statusInfo.iconName} className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" strokeWidth={2.25} />
+                      <span className="truncate">{statusInfo.label}</span>
+                    </span>
+                  </div>
+
+                  <div className="mb-5">
+                    <h3 className="text-sm font-bold text-primary-800 uppercase tracking-wide mb-3">Progress timeline</h3>
+                    <div className="space-y-0">
+                      {timelineEntries.map((entry, idx) => (
+                        <div key={`${idx}-${entry.at}`} className="flex gap-3 sm:gap-4">
+                          <div className="flex flex-col items-center w-4 shrink-0 pt-1.5">
+                            <span className="w-3 h-3 rounded-full bg-primary-500 ring-4 ring-primary-100 shrink-0 z-10" />
+                            {idx < timelineEntries.length - 1 ? (
+                              <span className="w-0.5 flex-1 min-h-[2.25rem] bg-primary-200 rounded-full" aria-hidden />
+                            ) : null}
+                          </div>
+                          <div className={`pb-5 ${idx === timelineEntries.length - 1 ? 'pb-0' : ''}`}>
+                            <p className="text-sm font-semibold text-gray-900 leading-snug">
+                              {timelineStepTitle(entry.status, idx)}
+                            </p>
+                            <p className="text-sm text-gray-500 mt-0.5">{formatDateOnly(entry.at)}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {project.estimatedCompletionDate && (
+                    <div className="mb-4 p-3 rounded-xl bg-amber-50 border border-amber-200/80">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-amber-900/80 mb-0.5">Estimated completion</p>
+                      <p className="text-base font-bold text-amber-950">{formatDateOnly(project.estimatedCompletionDate)}</p>
+                    </div>
+                  )}
+
+                  {isDeliveredBeforeEstimate(project) && (
+                    <div className="mb-5 p-4 rounded-xl bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200">
+                      <p className="font-bold text-emerald-900 flex items-center gap-2">
+                        <Icon name="check" className="w-5 h-5 shrink-0" strokeWidth={2.25} />
+                        Congratulations!
+                      </p>
+                      <p className="text-sm text-emerald-800 mt-2 leading-relaxed">
+                        Your project was delivered before the estimated completion date (
+                        {formatDateOnly(project.estimatedCompletionDate)}).
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="flex-1">
                       <h3 className="text-lg font-semibold text-gray-900 mb-2">Project Idea</h3>
                       <p className="text-gray-700 whitespace-pre-wrap mb-4">{project.projectIdea}</p>
                       
@@ -349,9 +435,8 @@ const ProjectRequirement = () => {
                           <span className="text-blue-700">{project.adminNotes}</span>
                         </div>
                       )}
-                    </div>
                   </div>
-                  
+
                   {project.status === 'finished' && project.projectLink && (
                     <div className="mt-4 pt-4 border-t border-gray-200">
                       <a
