@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import axios from '../axios';
 import Logo from './Logo';
+import { Icon } from './icons';
 
 const Footer = () => {
   const [email, setEmail] = useState('');
@@ -58,22 +59,22 @@ const Footer = () => {
               From responsive websites to custom applications, we help businesses 
               grow online with innovative solutions.
             </p>
-            <div className="flex gap-3 pt-2" aria-label="Social media links">
+            <div className="flex flex-wrap gap-3 pt-2" aria-label="Social media links">
               {[
-                { icon: '📘', label: 'Facebook' },
-                { icon: '🐦', label: 'Twitter/X' },
-                { icon: '💼', label: 'LinkedIn' },
-                { icon: '📷', label: 'Instagram' },
-                { icon: '🐙', label: 'GitHub' }
+                { icon: 'facebook', label: 'Facebook' },
+                { icon: 'twitter', label: 'Twitter/X' },
+                { icon: 'linkedin', label: 'LinkedIn' },
+                { icon: 'instagram', label: 'Instagram' },
+                { icon: 'github', label: 'GitHub' }
               ].map((social) => (
                 <a 
                   key={social.label}
                   href="#" 
-                  className="w-10 h-10 flex items-center justify-center bg-white/10 hover:bg-accent-500 rounded-lg transition-all duration-300 hover:scale-110 hover:shadow-gold"
+                  className="w-11 h-11 sm:w-10 sm:h-10 flex items-center justify-center bg-white/10 hover:bg-accent-500 rounded-lg transition-all duration-300 hover:scale-105 hover:shadow-gold text-white"
                   aria-label={social.label}
                   title={social.label}
                 >
-                  <span className="text-lg">{social.icon}</span>
+                  <Icon name={social.icon} className="w-5 h-5" />
                 </a>
               ))}
             </div>
@@ -89,6 +90,7 @@ const Footer = () => {
                 { to: '/services', label: 'Our Services' },
                 { to: '/features', label: 'Features' },
                 { to: '/team', label: 'Our Team' },
+                { to: '/careers', label: 'Careers' },
                 { to: '/plans', label: 'Pricing Plans' },
                 { to: '/contact', label: 'Contact Us' }
               ].map((link) => (
@@ -134,13 +136,15 @@ const Footer = () => {
             <h3 className="text-lg font-bold mb-4 text-accent-500">Contact Info</h3>
             <div className="space-y-4">
               {[
-                { icon: '📍', label: 'Address', value: 'Bihar, Patna, India' },
-                { icon: '📧', label: 'Email', value: 'askcweb@gmail.com', link: 'mailto:askcweb@gmail.com' },
-                { icon: '📞', label: 'Phone', value: '+91 9027880288', link: 'tel:+919027880288' },
-                { icon: '🕒', label: 'Working Hours', value: 'Mon - Fri: 11AM - 4PM' }
+                { icon: 'mapPin', label: 'Address', value: 'Bihar, Patna, India' },
+                { icon: 'mail', label: 'Email', value: 'askcweb@gmail.com', link: 'mailto:askcweb@gmail.com' },
+                { icon: 'phone', label: 'Phone', value: '+91 9027880288', link: 'tel:+919027880288' },
+                { icon: 'clock', label: 'Working Hours', value: 'Mon - Fri: 11AM - 4PM' }
               ].map((item, idx) => (
                 <div key={idx} className="flex gap-3">
-                  <span className="text-xl flex-shrink-0">{item.icon}</span>
+                  <span className="flex-shrink-0 w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center text-accent-400">
+                    <Icon name={item.icon} className="w-5 h-5" />
+                  </span>
                   <div className="flex flex-col">
                     <span className="text-xs text-white/60 uppercase tracking-wide mb-1">{item.label}</span>
                     {item.link ? (

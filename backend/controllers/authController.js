@@ -1,8 +1,66 @@
+const crypto = require('crypto');
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const Notification = require('../models/Notification');
 const Subscription = require('../models/Subscription');
+const LoginCaptcha = require('../models/LoginCaptcha');
+
+const CAPTCHA_CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+
+function generateCaptchaAnswer(length = 6) {
+  const bytes = crypto.randomBytes(length);
+  let out = '';
+  for (let i = 0; i < length; i++) {
+    out += CAPTCHA_CHARS[bytes[i] % CAPTCHA_CHARS.length];
+  }
+  return out;
+}
+
+function escapeXml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function buildCaptchaSvg(answer) {
+  const w = 200;
+  const h = 64;
+  const lines = [];
+  for (let i = 0; i < 5; i++) {
+    const x1 = Math.floor(Math.random() * w);
+    const y1 = Math.floor(Math.random() * h);
+    const x2 = Math.floor(Math.random() * w);
+    const y2 = Math.floor(Math.random() * h);
+    lines.push(
+      `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#94a3b8" stroke-width="1" opacity="0.5"/>`
+    );
+  }
+  const escaped = escapeXml(answer);
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+    <rect fill="#f1f5f9" width="100%" height="100%" rx="10" stroke="#cbd5e1" stroke-width="1"/>
+    ${lines.join('')}
+    <text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" font-family="Consolas,ui-monospace,monospace" font-size="26" fill="#0f172a" font-weight="700" letter-spacing="6">${escaped}</text>
+  </svg>`;
+}
+
+exports.getLoginCaptcha = async (req, res) => {
+  try {
+    const answer = generateCaptchaAnswer(6);
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    const doc = await LoginCaptcha.create({ answer, expiresAt });
+    const svg = buildCaptchaSvg(answer);
+    res.json({
+      captchaId: doc._id.toString(),
+      svg,
+    });
+  } catch (err) {
+    console.error('getLoginCaptcha error:', err);
+    res.status(500).json({ message: 'Could not create captcha.' });
+  }
+};
 
 exports.registerUser = async (req, res) => {
   try {
@@ -33,19 +91,36 @@ exports.registerUser = async (req, res) => {
 exports.loginUser = async (req, res) => {
   try {
     console.log('Login request received:', {
-      body: req.body,
+      body: { ...req.body, password: req.body?.password ? '[redacted]' : undefined },
       headers: req.headers,
       method: req.method,
       url: req.url
     });
     
-    const { email, password } = req.body;
+    const { email, password, captchaId, captchaAnswer } = req.body;
     
     // Input validation with better error messages
     if (!email || !password) {
       console.log('Login validation failed - missing email or password');
       return res.status(400).json({ message: 'Email and password are required.' });
     }
+
+    if (!captchaId || captchaAnswer === undefined || captchaAnswer === null || String(captchaAnswer).trim() === '') {
+      return res.status(400).json({ message: 'Captcha is required.' });
+    }
+
+    const captcha = await LoginCaptcha.findById(captchaId);
+    if (!captcha || captcha.expiresAt < new Date()) {
+      return res.status(400).json({ message: 'Captcha expired or invalid. Please refresh and try again.' });
+    }
+
+    const submitted = String(captchaAnswer).trim();
+    if (submitted !== captcha.answer) {
+      await LoginCaptcha.deleteOne({ _id: captcha._id });
+      return res.status(400).json({ message: 'Captcha does not match. Please try again.' });
+    }
+
+    await LoginCaptcha.deleteOne({ _id: captcha._id });
     
     // Trim email and validate format
     const trimmedEmail = email.trim().toLowerCase();

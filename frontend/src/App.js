@@ -9,6 +9,7 @@ import Services from './pages/Services';
 import Features from './pages/Features';
 import Team from './pages/Team';
 import Contact from './pages/Contact';
+import Careers from './pages/Careers';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
@@ -73,7 +74,7 @@ function App() {
 function AppContent() {
   return (
     <>
-      <main style={{ paddingTop: '70px', minHeight: 'calc(100vh - 70px)' }}>
+      <main className="pt-20 min-h-[calc(100vh-5rem)] w-full max-w-full overflow-x-hidden">
         <Routes>
           <Route path='/' element={<Home />} />
           <Route path='/about' element={<About />} />
@@ -82,6 +83,7 @@ function AppContent() {
           <Route path='/features' element={<Features />} />
           <Route path='/team' element={<Team />} />
           <Route path='/contact' element={<Contact />} />
+          <Route path='/careers' element={<Careers />} />
           <Route path='/login' element={<Login />} />
           <Route path='/register' element={<Register />} />
           <Route path='/dashboard/*' element={<Dashboard />}>

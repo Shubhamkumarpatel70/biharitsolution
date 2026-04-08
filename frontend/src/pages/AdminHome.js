@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from '../axios';
+import { Icon } from '../components/icons';
 
 const AdminHome = () => {
   const [stats, setStats] = useState({
@@ -35,8 +36,8 @@ const AdminHome = () => {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-success-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-400">Loading dashboard...</p>
+          <div className="w-16 h-16 border-4 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-slate-600">Loading dashboard…</p>
         </div>
       </div>
     );
@@ -45,9 +46,7 @@ const AdminHome = () => {
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center text-danger-500">
-          {error}
-        </div>
+        <div className="text-center text-red-600 font-medium">{error}</div>
       </div>
     );
   }
@@ -56,186 +55,135 @@ const AdminHome = () => {
   const avgRevenue = stats.userCount > 0 ? (stats.totalRevenue / stats.userCount).toFixed(2) : 0;
   const activeRate = stats.subCount > 0 ? ((stats.activeSubs / stats.subCount) * 100).toFixed(1) : 0;
 
+  const statCards = [
+    {
+      label: 'Total users',
+      value: stats.userCount.toLocaleString(),
+      iconName: 'users',
+      accent: 'bg-sky-50 text-sky-700 border-sky-100'
+    },
+    {
+      label: 'Total revenue',
+      value: `₹${stats.totalRevenue.toLocaleString('en-IN')}`,
+      iconName: 'currency',
+      accent: 'bg-emerald-50 text-emerald-800 border-emerald-100'
+    },
+    {
+      label: 'Subscriptions',
+      value: stats.subCount.toLocaleString(),
+      iconName: 'chart',
+      accent: 'bg-violet-50 text-violet-800 border-violet-100'
+    },
+    {
+      label: 'Active subs',
+      value: stats.activeSubs.toLocaleString(),
+      iconName: 'check',
+      accent: 'bg-amber-50 text-amber-900 border-amber-100'
+    }
+  ];
+
+  const quickActions = [
+    { title: 'User management', body: 'Roles, access, and activity across your customer base.', iconName: 'users', hint: 'Open “Manage Users” in the sidebar.' },
+    { title: 'Site statistics', body: 'Growth, subscriptions, and engagement at a glance.', iconName: 'chart', hint: 'Use the “Site Stats” section.' },
+    { title: 'Notifications', body: 'Broadcast updates and keep members in the loop.', iconName: 'bell', hint: 'Go to “Notifications”.' },
+    { title: 'Content', body: 'Plans, features, services, and team profiles.', iconName: 'folder', hint: 'Explore the content group in the menu.' }
+  ];
+
   return (
-    <div className="max-w-7xl mx-auto space-y-6 pb-20 lg:pb-6">
-      {/* Welcome Header */}
-      <div className="bg-gradient-to-r from-success-500 via-success-600 to-success-700 rounded-2xl p-6 md:p-8 text-white shadow-xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32"></div>
-        <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full -ml-24 -mb-24"></div>
+    <div className="max-w-7xl mx-auto space-y-8 pb-20 lg:pb-6">
+      <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white p-6 md:p-8 shadow-lg overflow-hidden relative">
+        <div className="absolute top-0 right-0 w-72 h-72 bg-accent-500/15 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" aria-hidden />
         <div className="relative z-10">
-          <h1 className="text-2xl md:text-3xl font-black mb-2">
-            Welcome to the Admin Dashboard! 👋
-          </h1>
-          <p className="text-white/90 text-sm md:text-base max-w-2xl">
-            Manage your website, monitor user activity, and track business performance from this comprehensive admin panel.
+          <p className="text-accent-300 text-sm font-semibold uppercase tracking-wider mb-2">Control center</p>
+          <h1 className="text-2xl md:text-3xl font-bold mb-2">Welcome back</h1>
+          <p className="text-slate-300 text-sm md:text-base max-w-2xl leading-relaxed">
+            Monitor revenue, subscriptions, and platform health from a single, calm overview—then jump into the sidebar for deep work.
           </p>
         </div>
       </div>
 
-      {/* Stats Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-        {/* Total Users Card */}
-        <div className="bg-gradient-to-br from-primary-500 to-secondary-500 rounded-xl p-6 text-white shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500"></div>
-          <div className="relative z-10">
-            <div className="text-5xl mb-3 text-center transform group-hover:scale-110 transition-transform duration-300">👥</div>
-            <h3 className="text-lg font-semibold mb-2 text-center">Total Users</h3>
-            <p className="text-3xl font-black text-center">
-              {stats.userCount.toLocaleString()}
-            </p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-5">
+        {statCards.map((card) => (
+          <div
+            key={card.label}
+            className="rounded-2xl border bg-white p-5 md:p-6 shadow-sm hover:shadow-md transition-shadow border-slate-200"
+          >
+            <div className={`inline-flex p-2.5 rounded-xl border mb-4 ${card.accent}`}>
+              <Icon name={card.iconName} className="w-6 h-6" strokeWidth={2} />
+            </div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">{card.label}</p>
+            <p className="text-2xl md:text-3xl font-bold text-slate-900 tabular-nums">{card.value}</p>
           </div>
-        </div>
+        ))}
+      </div>
 
-        {/* Total Revenue Card */}
-        <div className="bg-gradient-to-br from-pink-500 to-red-500 rounded-xl p-6 text-white shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500"></div>
-          <div className="relative z-10">
-            <div className="text-5xl mb-3 text-center transform group-hover:scale-110 transition-transform duration-300">💰</div>
-            <h3 className="text-lg font-semibold mb-2 text-center">Total Revenue</h3>
-            <p className="text-3xl font-black text-center">
-              ₹{stats.totalRevenue.toLocaleString('en-IN')}
-            </p>
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 md:p-8 shadow-sm">
+        <h2 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
+          <Icon name="trending" className="w-5 h-5 text-primary-600" strokeWidth={2} />
+          Quick overview
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="rounded-xl bg-slate-50 border border-slate-100 p-5 text-center">
+            <p className="text-slate-500 text-sm mb-1">Conversion rate</p>
+            <p className="text-2xl font-bold text-slate-900 tabular-nums">{conversionRate}%</p>
           </div>
-        </div>
-
-        {/* Total Subscriptions Card */}
-        <div className="bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl p-6 text-white shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500"></div>
-          <div className="relative z-10">
-            <div className="text-5xl mb-3 text-center transform group-hover:scale-110 transition-transform duration-300">📊</div>
-            <h3 className="text-lg font-semibold mb-2 text-center">Total Subscriptions</h3>
-            <p className="text-3xl font-black text-center">
-              {stats.subCount.toLocaleString()}
-            </p>
+          <div className="rounded-xl bg-slate-50 border border-slate-100 p-5 text-center">
+            <p className="text-slate-500 text-sm mb-1">Avg revenue / user</p>
+            <p className="text-2xl font-bold text-slate-900 tabular-nums">₹{avgRevenue}</p>
           </div>
-        </div>
-
-        {/* Active Subscriptions Card */}
-        <div className="bg-gradient-to-br from-green-500 to-teal-500 rounded-xl p-6 text-white shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500"></div>
-          <div className="relative z-10">
-            <div className="text-5xl mb-3 text-center transform group-hover:scale-110 transition-transform duration-300">✅</div>
-            <h3 className="text-lg font-semibold mb-2 text-center">Active Subscriptions</h3>
-            <p className="text-3xl font-black text-center">
-              {stats.activeSubs.toLocaleString()}
-            </p>
+          <div className="rounded-xl bg-slate-50 border border-slate-100 p-5 text-center">
+            <p className="text-slate-500 text-sm mb-1">Active rate</p>
+            <p className="text-2xl font-bold text-slate-900 tabular-nums">{activeRate}%</p>
           </div>
         </div>
       </div>
 
-      {/* Quick Stats Summary */}
-      <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
-        <h2 className="text-xl font-bold text-success-500 mb-6">Quick Overview</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-          <div className="text-center p-4 bg-gray-700/50 rounded-xl">
-            <p className="text-gray-400 text-sm mb-2">Conversion Rate</p>
-            <p className="text-2xl font-bold text-white">
-              {conversionRate}%
-            </p>
-          </div>
-          <div className="text-center p-4 bg-gray-700/50 rounded-xl">
-            <p className="text-gray-400 text-sm mb-2">Avg Revenue per User</p>
-            <p className="text-2xl font-bold text-white">
-              ₹{avgRevenue}
-            </p>
-          </div>
-          <div className="text-center p-4 bg-gray-700/50 rounded-xl">
-            <p className="text-gray-400 text-sm mb-2">Active Rate</p>
-            <p className="text-2xl font-bold text-white">
-              {activeRate}%
-            </p>
-          </div>
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 md:p-8 shadow-sm">
+        <h2 className="text-lg font-bold text-slate-900 mb-6">Where to go next</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
+          {quickActions.map((item) => (
+            <div
+              key={item.title}
+              className="rounded-xl border border-slate-200 p-5 hover:border-primary-200 hover:shadow-sm transition-all bg-slate-50/50"
+            >
+              <div className="flex gap-3 mb-3">
+                <div className="shrink-0 w-10 h-10 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-primary-700">
+                  <Icon name={item.iconName} className="w-5 h-5" strokeWidth={2} />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-slate-900">{item.title}</h3>
+                  <p className="text-sm text-slate-600 mt-1 leading-relaxed">{item.body}</p>
+                </div>
+              </div>
+              <p className="text-xs font-medium text-accent-700">{item.hint}</p>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Quick Actions Section */}
-      <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
-        <h2 className="text-xl font-bold text-success-500 mb-6">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-gray-700/50 rounded-xl p-5 border border-gray-600 hover:border-success-500/50 transition-colors">
-            <h3 className="text-white font-semibold mb-2 flex items-center gap-2">
-              <span className="text-2xl">👥</span>
-              User Management
-            </h3>
-            <p className="text-gray-400 text-sm mb-3">
-              Manage user accounts, change roles, and monitor user activity.
-            </p>
-            <div className="text-success-500 text-sm font-medium">
-              Navigate to "Manage Users" tab →
-            </div>
-          </div>
-
-          <div className="bg-gray-700/50 rounded-xl p-5 border border-gray-600 hover:border-success-500/50 transition-colors">
-            <h3 className="text-white font-semibold mb-2 flex items-center gap-2">
-              <span className="text-2xl">📊</span>
-              Site Statistics
-            </h3>
-            <p className="text-gray-400 text-sm mb-3">
-              View detailed analytics, user growth trends, and subscription metrics.
-            </p>
-            <div className="text-success-500 text-sm font-medium">
-              Navigate to "Site Stats" tab →
-            </div>
-          </div>
-
-          <div className="bg-gray-700/50 rounded-xl p-5 border border-gray-600 hover:border-success-500/50 transition-colors">
-            <h3 className="text-white font-semibold mb-2 flex items-center gap-2">
-              <span className="text-2xl">🔔</span>
-              Notifications
-            </h3>
-            <p className="text-gray-400 text-sm mb-3">
-              Send announcements to users, manage notification settings.
-            </p>
-            <div className="text-success-500 text-sm font-medium">
-              Navigate to "Notifications" tab →
-            </div>
-          </div>
-
-          <div className="bg-gray-700/50 rounded-xl p-5 border border-gray-600 hover:border-success-500/50 transition-colors">
-            <h3 className="text-white font-semibold mb-2 flex items-center gap-2">
-              <span className="text-2xl">📦</span>
-              Content Management
-            </h3>
-            <p className="text-gray-400 text-sm mb-3">
-              Manage features, services, team members, and plans.
-            </p>
-            <div className="text-success-500 text-sm font-medium">
-              Navigate to content tabs →
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* System Status Section */}
-      <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
-        <h2 className="text-xl font-bold text-success-500 mb-6">System Status</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 md:p-8 shadow-sm">
+        <h2 className="text-lg font-bold text-slate-900 mb-6">System status</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {[
-            { label: 'Database Connection', status: 'Connected & Healthy' },
-            { label: 'Notification System', status: 'Auto-cleanup Active' },
-            { label: 'API Services', status: 'All Systems Operational' },
-            { label: 'Security', status: 'All Checks Passed' }
-          ].map((item, index) => (
-            <div key={index} className="flex items-center gap-3 p-4 bg-gray-700/50 rounded-xl">
-              <div className="w-3 h-3 bg-success-500 rounded-full flex-shrink-0"></div>
-              <div className="flex-1 min-w-0">
-                <p className="text-white text-sm font-medium mb-1">{item.label}</p>
-                <p className="text-gray-400 text-xs">{item.status}</p>
+            { label: 'Database', status: 'Connected' },
+            { label: 'Notifications', status: 'Healthy' },
+            { label: 'API', status: 'Operational' },
+            { label: 'Security', status: 'Checks passed' }
+          ].map((row) => (
+            <div key={row.label} className="flex items-center gap-3 p-4 rounded-xl border border-slate-100 bg-slate-50">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" aria-hidden />
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-slate-900">{row.label}</p>
+                <p className="text-xs text-slate-500 truncate">{row.status}</p>
               </div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Footer Information */}
-      <div className="text-center py-6 text-gray-400 text-sm">
-        <p className="mb-2">
-          Admin Dashboard v2.0 • Last updated: {new Date().toLocaleDateString()}
-        </p>
-        <p>
-          Need help? Check the "Help" tab or contact system administrator.
-        </p>
-      </div>
+      <p className="text-center text-slate-400 text-sm pb-4">
+        Admin dashboard • {new Date().toLocaleDateString()}
+      </p>
     </div>
   );
 };

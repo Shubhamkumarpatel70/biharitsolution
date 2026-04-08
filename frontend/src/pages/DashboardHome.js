@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useOutletContext, Link } from 'react-router-dom';
 import axios from '../axios';
+import { Icon } from '../components/icons';
 
 const planDisplayNames = {
   starter: 'Starter',
@@ -78,84 +79,96 @@ const DashboardHome = () => {
   return (
     <div className="max-w-7xl mx-auto space-y-6 pb-20 lg:pb-6">
       {/* Welcome Header */}
-      <div className="bg-gradient-primary rounded-2xl p-6 md:p-8 text-white">
-        <h1 className="text-2xl md:text-3xl font-black mb-2">
-          Welcome back, <span className="text-accent-500">{user?.name || 'User'}</span>!
-        </h1>
-        <p className="text-white/90 text-sm md:text-base">
-          Here's an overview of your account and recent activity
-        </p>
+      <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6 md:p-8 text-white shadow-lg relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-accent-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" aria-hidden />
+        <div className="relative z-10">
+          <h1 className="text-2xl md:text-3xl font-bold mb-2 text-white">
+            Welcome back,{' '}
+            <span className="text-accent-400">{user?.name || 'User'}</span>
+          </h1>
+          <p className="text-slate-300 text-sm md:text-base max-w-xl">
+            Subscriptions, messages, and support requests—organized in one calm view.
+          </p>
+        </div>
       </div>
 
       {/* Profile Card */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-md overflow-hidden">
-        <div className="p-6 border-b border-gray-200">
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="p-6 border-b border-slate-100">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-            <div className="w-16 h-16 bg-gradient-accent rounded-xl flex items-center justify-center text-2xl font-black text-primary-900">
-              {user?.name ? user.name.split(' ').map(n => n[0]).join('') : 'U'}
+            <div className="w-16 h-16 bg-amber-100 border border-amber-200 rounded-xl flex items-center justify-center text-amber-900 shrink-0">
+              <Icon name="user" className="w-8 h-8" strokeWidth={2} />
             </div>
-            <div className="flex-1">
-              <h2 className="text-xl font-bold text-primary-600 mb-1">{user?.name || 'User'}</h2>
-              <div className="flex flex-wrap gap-2 text-sm text-text-muted">
-                <span>{user?.email || 'N/A'}</span>
-                <span>•</span>
+            <div className="flex-1 min-w-0">
+              <h2 className="text-xl font-bold text-slate-900 mb-1">{user?.name || 'User'}</h2>
+              <div className="flex flex-wrap gap-x-2 gap-y-1 text-sm text-slate-600">
+                <span className="break-all">{user?.email || 'N/A'}</span>
+                <span className="text-slate-400" aria-hidden>•</span>
                 <span>{user?.role || 'User'}</span>
               </div>
             </div>
           </div>
         </div>
-        <div className="p-6 grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <Link to="/dashboard/subscription" className="flex flex-col items-center p-4 rounded-xl hover:bg-gray-light transition-colors">
-            <span className="text-2xl mb-2">💳</span>
-            <span className="text-sm font-medium text-text-main">Manage Plan</span>
+        <div className="p-6 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+          <Link to="/dashboard/subscription" className="flex flex-col items-center p-4 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-colors min-w-0">
+            <span className="inline-flex p-2 rounded-lg bg-amber-50 text-amber-900 mb-2">
+              <Icon name="creditCard" className="w-6 h-6" strokeWidth={2} />
+            </span>
+            <span className="text-sm font-medium text-slate-800 text-center leading-tight break-words max-w-full px-0.5">Manage plan</span>
           </Link>
-          <Link to="/dashboard/purchases" className="flex flex-col items-center p-4 rounded-xl hover:bg-gray-light transition-colors">
-            <span className="text-2xl mb-2">🛒</span>
-            <span className="text-sm font-medium text-text-main">Purchases</span>
+          <Link to="/dashboard/purchases" className="flex flex-col items-center p-4 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-colors min-w-0">
+            <span className="inline-flex p-2 rounded-lg bg-sky-50 text-sky-800 mb-2">
+              <Icon name="cart" className="w-6 h-6" strokeWidth={2} />
+            </span>
+            <span className="text-sm font-medium text-slate-800 text-center leading-tight break-words max-w-full px-0.5">Purchases</span>
           </Link>
-          <Link to="/dashboard/notifications" className="flex flex-col items-center p-4 rounded-xl hover:bg-gray-light transition-colors">
-            <span className="text-2xl mb-2">🔔</span>
-            <span className="text-sm font-medium text-text-main">Notifications</span>
+          <Link to="/dashboard/notifications" className="flex flex-col items-center p-4 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-colors min-w-0">
+            <span className="inline-flex p-2 rounded-lg bg-violet-50 text-violet-800 mb-2">
+              <Icon name="bell" className="w-6 h-6" strokeWidth={2} />
+            </span>
+            <span className="text-sm font-medium text-slate-800 text-center leading-tight break-words max-w-full px-0.5">Notifications</span>
           </Link>
-          <Link to="/dashboard/support" className="flex flex-col items-center p-4 rounded-xl hover:bg-gray-light transition-colors">
-            <span className="text-2xl mb-2">💬</span>
-            <span className="text-sm font-medium text-text-main">Support</span>
+          <Link to="/dashboard/support" className="flex flex-col items-center p-4 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-colors min-w-0">
+            <span className="inline-flex p-2 rounded-lg bg-emerald-50 text-emerald-800 mb-2">
+              <Icon name="chat" className="w-6 h-6" strokeWidth={2} />
+            </span>
+            <span className="text-sm font-medium text-slate-800 text-center leading-tight break-words max-w-full px-0.5">Support</span>
           </Link>
         </div>
       </div>
 
       {/* Info Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6">
-        <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-md">
+        <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-primary-500/10 rounded-xl flex items-center justify-center text-2xl">
-              👤
+            <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center text-primary-800 border border-slate-200">
+              <Icon name="user" className="w-6 h-6" strokeWidth={2} />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-text-muted mb-1">Your Role</h3>
-              <p className="text-lg font-bold text-text-main">{user?.role || 'User'}</p>
+              <h3 className="text-sm font-semibold text-slate-500 mb-1">Your role</h3>
+              <p className="text-lg font-bold text-slate-900">{user?.role || 'User'}</p>
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-md">
+        <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-accent-500/10 rounded-xl flex items-center justify-center text-2xl">
-              📧
+            <div className="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center text-amber-900 border border-amber-100">
+              <Icon name="mail" className="w-6 h-6" strokeWidth={2} />
             </div>
-            <div>
-              <h3 className="text-sm font-semibold text-text-muted mb-1">Email</h3>
-              <p className="text-lg font-bold text-text-main truncate">{user?.email || 'N/A'}</p>
+            <div className="min-w-0">
+              <h3 className="text-sm font-semibold text-slate-500 mb-1">Email</h3>
+              <p className="text-lg font-bold text-slate-900 truncate">{user?.email || 'N/A'}</p>
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-md">
+        <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-secondary-500/10 rounded-xl flex items-center justify-center text-2xl">
-              📅
+            <div className="w-12 h-12 bg-sky-50 rounded-xl flex items-center justify-center text-sky-800 border border-sky-100">
+              <Icon name="clock" className="w-6 h-6" strokeWidth={2} />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-text-muted mb-1">Member Since</h3>
-              <p className="text-lg font-bold text-text-main">
+              <h3 className="text-sm font-semibold text-slate-500 mb-1">Member since</h3>
+              <p className="text-lg font-bold text-slate-900">
                 {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
               </p>
             </div>
@@ -166,10 +179,12 @@ const DashboardHome = () => {
       {/* Main Widgets Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Subscription Widget */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-md overflow-hidden">
-          <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-            <h2 className="text-xl font-bold text-primary-600">Current Plan</h2>
-            <span className="text-2xl">💳</span>
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+            <h2 className="text-xl font-bold text-slate-900">Current plan</h2>
+            <span className="inline-flex p-2 rounded-lg bg-amber-50 text-amber-900">
+              <Icon name="creditCard" className="w-5 h-5" strokeWidth={2} />
+            </span>
           </div>
           <div className="p-6">
             {subsLoading ? (
@@ -232,10 +247,12 @@ const DashboardHome = () => {
         </div>
 
         {/* Notifications Widget */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-md overflow-hidden">
-          <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-            <h2 className="text-xl font-bold text-primary-600">Recent Notifications</h2>
-            <span className="text-2xl">🔔</span>
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+            <h2 className="text-xl font-bold text-slate-900">Recent notifications</h2>
+            <span className="inline-flex p-2 rounded-lg bg-violet-50 text-violet-800">
+              <Icon name="bell" className="w-5 h-5" strokeWidth={2} />
+            </span>
           </div>
           <div className="p-6">
             {notifLoading ? (
@@ -275,10 +292,12 @@ const DashboardHome = () => {
       </div>
 
       {/* Complaints Widget */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-md overflow-hidden">
-        <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-primary-600">Your Complaints</h2>
-          <span className="text-2xl">📝</span>
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+          <h2 className="text-xl font-bold text-slate-900">Your complaints</h2>
+          <span className="inline-flex p-2 rounded-lg bg-slate-100 text-slate-800">
+            <Icon name="document" className="w-5 h-5" strokeWidth={2} />
+          </span>
         </div>
         <div className="p-6">
           {complaintsLoading ? (
@@ -346,37 +365,49 @@ const DashboardHome = () => {
         </div>
       </div>
 
-      {/* Quick Actions */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-md p-6">
-        <h2 className="text-xl font-bold text-primary-600 mb-6">Quick Actions</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Link to="/dashboard/subscription" className="flex flex-col items-center p-6 rounded-xl border border-gray-200 hover:border-accent-500 hover:bg-accent-500/5 transition-all duration-200 group">
-            <div className="w-14 h-14 bg-accent-500/10 rounded-xl flex items-center justify-center text-3xl mb-3 group-hover:scale-110 transition-transform">
-              💳
+      {/* Quick actions — wide tiles on small screens to prevent label overlap */}
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 sm:p-6">
+        <h2 className="text-xl font-bold text-slate-900 mb-4 sm:mb-6">Quick actions</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <Link
+            to="/dashboard/subscription"
+            className="flex flex-col items-center text-center p-4 sm:p-5 rounded-xl border border-slate-200 bg-white hover:border-amber-400/70 hover:bg-amber-50/40 transition-all duration-200 group min-w-0"
+          >
+            <div className="w-12 h-12 sm:w-14 sm:h-14 bg-amber-50 rounded-xl flex items-center justify-center mb-2 sm:mb-3 group-hover:scale-[1.03] transition-transform text-amber-900 border border-amber-100 shrink-0">
+              <Icon name="creditCard" className="w-6 h-6 sm:w-7 sm:h-7" strokeWidth={2} />
             </div>
-            <h3 className="font-semibold text-text-main mb-1">Subscription</h3>
-            <p className="text-xs text-text-muted text-center">Manage your plan</p>
+            <h3 className="text-sm font-semibold text-slate-900 mb-1 w-full px-1 leading-snug break-words">Subscription</h3>
+            <p className="text-xs text-slate-500 leading-snug px-1">Manage your plan</p>
           </Link>
-          <Link to="/dashboard/purchases" className="flex flex-col items-center p-6 rounded-xl border border-gray-200 hover:border-accent-500 hover:bg-accent-500/5 transition-all duration-200 group">
-            <div className="w-14 h-14 bg-accent-500/10 rounded-xl flex items-center justify-center text-3xl mb-3 group-hover:scale-110 transition-transform">
-              🛒
+          <Link
+            to="/dashboard/purchases"
+            className="flex flex-col items-center text-center p-4 sm:p-5 rounded-xl border border-slate-200 bg-white hover:border-sky-400/70 hover:bg-sky-50/40 transition-all duration-200 group min-w-0"
+          >
+            <div className="w-12 h-12 sm:w-14 sm:h-14 bg-sky-50 rounded-xl flex items-center justify-center mb-2 sm:mb-3 group-hover:scale-[1.03] transition-transform text-sky-800 border border-sky-100 shrink-0">
+              <Icon name="cart" className="w-6 h-6 sm:w-7 sm:h-7" strokeWidth={2} />
             </div>
-            <h3 className="font-semibold text-text-main mb-1">My Purchases</h3>
-            <p className="text-xs text-text-muted text-center">View order history</p>
+            <h3 className="text-sm font-semibold text-slate-900 mb-1 w-full px-1 leading-snug break-words">My purchases</h3>
+            <p className="text-xs text-slate-500 leading-snug px-1">Order history</p>
           </Link>
-          <Link to="/dashboard/support" className="flex flex-col items-center p-6 rounded-xl border border-gray-200 hover:border-accent-500 hover:bg-accent-500/5 transition-all duration-200 group">
-            <div className="w-14 h-14 bg-accent-500/10 rounded-xl flex items-center justify-center text-3xl mb-3 group-hover:scale-110 transition-transform">
-              💬
+          <Link
+            to="/dashboard/support"
+            className="flex flex-col items-center text-center p-4 sm:p-5 rounded-xl border border-slate-200 bg-white hover:border-emerald-400/70 hover:bg-emerald-50/40 transition-all duration-200 group min-w-0"
+          >
+            <div className="w-12 h-12 sm:w-14 sm:h-14 bg-emerald-50 rounded-xl flex items-center justify-center mb-2 sm:mb-3 group-hover:scale-[1.03] transition-transform text-emerald-800 border border-emerald-100 shrink-0">
+              <Icon name="chat" className="w-6 h-6 sm:w-7 sm:h-7" strokeWidth={2} />
             </div>
-            <h3 className="font-semibold text-text-main mb-1">Support</h3>
-            <p className="text-xs text-text-muted text-center">Get help</p>
+            <h3 className="text-sm font-semibold text-slate-900 mb-1 w-full px-1 leading-snug break-words">Support</h3>
+            <p className="text-xs text-slate-500 leading-snug px-1">Get help</p>
           </Link>
-          <Link to="/plans" className="flex flex-col items-center p-6 rounded-xl border border-gray-200 hover:border-accent-500 hover:bg-accent-500/5 transition-all duration-200 group">
-            <div className="w-14 h-14 bg-accent-500/10 rounded-xl flex items-center justify-center text-3xl mb-3 group-hover:scale-110 transition-transform">
-              📋
+          <Link
+            to="/plans"
+            className="flex flex-col items-center text-center p-4 sm:p-5 rounded-xl border border-slate-200 bg-white hover:border-violet-400/70 hover:bg-violet-50/40 transition-all duration-200 group min-w-0"
+          >
+            <div className="w-12 h-12 sm:w-14 sm:h-14 bg-violet-50 rounded-xl flex items-center justify-center mb-2 sm:mb-3 group-hover:scale-[1.03] transition-transform text-violet-800 border border-violet-100 shrink-0">
+              <Icon name="clipboard" className="w-6 h-6 sm:w-7 sm:h-7" strokeWidth={2} />
             </div>
-            <h3 className="font-semibold text-text-main mb-1">Browse Plans</h3>
-            <p className="text-xs text-text-muted text-center">Explore services</p>
+            <h3 className="text-sm font-semibold text-slate-900 mb-1 w-full px-1 leading-snug break-words">Browse plans</h3>
+            <p className="text-xs text-slate-500 leading-snug px-1">See pricing</p>
           </Link>
         </div>
       </div>

@@ -9,7 +9,7 @@ function CTA() {
 	}, []);
 
 	return (
-		<section className="relative py-16 md:py-24 overflow-hidden">
+		<section className="relative py-12 md:py-20 lg:py-24 overflow-hidden">
 			{/* Background Gradient */}
 			<div className="absolute inset-0 bg-gradient-primary opacity-95"></div>
 			
@@ -35,8 +35,8 @@ function CTA() {
 					} transition-all duration-700`}
 				>
 					{/* Badge */}
-					<div className="inline-block px-4 py-2 mb-6 rounded-full bg-white/20 border border-white/30 backdrop-blur-md text-sm font-semibold text-white shadow-lg">
-						🚀 Get Started Today
+					<div className="inline-block px-4 py-2 mb-6 rounded-full bg-white/20 border border-white/30 backdrop-blur-md text-sm font-semibold text-white shadow-lg tracking-wide">
+						Get started today
 					</div>
 
 					{/* Main Heading */}
@@ -53,16 +53,16 @@ function CTA() {
 					<div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
 						<Link 
 							to="/contact" 
-							className="group relative px-8 py-4 bg-gradient-accent text-primary-900 font-bold rounded-xl shadow-gold hover:shadow-gold-hover transition-all duration-300 hover:-translate-y-1 min-w-[200px] flex items-center justify-center gap-2"
+							className="group relative px-6 sm:px-8 py-3.5 sm:py-4 bg-gradient-accent text-gray-900 font-bold rounded-xl shadow-gold hover:shadow-gold-hover transition-all duration-300 hover:-translate-y-0.5 hover:text-black w-full sm:w-auto min-w-[min(100%,200px)] sm:min-w-[200px] flex items-center justify-center gap-2"
 						>
-							<span>Start Your Project</span>
-							<span className="inline-block transition-transform duration-300 group-hover:translate-x-1">→</span>
+							<span>Start your project</span>
+							<span className="inline-block transition-transform duration-300 group-hover:translate-x-0.5" aria-hidden>→</span>
 						</Link>
 						<Link 
 							to="/plans" 
-							className="group px-8 py-4 bg-white/10 backdrop-blur-md border-2 border-white/30 text-white font-bold rounded-xl hover:bg-white/20 hover:border-white/50 transition-all duration-300 hover:-translate-y-1 min-w-[200px] flex items-center justify-center"
+							className="group px-6 sm:px-8 py-3.5 sm:py-4 bg-white/10 backdrop-blur-md border-2 border-white/30 text-white font-bold rounded-xl hover:bg-white/20 hover:border-white/50 transition-all duration-300 hover:-translate-y-0.5 w-full sm:w-auto min-w-[min(100%,200px)] sm:min-w-[200px] flex items-center justify-center"
 						>
-							View Pricing
+							View pricing
 						</Link>
 					</div>
 

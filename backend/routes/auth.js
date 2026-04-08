@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { registerUser, loginUser, registerAdmin, updateUserProfile, changeUserPassword, getUserNotifications, markNotificationRead, cancelUserSubscription, renewUserSubscription, verifyEmailForPasswordReset, resetPassword } = require('../controllers/authController');
+const { registerUser, loginUser, registerAdmin, updateUserProfile, changeUserPassword, getUserNotifications, markNotificationRead, cancelUserSubscription, renewUserSubscription, verifyEmailForPasswordReset, resetPassword, getLoginCaptcha } = require('../controllers/authController');
 const Subscription = require('../models/Subscription');
 const jwt = require('jsonwebtoken');
 const Plan = require('../models/Plan');
@@ -17,8 +17,24 @@ const Feature = require('../models/Feature');
 const Service = require('../models/Service');
 const PaymentOption = require('../models/PaymentOption');
 const ProjectRequirement = require('../models/ProjectRequirement');
+const Career = require('../models/Career');
+const CareerApplication = require('../models/CareerApplication');
 const multer = require('multer');
 const path = require('path');
+
+const resumeUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter(req, file, cb) {
+    const allowed = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    ];
+    if (allowed.includes(file.mimetype)) return cb(null, true);
+    cb(new Error('Resume must be PDF or Word (.doc, .docx).'), false);
+  },
+});
 
 // Configure multer for memory storage (to convert to base64)
 const upload = multer({ 
@@ -43,6 +59,7 @@ const bufferToBase64 = (buffer, mimetype) => {
 router.use(cookieParser());
 
 router.post('/register', registerUser);
+router.get('/captcha', getLoginCaptcha);
 router.post('/login', loginUser);
 router.post('/register-admin', registerAdmin);
 
@@ -1584,6 +1601,130 @@ router.patch('/admin/reject-cancellation/:id', authMiddleware, coAdminMiddleware
   } catch (err) {
     console.error('Error rejecting cancellation:', err);
     res.status(500).json({ message: 'Could not reject cancellation.' });
+  }
+});
+
+// ========== CAREERS (public) ==========
+router.get('/careers', async (req, res) => {
+  try {
+    const careers = await Career.find({ isActive: true }).sort({ createdAt: -1 }).lean();
+    res.json({ careers });
+  } catch (err) {
+    console.error('careers list:', err);
+    res.status(500).json({ message: 'Could not load careers.' });
+  }
+});
+
+router.post('/careers/apply', (req, res, next) => {
+  resumeUpload.single('resume')(req, res, (err) => {
+    if (err) {
+      return res.status(400).json({ message: err.message || 'Invalid resume upload.' });
+    }
+    next();
+  });
+}, async (req, res) => {
+  try {
+    const { name, email, phone, city, state, careerId } = req.body;
+    if (!name?.trim() || !email?.trim() || !phone?.trim() || !city?.trim() || !state?.trim() || !careerId) {
+      return res.status(400).json({ message: 'All fields are required.' });
+    }
+    if (!req.file) {
+      return res.status(400).json({ message: 'Resume file is required.' });
+    }
+    const career = await Career.findById(careerId);
+    if (!career || !career.isActive) {
+      return res.status(400).json({ message: 'This position is not open for applications.' });
+    }
+    const resumeData = bufferToBase64(req.file.buffer, req.file.mimetype);
+    await CareerApplication.create({
+      career: careerId,
+      name: name.trim(),
+      email: email.trim().toLowerCase(),
+      phone: phone.trim(),
+      city: city.trim(),
+      state: state.trim(),
+      resumeData,
+      resumeMimeType: req.file.mimetype,
+      resumeFileName: req.file.originalname || 'resume',
+    });
+    res.status(201).json({ message: 'Application submitted successfully.' });
+  } catch (err) {
+    console.error('career apply:', err);
+    res.status(500).json({ message: 'Could not submit application.' });
+  }
+});
+
+// ========== CAREERS (admin) ==========
+router.get('/admin/careers', authMiddleware, coAdminMiddleware, async (req, res) => {
+  try {
+    const careers = await Career.find().sort({ createdAt: -1 });
+    res.json({ careers });
+  } catch (err) {
+    res.status(500).json({ message: 'Could not load careers.' });
+  }
+});
+
+router.post('/admin/careers', authMiddleware, coAdminMiddleware, async (req, res) => {
+  try {
+    const { title, description, location, employmentType, isActive } = req.body;
+    if (!title?.trim() || !description?.trim()) {
+      return res.status(400).json({ message: 'Title and description are required.' });
+    }
+    const career = await Career.create({
+      title: title.trim(),
+      description: description.trim(),
+      location: (location || '').trim(),
+      employmentType: (employmentType || 'Full-time').trim(),
+      isActive: isActive !== false,
+    });
+    res.status(201).json({ career });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Could not create career.' });
+  }
+});
+
+router.put('/admin/careers/:id', authMiddleware, coAdminMiddleware, async (req, res) => {
+  try {
+    const { title, description, location, employmentType, isActive } = req.body;
+    const career = await Career.findByIdAndUpdate(
+      req.params.id,
+      {
+        ...(title !== undefined && { title: String(title).trim() }),
+        ...(description !== undefined && { description: String(description).trim() }),
+        ...(location !== undefined && { location: String(location).trim() }),
+        ...(employmentType !== undefined && { employmentType: String(employmentType).trim() }),
+        ...(isActive !== undefined && { isActive: !!isActive }),
+      },
+      { new: true, runValidators: true }
+    );
+    if (!career) return res.status(404).json({ message: 'Career not found.' });
+    res.json({ career });
+  } catch (err) {
+    res.status(500).json({ message: 'Could not update career.' });
+  }
+});
+
+router.delete('/admin/careers/:id', authMiddleware, coAdminMiddleware, async (req, res) => {
+  try {
+    await CareerApplication.deleteMany({ career: req.params.id });
+    const deleted = await Career.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ message: 'Career not found.' });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ message: 'Could not delete career.' });
+  }
+});
+
+router.get('/admin/career-applications', authMiddleware, coAdminMiddleware, async (req, res) => {
+  try {
+    const applications = await CareerApplication.find()
+      .populate('career', 'title isActive')
+      .sort({ createdAt: -1 })
+      .lean();
+    res.json({ applications });
+  } catch (err) {
+    res.status(500).json({ message: 'Could not load applications.' });
   }
 });
 

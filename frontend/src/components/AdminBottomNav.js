@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { adminNavItems } from './AdminSidebar';
+import { Icon } from './icons';
 
 const AdminBottomNav = ({ activeTab, setActiveTab, userRole = 'admin' }) => {
   const navigate = useNavigate();
@@ -9,38 +10,38 @@ const AdminBottomNav = ({ activeTab, setActiveTab, userRole = 'admin' }) => {
     localStorage.removeItem('user');
     navigate('/login');
   };
-  
-  // Filter out "Manage Users" for co-admin
-  const filteredNavItems = userRole === 'coadmin' 
+
+  const filteredNavItems = userRole === 'coadmin'
     ? adminNavItems.filter(item => item.id !== 'users')
     : adminNavItems;
-  
+
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-gray-800 border-t border-gray-700 z-50 lg:hidden">
-      <div className="flex items-center justify-around h-16">
+    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-50 lg:hidden shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
+      <div className="flex items-stretch justify-around h-16 max-w-lg mx-auto">
         {filteredNavItems.slice(0, 4).map(item => (
           <button
             key={item.id}
+            type="button"
             onClick={() => setActiveTab(item.id)}
             className={`
-              flex flex-col items-center justify-center flex-1 h-full
-              transition-colors duration-200
-              ${activeTab === item.id 
-                ? 'text-success-500 bg-success-500/10' 
-                : 'text-gray-400 hover:text-gray-300'
+              flex flex-col items-center justify-center flex-1 min-w-0 transition-colors duration-200
+              ${activeTab === item.id
+                ? 'text-primary-700 bg-amber-50'
+                : 'text-slate-500 hover:text-primary-600 hover:bg-slate-50'
               }
             `}
           >
-            <span className="text-xl mb-1">{item.icon}</span>
-            <span className="text-xs font-medium">{item.label}</span>
+            <Icon name={item.iconName} className="w-5 h-5 mb-0.5" strokeWidth={2} />
+            <span className="text-[10px] font-medium truncate max-w-[4.5rem] text-center leading-tight">{item.label.split(' ')[0]}</span>
           </button>
         ))}
-        <button 
+        <button
+          type="button"
           onClick={handleLogout}
-          className="flex flex-col items-center justify-center flex-1 h-full text-danger-400 hover:text-danger-500 transition-colors duration-200"
+          className="flex flex-col items-center justify-center flex-1 min-w-0 text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors"
         >
-          <span className="text-xl mb-1">🚪</span>
-          <span className="text-xs font-medium">Logout</span>
+          <Icon name="logout" className="w-5 h-5 mb-0.5" />
+          <span className="text-[10px] font-medium">Logout</span>
         </button>
       </div>
     </nav>

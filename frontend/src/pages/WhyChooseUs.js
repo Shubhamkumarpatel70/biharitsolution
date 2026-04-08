@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { Icon } from '../components/icons';
 
 const features = [
-	{ icon: '⚡', title: 'Fast Delivery', desc: 'Rapid development with quality and performance in mind.', color: '#4facfe' },
-	{ icon: '🎯', title: 'Results-Driven', desc: 'Solutions focused on your business goals and ROI.', color: '#667eea' },
-	{ icon: '🔒', title: 'Secure by Design', desc: 'Best practices and modern security built-in.', color: '#764ba2' },
-	{ icon: '📈', title: 'Scalable', desc: 'Architecture that grows with your business.', color: '#f093fb' },
-	{ icon: '💡', title: 'Innovation', desc: 'Cutting-edge solutions using latest technologies.', color: '#43e97b' },
-	{ icon: '🤝', title: '24/7 Support', desc: 'Round-the-clock assistance when you need it.', color: '#fa709a' },
+	{ icon: 'bolt', title: 'Fast Delivery', desc: 'Rapid development with quality and performance in mind.', color: '#4facfe' },
+	{ icon: 'target', title: 'Results-Driven', desc: 'Solutions focused on your business goals and ROI.', color: '#667eea' },
+	{ icon: 'shield', title: 'Secure by Design', desc: 'Best practices and modern security built-in.', color: '#764ba2' },
+	{ icon: 'trending', title: 'Scalable', desc: 'Architecture that grows with your business.', color: '#f093fb' },
+	{ icon: 'lightbulb', title: 'Innovation', desc: 'Cutting-edge solutions using latest technologies.', color: '#43e97b' },
+	{ icon: 'users', title: '24/7 Support', desc: 'Round-the-clock assistance when you need it.', color: '#fa709a' },
 ];
 
 function WhyChooseUs() {
@@ -17,7 +18,7 @@ function WhyChooseUs() {
 	}, []);
 
 	return (
-		<section className="py-16 md:py-24 bg-white">
+		<section className="py-12 md:py-20 bg-white">
 			<div className="container">
 				<div className="section-header">
 					<h2 className="section-title">Why Choose Us</h2>
@@ -35,11 +36,11 @@ function WhyChooseUs() {
 							style={{ transitionDelay: `${index * 0.1}s` }}
 						>
 							<div className="flex items-start gap-4">
-								<div 
-									className="w-16 h-16 rounded-xl flex items-center justify-center text-3xl flex-shrink-0 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6"
+								<div
+									className="w-16 h-16 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform duration-300 group-hover:scale-105"
 									style={{ background: `${f.color}20`, color: f.color }}
 								>
-									{f.icon}
+									<Icon name={f.icon} className="w-8 h-8" />
 								</div>
 								<div className="flex-1">
 									<h3 className="text-xl font-bold text-primary-600 mb-2">{f.title}</h3>

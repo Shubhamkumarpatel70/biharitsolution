@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import axios from '../axios';
 import { useOutletContext, Link } from 'react-router-dom';
+import { Icon } from '../components/icons';
 
 const statusLabels = {
-  pending: { label: 'Pending', color: 'text-yellow-600 bg-yellow-100', icon: '⏳' },
-  under_review: { label: 'Under Review', color: 'text-blue-600 bg-blue-100', icon: '🔍' },
-  under_development: { label: 'Under Development', color: 'text-purple-600 bg-purple-100', icon: '🚧' },
-  last_stage: { label: 'Last Stage of Development', color: 'text-orange-600 bg-orange-100', icon: '⚡' },
-  finished: { label: 'Finished', color: 'text-green-600 bg-green-100', icon: '✅' },
+  pending: { label: 'Pending', color: 'text-yellow-800 bg-yellow-100 border-yellow-200/80', iconName: 'clock' },
+  under_review: { label: 'Under Review', color: 'text-blue-800 bg-blue-100 border-blue-200/80', iconName: 'search' },
+  under_development: { label: 'Under Development', color: 'text-purple-800 bg-purple-100 border-purple-200/80', iconName: 'wrench' },
+  last_stage: { label: 'Last stage', color: 'text-orange-800 bg-orange-100 border-orange-200/80', iconName: 'bolt' },
+  finished: { label: 'Finished', color: 'text-green-800 bg-green-100 border-green-200/80', iconName: 'check' },
 };
 
 const ProjectRequirement = () => {
@@ -136,10 +137,12 @@ const ProjectRequirement = () => {
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
-      <div className="bg-white rounded-xl shadow-md p-6">
-        <h2 className="text-2xl font-bold text-primary-600 mb-6">Submit Project Requirement</h2>
-        
+    <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6 w-full min-w-0 px-1 sm:px-0">
+      <div className="bg-white rounded-xl shadow-md p-4 sm:p-6 border border-slate-100">
+        <h2 className="text-xl sm:text-2xl font-bold text-primary-800 mb-4 sm:mb-6 break-words leading-tight">
+          Submit project requirement
+        </h2>
+
         {error && (
           <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
             {error}
@@ -153,73 +156,82 @@ const ProjectRequirement = () => {
         )}
 
         {!hasActiveSubscription ? (
-          <div className="bg-gradient-to-r from-accent-500/10 to-primary-500/10 border-2 border-accent-500/30 rounded-xl p-8 text-center">
-            <div className="text-6xl mb-4">🔒</div>
-            <h3 className="text-2xl font-bold text-primary-600 mb-3">Active Subscription Required</h3>
+          <div className="bg-gradient-to-r from-amber-50 to-slate-100 border-2 border-amber-200/80 rounded-xl p-5 sm:p-8 text-center">
+            <div className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-amber-100 border border-amber-200 text-amber-900 mb-4 mx-auto">
+              <Icon name="lock" className="w-8 h-8 sm:w-10 sm:h-10" strokeWidth={2} />
+            </div>
+            <h3 className="text-lg sm:text-2xl font-bold text-slate-900 mb-3 break-words px-1">
+              Active subscription required
+            </h3>
             {subscriptionStatus ? (
               <>
                 {subscriptionStatus.isCancelled ? (
                   <>
-                    <p className="text-gray-600 mb-2 font-semibold">
-                      ❌ Your subscription has been cancelled and is inactive.
+                    <p className="text-gray-700 mb-2 font-semibold flex flex-wrap items-start justify-center gap-2 text-left sm:text-center max-w-full">
+                      <Icon name="close" className="w-5 h-5 text-red-600 shrink-0 mt-0.5" strokeWidth={2.5} aria-hidden />
+                      <span className="min-w-0">Your subscription has been cancelled and is inactive.</span>
                     </p>
-                    <p className="text-gray-600 mb-6">
+                    <p className="text-gray-600 mb-6 text-sm sm:text-base leading-relaxed px-1">
                       You need an active subscription to submit project requirements.
                     </p>
                   </>
                 ) : subscriptionStatus.isExpired ? (
                   <>
-                    <p className="text-gray-600 mb-2 font-semibold">
-                      ⏰ Your subscription has expired.
+                    <p className="text-gray-700 mb-2 font-semibold flex flex-wrap items-start justify-center gap-2 text-left sm:text-center">
+                      <Icon name="clock" className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" strokeWidth={2} aria-hidden />
+                      <span className="min-w-0">Your subscription has expired.</span>
                     </p>
-                    <p className="text-gray-600 mb-6">
+                    <p className="text-gray-600 mb-6 text-sm sm:text-base leading-relaxed px-1">
                       You need an active subscription to submit project requirements.
                     </p>
                   </>
                 ) : subscriptionStatus.status === 'pending' ? (
                   <>
-                    <p className="text-gray-600 mb-2 font-semibold">
-                      ⏳ Your subscription is pending approval.
+                    <p className="text-gray-700 mb-2 font-semibold flex flex-wrap items-start justify-center gap-2 text-left sm:text-center">
+                      <Icon name="clock" className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" strokeWidth={2} aria-hidden />
+                      <span className="min-w-0">Your subscription is pending approval.</span>
                     </p>
-                    <p className="text-gray-600 mb-6">
+                    <p className="text-gray-600 mb-6 text-sm sm:text-base leading-relaxed px-1">
                       Please wait for admin approval before submitting project requirements.
                     </p>
                   </>
                 ) : subscriptionStatus.status === 'rejected' ? (
                   <>
-                    <p className="text-gray-600 mb-2 font-semibold">
-                      ❌ Your subscription has been rejected.
+                    <p className="text-gray-700 mb-2 font-semibold flex flex-wrap items-start justify-center gap-2 text-left sm:text-center">
+                      <Icon name="close" className="w-5 h-5 text-red-600 shrink-0 mt-0.5" strokeWidth={2.5} aria-hidden />
+                      <span className="min-w-0">Your subscription was rejected.</span>
                     </p>
-                    <p className="text-gray-600 mb-6">
+                    <p className="text-gray-600 mb-6 text-sm sm:text-base leading-relaxed px-1">
                       You need an active subscription to submit project requirements.
                     </p>
                   </>
                 ) : subscriptionStatus.isInactive ? (
                   <>
-                    <p className="text-gray-600 mb-2 font-semibold">
-                      ⚠️ Your subscription is inactive.
+                    <p className="text-gray-700 mb-2 font-semibold flex flex-wrap items-start justify-center gap-2 text-left sm:text-center">
+                      <Icon name="warning" className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" strokeWidth={2} aria-hidden />
+                      <span className="min-w-0">Your subscription is inactive.</span>
                     </p>
-                    <p className="text-gray-600 mb-6">
+                    <p className="text-gray-600 mb-6 text-sm sm:text-base leading-relaxed px-1">
                       You need an active subscription to submit project requirements.
                     </p>
                   </>
                 ) : (
-                  <p className="text-gray-600 mb-6">
+                  <p className="text-gray-600 mb-6 text-sm sm:text-base leading-relaxed px-1">
                     You need an active subscription to submit project requirements.
                   </p>
                 )}
               </>
             ) : (
-              <p className="text-gray-600 mb-6">
+              <p className="text-gray-600 mb-6 text-sm sm:text-base leading-relaxed px-1">
                 You need to purchase an active subscription plan to submit project requirements.
               </p>
             )}
             <Link
               to="/plans"
-              className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-accent text-primary-900 font-bold rounded-lg hover:shadow-xl hover:scale-105 transform transition-all duration-300"
+              className="inline-flex items-center justify-center gap-2 px-6 sm:px-8 py-3 sm:py-4 bg-gradient-accent text-gray-900 font-bold rounded-xl hover:shadow-lg active:scale-[0.99] transition-all duration-200 w-full sm:w-auto max-w-md mx-auto"
             >
-              <span>📦</span>
-              <span>Buy a Plan to Continue</span>
+              <Icon name="clipboard" className="w-5 h-5 shrink-0" strokeWidth={2} />
+              <span className="text-center leading-snug">View plans to continue</span>
             </Link>
           </div>
         ) : (
@@ -279,8 +291,10 @@ const ProjectRequirement = () => {
       </div>
 
       {/* Existing Projects */}
-      <div className="bg-white rounded-xl shadow-md p-6">
-        <h2 className="text-2xl font-bold text-primary-600 mb-6">My Project Requirements</h2>
+      <div className="bg-white rounded-xl shadow-md p-4 sm:p-6 border border-slate-100">
+        <h2 className="text-xl sm:text-2xl font-bold text-primary-800 mb-4 sm:mb-6 break-words leading-tight">
+          My project requirements
+        </h2>
         
         {projects.length === 0 ? (
           <div className="text-center py-12 text-gray-500">
@@ -296,9 +310,9 @@ const ProjectRequirement = () => {
                   <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-3">
-                        <span className={`px-3 py-1 rounded-full text-sm font-semibold ${statusInfo.color} flex items-center gap-1`}>
-                          <span>{statusInfo.icon}</span>
-                          <span>{statusInfo.label}</span>
+                        <span className={`px-3 py-1 rounded-full text-xs sm:text-sm font-semibold border ${statusInfo.color} inline-flex items-center gap-1.5 max-w-full`}>
+                          <Icon name={statusInfo.iconName} className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" strokeWidth={2.25} />
+                          <span className="truncate">{statusInfo.label}</span>
                         </span>
                         <span className="text-sm text-gray-500">
                           Submitted: {formatDate(project.createdAt)}
@@ -346,8 +360,8 @@ const ProjectRequirement = () => {
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-2 px-6 py-3 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 hover:shadow-lg hover:scale-105 transform transition-all duration-300"
                       >
-                        <span>🌐</span>
-                        <span>View Project</span>
+                        <Icon name="globe" className="w-5 h-5" strokeWidth={2} />
+                        <span>View project</span>
                       </a>
                     </div>
                   )}

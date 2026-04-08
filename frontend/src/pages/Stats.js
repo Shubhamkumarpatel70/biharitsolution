@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Icon } from '../components/icons';
 
 const defaultStats = [
-	{ number: '50+', label: 'Projects Completed', icon: '🎯' },
-	{ number: '100%', label: 'Client Satisfaction', icon: '⭐' },
-	{ number: '24/7', label: 'Support Available', icon: '🛠️' },
-	{ number: '2-4', label: 'Weeks Delivery', icon: '⚡' }
+	{ number: '50+', label: 'Projects Completed', icon: 'target' },
+	{ number: '100%', label: 'Client Satisfaction', icon: 'star' },
+	{ number: '24/7', label: 'Support Available', icon: 'wrench' },
+	{ number: '2-4', label: 'Weeks Delivery', icon: 'bolt' }
 ];
 
 // Respect user motion preferences
@@ -74,7 +75,7 @@ function Stats() {
 
 	return (
 		<section 
-			className="py-16 md:py-24 bg-gray-light" 
+			className="py-12 md:py-20 bg-gray-light" 
 			aria-labelledby="stats-title" 
 			aria-describedby="stats-subtitle"
 		>
@@ -100,11 +101,11 @@ function Stats() {
 							role="listitem"
 						>
 							{/* Icon */}
-							<div 
-								className="text-4xl md:text-5xl mb-4 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6"
+							<div
+								className="w-14 h-14 mx-auto mb-4 rounded-xl bg-gray-100 text-primary-800 border border-gray-200/80 flex items-center justify-center transition-transform duration-300 group-hover:scale-105 shadow-sm"
 								aria-hidden="true"
 							>
-								{s.icon}
+								<Icon name={s.icon} className="w-7 h-7 md:w-8 md:h-8" strokeWidth={2} />
 							</div>
 
 							{/* Number */}

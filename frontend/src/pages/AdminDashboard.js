@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Outlet, useNavigate, Routes, Route } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import AdminSidebar from '../components/AdminSidebar';
 import AdminBottomNav from '../components/AdminBottomNav';
 import AdminHelp from './AdminHelp';
@@ -21,13 +21,15 @@ import AdminTeam from './AdminTeam';
 import AdminFeatures from './AdminFeatures';
 import AdminServices from './AdminServices';
 import AdminPaymentOptions from './AdminPaymentOptions';
+import AdminCareers from './AdminCareers';
+import AdminCareerApplications from './AdminCareerApplications';
+import { Icon } from '../components/icons';
 
 const AdminDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('home');
   const navigate = useNavigate();
-  
-  // Get user role from localStorage (stored during login)
+
   const getUserRole = () => {
     try {
       const userStr = localStorage.getItem('user');
@@ -38,12 +40,12 @@ const AdminDashboard = () => {
     } catch (e) {
       console.error('Error parsing user from localStorage:', e);
     }
-    return 'admin'; // Default to admin if not found
+    return 'admin';
   };
 
   const userRole = getUserRole();
   const isCoAdmin = userRole === 'coadmin';
-  
+
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -51,7 +53,6 @@ const AdminDashboard = () => {
   };
 
   const renderContent = () => {
-    // Prevent co-admin from accessing users tab
     if (activeTab === 'users' && isCoAdmin) {
       return <AdminHome />;
     }
@@ -93,6 +94,10 @@ const AdminDashboard = () => {
         return <AdminPaymentOptions />;
       case 'coupons':
         return <AdminCoupons />;
+      case 'careers':
+        return <AdminCareers />;
+      case 'career-applications':
+        return <AdminCareerApplications />;
       case 'help':
         return <AdminHelp />;
       default:
@@ -101,74 +106,68 @@ const AdminDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 flex">
-      {/* Mobile Sidebar Overlay */}
+    <div className="min-h-screen min-h-dvh bg-slate-100 flex">
       {sidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+        <div
+          className="fixed inset-0 bg-slate-900/40 z-40 lg:hidden"
           onClick={() => setSidebarOpen(false)}
-        ></div>
+          aria-hidden
+        />
       )}
 
-      {/* Mobile Menu Button */}
       <button
+        type="button"
         onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 bg-success-500 text-gray-900 border-none rounded-xl px-4 py-2 font-bold text-lg shadow-lg hover:bg-success-600 transition-colors"
+        className="lg:hidden fixed top-4 left-4 z-50 bg-white text-slate-800 border border-slate-200 rounded-xl p-2.5 shadow-md hover:bg-slate-50 transition-colors"
         aria-label="Open sidebar"
       >
-        ☰
+        <Icon name="menu" className="w-6 h-6" strokeWidth={2} />
       </button>
 
-      {/* Sidebar */}
-      <aside className={`
-        fixed lg:static inset-y-0 left-0 z-50
+      <aside
+        className={`
+        fixed lg:static inset-y-0 left-0 z-50 flex flex-col
+        h-dvh max-h-dvh lg:h-screen lg:max-h-screen
         transform transition-transform duration-300 ease-in-out
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-      `}>
-        <AdminSidebar 
-          onLogout={handleLogout} 
-          activeTab={activeTab} 
+      `}
+      >
+        <AdminSidebar
+          onLogout={handleLogout}
+          activeTab={activeTab}
           setActiveTab={setActiveTab}
           onClose={() => setSidebarOpen(false)}
           userRole={userRole}
         />
       </aside>
 
-      {/* Main Content */}
-      <main className="flex-1 lg:ml-0 min-h-screen bg-gradient-to-br from-gray-900 via-gray-900 to-gray-800">
-        {/* Desktop Header */}
-        <div className="hidden lg:block bg-gray-800/80 backdrop-blur-sm border-b border-gray-700 px-6 py-4 sticky top-0 z-30">
-          <div className="flex items-center justify-between">
+      <main className="flex-1 lg:ml-0 min-h-screen flex flex-col">
+        <div className="hidden lg:block bg-white border-b border-slate-200 px-6 py-4 sticky top-0 z-30 shadow-sm">
+          <div className="flex items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-black text-success-500">
-                {isCoAdmin ? 'Co-Admin Dashboard' : 'Admin Dashboard'}
+              <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+                {isCoAdmin ? 'Co-Admin dashboard' : 'Admin dashboard'}
               </h1>
-              <p className="text-sm text-gray-400 mt-1">Welcome back! Manage your platform efficiently.</p>
+              <p className="text-sm text-slate-500 mt-0.5">
+                Overview, approvals, and content in one place.
+              </p>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="text-right">
-                <p className="text-xs text-gray-400">Last updated</p>
-                <p className="text-sm text-gray-300 font-medium">{new Date().toLocaleTimeString()}</p>
-              </div>
+            <div className="text-right text-sm text-slate-500">
+              <span className="block text-xs uppercase tracking-wide text-slate-400">Updated</span>
+              <span className="font-medium text-slate-700 tabular-nums">{new Date().toLocaleTimeString()}</span>
             </div>
           </div>
         </div>
 
-        {/* Mobile Header */}
-        <div className="lg:hidden bg-gray-800/80 backdrop-blur-sm border-b border-gray-700 px-4 py-3 flex items-center justify-between sticky top-0 z-30">
-          <h1 className="text-lg font-bold text-success-500">
+        <div className="lg:hidden bg-white border-b border-slate-200 px-4 py-3 pt-14 flex items-center sticky top-0 z-30 shadow-sm">
+          <h1 className="text-base font-bold text-slate-900 flex-1 text-center">
             {isCoAdmin ? 'Co-Admin' : 'Admin'}
           </h1>
-          <div className="w-10"></div>
         </div>
 
-        {/* Dashboard Content */}
-        <div className="p-4 md:p-6 lg:p-8 lg:ml-0">
-          {renderContent()}
-        </div>
+        <div className="flex-1 p-4 md:p-6 lg:p-8 pb-24 lg:pb-8">{renderContent()}</div>
       </main>
 
-      {/* Bottom Navigation */}
       <AdminBottomNav activeTab={activeTab} setActiveTab={setActiveTab} userRole={userRole} />
     </div>
   );

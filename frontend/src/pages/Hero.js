@@ -54,96 +54,72 @@ const Hero = () => {
   return (
     <section
       id="hero"
-      className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-primary-600 via-primary-500 to-primary-700 pt-24"
+      className="relative min-h-[85vh] sm:min-h-[90vh] flex items-center justify-center overflow-hidden bg-gray-50 pt-20 sm:pt-24 pb-12 sm:pb-16"
       aria-labelledby="hero-title"
       aria-describedby="hero-subtitle"
     >
-      {/* Animated Background */}
-      <div className="absolute inset-0 overflow-hidden" aria-hidden="true">
-        {/* Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-primary opacity-95" aria-hidden="true"></div>
-        
-        {/* Abstract Shapes */}
-        <div className="absolute inset-0 opacity-70" aria-hidden="true">
-          <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-accent-500/20 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute top-1/2 right-1/4 w-96 h-96 bg-accent-600/15 rounded-full blur-3xl animate-pulse delay-1000"></div>
-          <div className="absolute bottom-1/4 left-1/3 w-80 h-80 bg-accent-500/20 rounded-full blur-3xl animate-pulse delay-2000"></div>
-        </div>
+      {/* Very Subtle Background Pattern */}
+      <div className="absolute inset-0 bg-grid-slate-100/[0.04] bg-[size:20px_20px]" aria-hidden="true" style={{ backgroundImage: 'radial-gradient(circle, #e5e7eb 1px, transparent 1px)' }}></div>
 
-        {/* Floating Shapes */}
-        <div className="absolute inset-0" aria-hidden="true">
-          <div className="absolute top-20 left-10 w-20 h-20 bg-accent-500/15 rounded-full animate-float"></div>
-          <div className="absolute top-60 right-15 w-30 h-30 bg-accent-600/15 rounded-full animate-float delay-2000"></div>
-          <div className="absolute bottom-30 left-20 w-15 h-15 bg-accent-500/15 rounded-full animate-float delay-4000"></div>
-          <div className="absolute top-10 right-30 w-25 h-25 bg-accent-600/15 rounded-full animate-float delay-1000"></div>
-        </div>
-      </div>
-
-      <div className="container relative z-10">
-        <div className="flex items-center justify-center">
-          <div 
+      <div className="container relative z-10 px-4 sm:px-6">
+        <div className="flex flex-col items-center justify-center text-center max-w-4xl mx-auto">
+          <div
             ref={textRef}
-            className="text-center max-w-5xl mx-auto opacity-0 translate-y-8 transition-all duration-800 ease-out"
+            className="max-w-4xl mx-auto opacity-0 translate-y-8 transition-all duration-800 ease-out"
           >
             {/* Badge */}
-            <div 
-              className="inline-block px-4 py-2 mb-6 rounded-full bg-accent-500/20 border border-accent-500/50 text-primary-900 backdrop-blur-md text-sm font-bold shadow-gold"
+            <div
+              className="inline-block px-4 py-1.5 mb-6 rounded-full bg-white border border-gray-200 text-primary-800 text-sm font-semibold tracking-wide shadow-sm"
               aria-label="Brand"
             >
               ASKC DIGITAL WEB
             </div>
 
             {/* Main Title */}
-            <h1 
-              className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-black mb-6 leading-tight"
+            <h1
+              className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black mb-6 leading-[1.1] text-primary-900 tracking-tight"
               id="hero-title"
             >
-              <span className="block text-white whitespace-nowrap">
-                Welcome to
-              </span>
-              <span className="block mt-2">
-                <span className="inline-block px-4 py-2 rounded-xl bg-accent-500/20 border border-accent-500/40 backdrop-blur-md shadow-gold">
-                  <span className="text-gradient-gold font-black">
-                    askc web
-                  </span>
-                </span>
+              Welcome to{' '}
+              <span className="text-primary-600 block sm:inline">
+                askc web
               </span>
             </h1>
 
             {/* Subtitle */}
-            <p 
-              className="text-lg md:text-xl text-white/90 mb-4 font-medium"
+            <p
+              className="text-lg md:text-xl text-text-muted mb-6 font-medium max-w-2xl mx-auto"
               id="hero-subtitle"
             >
               Web | Mobile | Cloud | Consultancy
             </p>
 
             {/* Typewriter Text */}
-            <div 
-              className="text-xl md:text-2xl text-white mb-8 min-h-[2rem] flex items-center justify-center gap-2"
+            <div
+              className="text-xl md:text-2xl text-text-main mb-10 min-h-[2.5rem] flex items-center justify-center gap-2 font-medium"
               aria-live="polite"
             >
-              <span className="text-white/80">We build</span>
-              <span className="font-semibold text-accent-500">{typed}</span>
-              <span className="animate-pulse text-accent-500" aria-hidden="true">|</span>
+              <span className="text-text-light">We build</span>
+              <span className="font-bold text-primary-600">{typed}</span>
+              <span className="animate-pulse text-primary-400 font-light" aria-hidden="true">|</span>
             </div>
 
             {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <Link 
-                to="/services" 
-                className="btn btn-secondary px-8 py-4 text-base font-semibold rounded-xl min-w-[200px]"
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-stretch sm:items-center w-full max-w-md sm:max-w-none mx-auto">
+              <Link
+                to="/services"
+                className="btn btn-secondary px-6 sm:px-8 py-3.5 text-base rounded-xl w-full sm:w-auto sm:min-w-[180px] justify-center"
                 aria-label="Explore our services"
               >
-                Explore Services
+                Explore services
               </Link>
-              <Link 
-                to="/contact" 
-                className="btn btn-primary px-8 py-4 text-base font-semibold rounded-xl min-w-[200px] group"
+              <Link
+                to="/contact"
+                className="btn btn-primary px-6 sm:px-8 py-3.5 text-base rounded-xl w-full sm:w-auto sm:min-w-[180px] justify-center group"
                 aria-label="Contact us"
               >
-                Contact Us 
-                <span className="inline-block transition-transform duration-300 group-hover:translate-x-1" aria-hidden="true">→</span>
+                Contact us
+                <span className="inline-block transition-transform duration-300 group-hover:translate-x-0.5" aria-hidden="true">→</span>
               </Link>
             </div>
           </div>

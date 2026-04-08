@@ -2,10 +2,15 @@ import React, { useState, useContext, useCallback, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import axios from '../axios';
 import { UserContext } from '../UserContext';
+import { Icon } from '../components/icons';
 
 function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [captchaId, setCaptchaId] = useState('');
+  const [captchaSvg, setCaptchaSvg] = useState('');
+  const [captchaInput, setCaptchaInput] = useState('');
+  const [captchaLoading, setCaptchaLoading] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
@@ -23,63 +28,69 @@ function Login() {
   const { setUser } = useContext(UserContext);
   const submitTimeoutRef = useRef(null);
 
-  // Debounced form validation
-  const validateForm = useCallback(() => {
-    return email.trim() && password.trim() && email.includes('@');
-  }, [email, password]);
+  const loadCaptcha = useCallback(async (options = {}) => {
+    const { quiet = false } = options;
+    setCaptchaLoading(true);
+    setCaptchaInput('');
+    try {
+      const res = await axios.get('/api/auth/captcha');
+      setCaptchaId(res.data.captchaId || '');
+      setCaptchaSvg(res.data.svg || '');
+    } catch {
+      setCaptchaId('');
+      setCaptchaSvg('');
+      if (!quiet) {
+        setMessage('Could not load security check. Please refresh the page.');
+      }
+    } finally {
+      setCaptchaLoading(false);
+    }
+  }, []);
 
-  // Optimized submit handler with debouncing
+  React.useEffect(() => {
+    loadCaptcha();
+  }, [loadCaptcha]);
+
+  const validateForm = useCallback(() => {
+    return (
+      email.trim() &&
+      password.trim() &&
+      email.includes('@') &&
+      captchaId &&
+      captchaInput.trim().length > 0
+    );
+  }, [email, password, captchaId, captchaInput]);
+
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
-    
-    // Prevent multiple submissions
     if (isSubmitting || loading) return;
-    
-    // Clear any existing timeout
-    if (submitTimeoutRef.current) {
-      clearTimeout(submitTimeoutRef.current);
-    }
-    
-    // Basic validation
+    if (submitTimeoutRef.current) clearTimeout(submitTimeoutRef.current);
     if (!validateForm()) {
       setMessage('Please enter valid email and password.');
       return;
     }
-    
     setIsSubmitting(true);
     setLoading(true);
     setMessage('');
-    
-    // Clear any previous error messages
-    setMessage('');
-    
     try {
-      // Remove unnecessary delay and make login faster
-      const res = await axios.post('/api/auth/login', { email: email.trim(), password });
-      
-      // Store token immediately for faster subsequent requests
+      const res = await axios.post('/api/auth/login', {
+        email: email.trim(),
+        password,
+        captchaId,
+        captchaAnswer: captchaInput.trim(),
+      });
       localStorage.setItem('token', res.data.token);
-      
-      // Store user data in localStorage for role checking
-      if (res.data.user) {
-        localStorage.setItem('user', JSON.stringify(res.data.user));
-      }
-      
-      // Update user context
+      if (res.data.user) localStorage.setItem('user', JSON.stringify(res.data.user));
       setUser(res.data.user);
-      
-      // Navigate based on role
       if (res.data.user && (res.data.user.role === 'admin' || res.data.user.role === 'coadmin')) {
         navigate('/admin-dashboard');
       } else {
         navigate('/dashboard');
       }
-      
     } catch (err) {
       setLoading(false);
       setIsSubmitting(false);
-      
-      // Better error handling with more specific messages
+      loadCaptcha({ quiet: true });
       if (err.code === 'ECONNABORTED' || err.message.includes('timeout')) {
         setMessage('Login timeout. Please check your connection and try again.');
       } else if (err.response?.status === 400) {
@@ -96,9 +107,8 @@ function Login() {
         setMessage('Login failed. Please try again.');
       }
     }
-  }, [email, password, isSubmitting, loading, validateForm, setUser, navigate]);
+  }, [email, password, captchaId, captchaInput, isSubmitting, loading, validateForm, setUser, navigate, loadCaptcha]);
 
-  // Reset loading state on successful login
   React.useEffect(() => {
     if (!isSubmitting && !loading) {
       setLoading(false);
@@ -106,16 +116,12 @@ function Login() {
     }
   }, [isSubmitting, loading]);
 
-  // Cleanup timeout on unmount
   React.useEffect(() => {
     return () => {
-      if (submitTimeoutRef.current) {
-        clearTimeout(submitTimeoutRef.current);
-      }
+      if (submitTimeoutRef.current) clearTimeout(submitTimeoutRef.current);
     };
   }, []);
 
-  // Handle ESC key to close forgot password modal
   React.useEffect(() => {
     const handleEscKey = (e) => {
       if (e.key === 'Escape' && showForgotPassword) {
@@ -127,30 +133,24 @@ function Login() {
         setMessage('');
       }
     };
-
     if (showForgotPassword) {
       document.addEventListener('keydown', handleEscKey);
-      // Prevent body scroll when modal is open
       document.body.style.overflow = 'hidden';
     }
-
     return () => {
       document.removeEventListener('keydown', handleEscKey);
       document.body.style.overflow = 'unset';
     };
   }, [showForgotPassword]);
 
-  // Forgot Password - Verify Email
   const handleVerifyEmail = async (e) => {
     e.preventDefault();
     if (!forgotEmail.trim() || !forgotEmail.includes('@')) {
       setMessage('Please enter a valid email address.');
       return;
     }
-
     setForgotPasswordLoading(true);
     setMessage('');
-
     try {
       const res = await axios.post('/api/auth/forgot-password/verify-email', { email: forgotEmail.trim() });
       setUserInfo(res.data.user);
@@ -163,34 +163,24 @@ function Login() {
     }
   };
 
-  // Forgot Password - Reset Password
   const handleResetPassword = async (e) => {
     e.preventDefault();
-    
     if (!newPassword || !confirmPassword) {
       setMessage('Please enter both password fields.');
       return;
     }
-
     if (newPassword.length < 6) {
       setMessage('Password must be at least 6 characters long.');
       return;
     }
-
     if (newPassword !== confirmPassword) {
       setMessage('Passwords do not match. Please try again.');
       return;
     }
-
     setForgotPasswordLoading(true);
     setMessage('');
-
     try {
-      await axios.post('/api/auth/forgot-password/reset', {
-        email: forgotEmail.trim(),
-        newPassword: newPassword
-      });
-      
+      await axios.post('/api/auth/forgot-password/reset', { email: forgotEmail.trim(), newPassword });
       setMessage('Password reset successfully! Redirecting to login...');
       setTimeout(() => {
         setShowForgotPassword(false);
@@ -208,240 +198,151 @@ function Login() {
     }
   };
 
-  // Handle Enter key press
-  const handleKeyPress = useCallback((e) => {
-    if (e.key === 'Enter' && !isSubmitting && !loading) {
-      handleSubmit(e);
-    }
-  }, [handleSubmit, isSubmitting, loading]);
+  const handleKeyPress = useCallback(
+    (e) => {
+      if (e.key === 'Enter' && !isSubmitting && !loading) handleSubmit(e);
+    },
+    [handleSubmit, isSubmitting, loading]
+  );
+
+  const inputClass =
+    'w-full pl-11 pr-4 py-3 rounded-xl border border-gray-300 bg-white text-text-main text-base transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500/25 focus:border-primary-500 disabled:opacity-60';
+  const inputDarkClass =
+    'w-full pl-11 pr-11 py-3 rounded-xl border border-gray-600 bg-primary-900/40 text-white placeholder:text-gray-500 text-base transition-colors focus:outline-none focus:ring-2 focus:ring-accent-500/30 focus:border-accent-500 disabled:opacity-60';
 
   return (
-    <div style={{ 
-      background: '#181A20', 
-      minHeight: '100vh', 
-      display: 'flex', 
-      alignItems: 'center', 
-      justifyContent: 'center',
-      padding: '1rem'
-    }}>
-      <form 
-        onSubmit={handleSubmit} 
-        style={{
-          background: '#23272F',
-          color: '#E5E7EB',
-          padding: '2rem 1.5rem',
-          borderRadius: '1rem',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
-          width: '100%',
-          maxWidth: '400px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '1.25rem',
-          border: '2px solid #0057D9',
-        }}
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center px-4 py-12 sm:py-16 pt-24 sm:pt-28">
+      <form
+        onSubmit={handleSubmit}
+        className="w-full max-w-md bg-white rounded-2xl border border-gray-200 shadow-lg p-6 sm:p-8 flex flex-col gap-5"
       >
-        <h2 style={{ 
-          color: '#2ECC71', 
-          fontWeight: 700, 
-          marginBottom: '0.25rem', 
-          textAlign: 'center', 
-          fontSize: '1.75rem' 
-        }}>
-          Login
-        </h2>
-        
+        <div className="text-center">
+          <h1 className="text-2xl sm:text-3xl font-bold text-primary-900 tracking-tight">Sign in</h1>
+          <p className="text-text-muted text-sm mt-1">Welcome back to askc web</p>
+        </div>
+
         {location.state?.success && (
-          <div style={{ 
-            color: '#2ECC71', 
-            textAlign: 'center', 
-            marginBottom: '0.5rem', 
-            fontWeight: 600,
-            fontSize: '0.95rem'
-          }}>
+          <div className="text-center text-sm font-medium text-success-600 bg-success-500/10 border border-success-500/20 rounded-xl py-2.5 px-3">
             {location.state.success}
           </div>
         )}
-        
-        <div style={{ position: 'relative' }}>
-          <label 
-            htmlFor="email" 
-            style={{
-              position: 'absolute',
-              left: '1rem',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              color: '#A0AEC0',
-              fontSize: '1.2rem',
-              pointerEvents: 'none',
-              zIndex: 2
-            }}
-            aria-hidden="true"
-          >
-            📧
-          </label>
+
+        <div className="relative">
+          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" aria-hidden>
+            <Icon name="mail" className="w-5 h-5" />
+          </span>
           <input
             id="email"
             type="email"
             placeholder="Email"
             value={email}
-            onChange={e => setEmail(e.target.value)}
+            onChange={(e) => setEmail(e.target.value)}
             onKeyPress={handleKeyPress}
             required
             disabled={loading}
-            style={{
-              padding: '0.8rem 0.8rem 0.8rem 2.5rem',
-              borderRadius: '0.5rem',
-              border: '1px solid #3A3F47',
-              fontSize: '1rem',
-              background: loading ? '#2A2E36' : '#1E222A',
-              color: '#E5E7EB',
-              width: '100%',
-              transition: 'border-color 0.2s, background 0.2s',
-              opacity: loading ? 0.7 : 1,
-            }}
-            onFocus={e => !loading && (e.target.style.borderColor = '#0057D9')}
-            onBlur={e => !loading && (e.target.style.borderColor = '#3A3F47')}
+            className={inputClass}
+            autoComplete="email"
           />
         </div>
-        
-        <div style={{ position: 'relative' }}>
-          <label 
-            htmlFor="password" 
-            style={{
-              position: 'absolute',
-              left: '1rem',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              color: '#A0AEC0',
-              fontSize: '1.2rem',
-              pointerEvents: 'none',
-              zIndex: 2
-            }}
-            aria-hidden="true"
-          >
-            🔒
-          </label>
+
+        <div className="relative">
+          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" aria-hidden>
+            <Icon name="lock" className="w-5 h-5" />
+          </span>
           <input
             id="password"
             type={showPassword ? 'text' : 'password'}
             placeholder="Password"
             value={password}
-            onChange={e => setPassword(e.target.value)}
+            onChange={(e) => setPassword(e.target.value)}
             onKeyPress={handleKeyPress}
             required
             disabled={loading}
-            style={{
-              padding: '0.8rem 0.8rem 0.8rem 2.5rem',
-              borderRadius: '0.5rem',
-              border: '1px solid #3A3F47',
-              fontSize: '1rem',
-              background: loading ? '#2A2E36' : '#1E222A',
-              color: '#E5E7EB',
-              width: '100%',
-              transition: 'border-color 0.2s, background 0.2s',
-              opacity: loading ? 0.7 : 1,
-            }}
-            onFocus={e => !loading && (e.target.style.borderColor = '#0057D9')}
-            onBlur={e => !loading && (e.target.style.borderColor = '#3A3F47')}
+            className={`${inputClass} pr-12`}
+            autoComplete="current-password"
           />
           <button
             type="button"
-            onClick={() => !loading && setShowPassword(s => !s)}
+            onClick={() => !loading && setShowPassword((s) => !s)}
             disabled={loading}
-            style={{
-              position: 'absolute',
-              right: '1rem',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              cursor: loading ? 'not-allowed' : 'pointer',
-              background: 'transparent',
-              border: 'none',
-              color: '#A0AEC0',
-              fontSize: '1.1rem',
-              padding: '0.25rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              opacity: loading ? 0.5 : 1,
-            }}
+            className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg text-text-muted hover:text-primary-600 hover:bg-gray-100 transition-colors disabled:opacity-50"
             aria-label={showPassword ? 'Hide password' : 'Show password'}
           >
-            {showPassword ? '🙈' : '👁️'}
+            <Icon name={showPassword ? 'eyeOff' : 'eye'} className="w-5 h-5" />
           </button>
         </div>
-        
-        <button 
-          type="submit" 
-          disabled={loading || isSubmitting || !validateForm()}
-          style={{
-            background: (loading || isSubmitting || !validateForm()) ? '#3A3F47' : '#0057D9',
-            color: '#E5E7EB',
-            padding: '0.9rem',
-            border: 'none',
-            borderRadius: '0.5rem',
-            fontWeight: 600,
-            fontSize: '1rem',
-            cursor: (loading || isSubmitting || !validateForm()) ? 'not-allowed' : 'pointer',
-            marginTop: '0.5rem',
-            borderBottom: '3px solid #2ECC71',
-            transition: 'background 0.2s, transform 0.1s',
-            opacity: (loading || isSubmitting || !validateForm()) ? 0.7 : 1,
-          }}
-          onMouseDown={e => !loading && !isSubmitting && validateForm() && (e.currentTarget.style.transform = 'scale(0.98)')}
-          onMouseUp={e => !loading && !isSubmitting && validateForm() && (e.currentTarget.style.transform = 'scale(1)')}
-          onMouseLeave={e => !loading && !isSubmitting && validateForm() && (e.currentTarget.style.transform = 'scale(1)')}
+
+        <div className="rounded-xl border border-gray-200 bg-gray-50/80 p-4 space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <label htmlFor="captcha-input" className="text-sm font-semibold text-text-main">
+              Verification code
+            </label>
+            <button
+              type="button"
+              onClick={() => !captchaLoading && !loading && loadCaptcha()}
+              disabled={captchaLoading || loading}
+              className="text-xs font-semibold text-primary-600 hover:text-primary-700 disabled:opacity-50 bg-transparent border-none cursor-pointer"
+            >
+              New code
+            </button>
+          </div>
+          <p className="text-xs text-text-muted leading-snug">
+            Enter the characters shown (0–9, A–Z, a–z). Matching is case-sensitive.
+          </p>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="shrink-0 rounded-lg border border-gray-200 bg-white overflow-hidden min-h-[4rem] flex items-center justify-center px-2 py-2">
+              {captchaLoading ? (
+                <span className="w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" aria-hidden />
+              ) : captchaSvg ? (
+                <img
+                  src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(captchaSvg)}`}
+                  alt="Captcha characters"
+                  className="max-w-full h-auto max-h-[4.5rem]"
+                  draggable={false}
+                />
+              ) : (
+                <span className="text-xs text-danger-600 text-center px-2">Could not load code</span>
+              )}
+            </div>
+            <input
+              id="captcha-input"
+              type="text"
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
+              placeholder="Type the code"
+              value={captchaInput}
+              onChange={(e) => setCaptchaInput(e.target.value)}
+              disabled={loading || captchaLoading || !captchaId}
+              className={`${inputClass} flex-1 min-w-0 pl-4`}
+            />
+          </div>
+        </div>
+
+        <button
+          type="submit"
+          disabled={loading || isSubmitting || !validateForm() || captchaLoading || !captchaId}
+          className="btn btn-primary w-full justify-center text-base rounded-xl disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {loading ? (
-            <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-              <span className="spinner" style={{
-                display: 'inline-block',
-                width: '1rem',
-                height: '1rem',
-                border: '2px solid rgba(255,255,255,0.3)',
-                borderRadius: '50%',
-                borderTopColor: '#fff',
-                animation: 'spin 1s ease-in-out infinite'
-              }} />
-              Logging in...
+            <span className="flex items-center justify-center gap-2">
+              <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              Signing in…
             </span>
-          ) : 'Login'}
+          ) : (
+            'Sign in'
+          )}
         </button>
-        
-        {message && (
-          <div style={{ 
-            color: '#FF6B35', 
-            textAlign: 'center', 
-            marginTop: '0.5rem',
-            fontSize: '0.9rem',
-            padding: '0.5rem',
-            background: 'rgba(255,107,53,0.1)',
-            borderRadius: '0.25rem'
-          }}>
-            {message}
-          </div>
+
+        {message && !showForgotPassword && (
+          <div className="text-center text-sm text-danger-600 bg-danger-500/10 border border-danger-500/20 rounded-xl py-2.5 px-3">{message}</div>
         )}
-        
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginTop: '0.5rem',
-          fontSize: '0.9rem'
-        }}>
-          <span style={{ color: '#A0AEC0' }}>
-            Don't have an account?{' '}
-            <Link 
-              to="/register" 
-              style={{
-                color: '#2ECC71',
-                fontWeight: 600,
-                textDecoration: 'none',
-                transition: 'opacity 0.2s'
-              }}
-              onMouseEnter={e => e.currentTarget.style.opacity = '0.8'}
-              onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-            >
-              Sign up
+
+        <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 text-sm">
+          <span className="text-text-muted text-center sm:text-left">
+            No account?{' '}
+            <Link to="/register" className="font-semibold text-primary-600 hover:text-primary-700">
+              Create one
             </Link>
           </span>
           <button
@@ -454,42 +355,16 @@ function Login() {
               setNewPassword('');
               setConfirmPassword('');
             }}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: '#2ECC71',
-              fontWeight: 600,
-              cursor: 'pointer',
-              fontSize: '0.9rem',
-              textDecoration: 'underline',
-              transition: 'opacity 0.2s'
-            }}
-            onMouseEnter={e => e.currentTarget.style.opacity = '0.8'}
-            onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+            className="font-semibold text-primary-600 hover:text-primary-700 text-center sm:text-right bg-transparent border-none cursor-pointer"
           >
-            Forgot Password?
+            Forgot password?
           </button>
         </div>
       </form>
 
-      {/* Forgot Password Modal */}
       {showForgotPassword && (
         <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.75)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 10000,
-            padding: '1rem',
-            backdropFilter: 'blur(4px)',
-            animation: 'fadeIn 0.3s ease-in-out'
-          }}
+          className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-primary-900/60 backdrop-blur-sm"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
               setShowForgotPassword(false);
@@ -501,400 +376,132 @@ function Login() {
             }
           }}
         >
-          <form 
+          <form
             onSubmit={userInfo ? handleResetPassword : handleVerifyEmail}
             onClick={(e) => e.stopPropagation()}
-            style={{
-              background: '#23272F',
-              color: '#E5E7EB',
-              padding: '2rem 1.5rem',
-              borderRadius: '1rem',
-              boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-              width: '100%',
-              maxWidth: '450px',
-              maxHeight: '90vh',
-              overflowY: 'auto',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '1.25rem',
-              border: '2px solid #0057D9',
-              position: 'relative',
-              animation: 'slideUp 0.3s ease-out'
-            }}
+            className="relative w-full max-w-md max-h-[90vh] overflow-y-auto bg-primary-950 border border-primary-700/50 rounded-2xl p-6 sm:p-8 shadow-2xl flex flex-col gap-4 text-gray-100"
           >
-          <button
-            type="button"
-            onClick={() => {
-              setShowForgotPassword(false);
-              setForgotEmail('');
-              setUserInfo(null);
-              setNewPassword('');
-              setConfirmPassword('');
-              setMessage('');
-            }}
-            style={{
-              position: 'absolute',
-              top: '1rem',
-              right: '1rem',
-              background: 'rgba(255, 255, 255, 0.1)',
-              border: '1px solid rgba(255, 255, 255, 0.2)',
-              borderRadius: '50%',
-              width: '2rem',
-              height: '2rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#A0AEC0',
-              fontSize: '1.25rem',
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-              zIndex: 10
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgba(255, 107, 53, 0.2)';
-              e.currentTarget.style.borderColor = '#FF6B35';
-              e.currentTarget.style.color = '#FF6B35';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
-              e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
-              e.currentTarget.style.color = '#A0AEC0';
-            }}
-            aria-label="Close"
-          >
-            ✕
-          </button>
+            <button
+              type="button"
+              onClick={() => {
+                setShowForgotPassword(false);
+                setForgotEmail('');
+                setUserInfo(null);
+                setNewPassword('');
+                setConfirmPassword('');
+                setMessage('');
+              }}
+              className="absolute top-4 right-4 p-2 rounded-lg bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white transition-colors"
+              aria-label="Close"
+            >
+              <Icon name="close" className="w-5 h-5" />
+            </button>
 
-          <h2 style={{ 
-            color: '#2ECC71', 
-            fontWeight: 700, 
-            marginBottom: '0.25rem', 
-            textAlign: 'center', 
-            fontSize: '1.75rem' 
-          }}>
-            {userInfo ? 'Reset Password' : 'Forgot Password'}
-          </h2>
+            <h2 className="text-xl font-bold text-center text-white pr-8">{userInfo ? 'Reset password' : 'Forgot password'}</h2>
 
-          {!userInfo ? (
-            <>
-              <p style={{ color: '#A0AEC0', textAlign: 'center', fontSize: '0.9rem', marginBottom: '0.5rem' }}>
-                Enter your email address to reset your password
-              </p>
-              
-              <div style={{ position: 'relative' }}>
-                <label 
-                  htmlFor="forgot-email" 
-                  style={{
-                    position: 'absolute',
-                    left: '1rem',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    color: '#A0AEC0',
-                    fontSize: '1.2rem',
-                    pointerEvents: 'none',
-                    zIndex: 2
-                  }}
-                  aria-hidden="true"
-                >
-                  📧
-                </label>
-                <input
-                  id="forgot-email"
-                  type="email"
-                  placeholder="Enter your email"
-                  value={forgotEmail}
-                  onChange={e => setForgotEmail(e.target.value)}
-                  required
-                  disabled={forgotPasswordLoading}
-                  style={{
-                    padding: '0.8rem 0.8rem 0.8rem 2.5rem',
-                    borderRadius: '0.5rem',
-                    border: '1px solid #3A3F47',
-                    fontSize: '1rem',
-                    background: forgotPasswordLoading ? '#2A2E36' : '#1E222A',
-                    color: '#E5E7EB',
-                    width: '100%',
-                    transition: 'border-color 0.2s, background 0.2s',
-                    opacity: forgotPasswordLoading ? 0.7 : 1,
-                  }}
-                  onFocus={e => !forgotPasswordLoading && (e.target.style.borderColor = '#0057D9')}
-                  onBlur={e => !forgotPasswordLoading && (e.target.style.borderColor = '#3A3F47')}
-                />
-              </div>
-
-              <button 
-                type="submit" 
-                disabled={forgotPasswordLoading || !forgotEmail.trim()}
-                style={{
-                  background: (forgotPasswordLoading || !forgotEmail.trim()) ? '#3A3F47' : '#0057D9',
-                  color: '#E5E7EB',
-                  padding: '0.9rem',
-                  border: 'none',
-                  borderRadius: '0.5rem',
-                  fontWeight: 600,
-                  fontSize: '1rem',
-                  cursor: (forgotPasswordLoading || !forgotEmail.trim()) ? 'not-allowed' : 'pointer',
-                  marginTop: '0.5rem',
-                  borderBottom: '3px solid #2ECC71',
-                  transition: 'background 0.2s, transform 0.1s',
-                  opacity: (forgotPasswordLoading || !forgotEmail.trim()) ? 0.7 : 1,
-                }}
-              >
-                {forgotPasswordLoading ? 'Verifying...' : 'Verify Email'}
-              </button>
-            </>
-          ) : (
-            <>
-              <div style={{
-                background: '#1E222A',
-                padding: '1rem',
-                borderRadius: '0.5rem',
-                border: '1px solid #3A3F47',
-                marginBottom: '0.5rem'
-              }}>
-                <p style={{ color: '#A0AEC0', fontSize: '0.85rem', marginBottom: '0.5rem' }}>User Information:</p>
-                <p style={{ color: '#E5E7EB', fontWeight: 600, marginBottom: '0.25rem' }}>
-                  Name: <span style={{ color: '#2ECC71' }}>{userInfo.name}</span>
-                </p>
-                <p style={{ color: '#E5E7EB', fontWeight: 600 }}>
-                  Email: <span style={{ color: '#2ECC71' }}>{userInfo.email}</span>
-                </p>
-              </div>
-
-              <div style={{ position: 'relative' }}>
-                <label 
-                  htmlFor="new-password" 
-                  style={{
-                    position: 'absolute',
-                    left: '1rem',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    color: '#A0AEC0',
-                    fontSize: '1.2rem',
-                    pointerEvents: 'none',
-                    zIndex: 2
-                  }}
-                  aria-hidden="true"
-                >
-                  🔒
-                </label>
-                <input
-                  id="new-password"
-                  type={showNewPassword ? 'text' : 'password'}
-                  placeholder="Enter new password"
-                  value={newPassword}
-                  onChange={e => setNewPassword(e.target.value)}
-                  required
-                  disabled={forgotPasswordLoading}
-                  style={{
-                    padding: '0.8rem 0.8rem 0.8rem 2.5rem',
-                    borderRadius: '0.5rem',
-                    border: '1px solid #3A3F47',
-                    fontSize: '1rem',
-                    background: forgotPasswordLoading ? '#2A2E36' : '#1E222A',
-                    color: '#E5E7EB',
-                    width: '100%',
-                    transition: 'border-color 0.2s, background 0.2s',
-                    opacity: forgotPasswordLoading ? 0.7 : 1,
-                  }}
-                  onFocus={e => !forgotPasswordLoading && (e.target.style.borderColor = '#0057D9')}
-                  onBlur={e => !forgotPasswordLoading && (e.target.style.borderColor = '#3A3F47')}
-                />
+            {!userInfo ? (
+              <>
+                <p className="text-sm text-gray-400 text-center">Enter your email and we&apos;ll help you reset your password.</p>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" aria-hidden>
+                    <Icon name="mail" className="w-5 h-5" />
+                  </span>
+                  <input
+                    id="forgot-email"
+                    type="email"
+                    placeholder="Your email"
+                    value={forgotEmail}
+                    onChange={(e) => setForgotEmail(e.target.value)}
+                    required
+                    disabled={forgotPasswordLoading}
+                    className={inputDarkClass}
+                  />
+                </div>
                 <button
-                  type="button"
-                  onClick={() => !forgotPasswordLoading && setShowNewPassword(s => !s)}
-                  disabled={forgotPasswordLoading}
-                  style={{
-                    position: 'absolute',
-                    right: '1rem',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    cursor: forgotPasswordLoading ? 'not-allowed' : 'pointer',
-                    background: 'transparent',
-                    border: 'none',
-                    color: '#A0AEC0',
-                    fontSize: '1.1rem',
-                    padding: '0.25rem',
-                    opacity: forgotPasswordLoading ? 0.5 : 1,
-                  }}
-                  aria-label={showNewPassword ? 'Hide password' : 'Show password'}
+                  type="submit"
+                  disabled={forgotPasswordLoading || !forgotEmail.trim()}
+                  className="btn btn-primary w-full justify-center rounded-xl bg-accent-500 hover:bg-accent-400 text-primary-900 border-0"
                 >
-                  {showNewPassword ? '🙈' : '👁️'}
+                  {forgotPasswordLoading ? 'Checking…' : 'Continue'}
                 </button>
-              </div>
-
-              <div style={{ position: 'relative' }}>
-                <label 
-                  htmlFor="confirm-password" 
-                  style={{
-                    position: 'absolute',
-                    left: '1rem',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    color: '#A0AEC0',
-                    fontSize: '1.2rem',
-                    pointerEvents: 'none',
-                    zIndex: 2
-                  }}
-                  aria-hidden="true"
-                >
-                  🔒
-                </label>
-                <input
-                  id="confirm-password"
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  placeholder="Re-enter new password"
-                  value={confirmPassword}
-                  onChange={e => setConfirmPassword(e.target.value)}
-                  required
-                  disabled={forgotPasswordLoading}
-                  style={{
-                    padding: '0.8rem 0.8rem 0.8rem 2.5rem',
-                    borderRadius: '0.5rem',
-                    border: '1px solid #3A3F47',
-                    fontSize: '1rem',
-                    background: forgotPasswordLoading ? '#2A2E36' : '#1E222A',
-                    color: '#E5E7EB',
-                    width: '100%',
-                    transition: 'border-color 0.2s, background 0.2s',
-                    opacity: forgotPasswordLoading ? 0.7 : 1,
-                  }}
-                  onFocus={e => !forgotPasswordLoading && (e.target.style.borderColor = '#0057D9')}
-                  onBlur={e => !forgotPasswordLoading && (e.target.style.borderColor = '#3A3F47')}
-                />
+              </>
+            ) : (
+              <>
+                <div className="rounded-xl bg-white/5 border border-white/10 p-4 text-sm">
+                  <p className="text-gray-400 mb-2">Account</p>
+                  <p className="font-semibold text-white">{userInfo.name}</p>
+                  <p className="text-accent-400">{userInfo.email}</p>
+                </div>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" aria-hidden>
+                    <Icon name="lock" className="w-5 h-5" />
+                  </span>
+                  <input
+                    id="new-password"
+                    type={showNewPassword ? 'text' : 'password'}
+                    placeholder="New password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    required
+                    disabled={forgotPasswordLoading}
+                    className={`${inputDarkClass} pr-12`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => !forgotPasswordLoading && setShowNewPassword((s) => !s)}
+                    disabled={forgotPasswordLoading}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-white"
+                    aria-label={showNewPassword ? 'Hide password' : 'Show password'}
+                  >
+                    <Icon name={showNewPassword ? 'eyeOff' : 'eye'} className="w-5 h-5" />
+                  </button>
+                </div>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" aria-hidden>
+                    <Icon name="lock" className="w-5 h-5" />
+                  </span>
+                  <input
+                    id="confirm-password"
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    placeholder="Confirm new password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    disabled={forgotPasswordLoading}
+                    className={`${inputDarkClass} pr-12`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => !forgotPasswordLoading && setShowConfirmPassword((s) => !s)}
+                    disabled={forgotPasswordLoading}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-white"
+                    aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                  >
+                    <Icon name={showConfirmPassword ? 'eyeOff' : 'eye'} className="w-5 h-5" />
+                  </button>
+                </div>
                 <button
-                  type="button"
-                  onClick={() => !forgotPasswordLoading && setShowConfirmPassword(s => !s)}
-                  disabled={forgotPasswordLoading}
-                  style={{
-                    position: 'absolute',
-                    right: '1rem',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    cursor: forgotPasswordLoading ? 'not-allowed' : 'pointer',
-                    background: 'transparent',
-                    border: 'none',
-                    color: '#A0AEC0',
-                    fontSize: '1.1rem',
-                    padding: '0.25rem',
-                    opacity: forgotPasswordLoading ? 0.5 : 1,
-                  }}
-                  aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                  type="submit"
+                  disabled={forgotPasswordLoading || !newPassword || !confirmPassword}
+                  className="btn w-full justify-center rounded-xl bg-success text-white border-0 hover:bg-success-400"
                 >
-                  {showConfirmPassword ? '🙈' : '👁️'}
+                  {forgotPasswordLoading ? 'Updating…' : 'Update password'}
                 </button>
-              </div>
+              </>
+            )}
 
-              <button 
-                type="submit" 
-                disabled={forgotPasswordLoading || !newPassword || !confirmPassword}
-                style={{
-                  background: (forgotPasswordLoading || !newPassword || !confirmPassword) ? '#3A3F47' : '#2ECC71',
-                  color: '#E5E7EB',
-                  padding: '0.9rem',
-                  border: 'none',
-                  borderRadius: '0.5rem',
-                  fontWeight: 600,
-                  fontSize: '1rem',
-                  cursor: (forgotPasswordLoading || !newPassword || !confirmPassword) ? 'not-allowed' : 'pointer',
-                  marginTop: '0.5rem',
-                  borderBottom: '3px solid #0057D9',
-                  transition: 'background 0.2s, transform 0.1s',
-                  opacity: (forgotPasswordLoading || !newPassword || !confirmPassword) ? 0.7 : 1,
-                }}
+            {message && (
+              <div
+                className={`text-center text-sm rounded-xl py-2.5 px-3 ${
+                  message.includes('successfully') ? 'text-success-400 bg-success-500/15 border border-success-500/25' : 'text-orange-300 bg-orange-500/10 border border-orange-500/20'
+                }`}
               >
-                {forgotPasswordLoading ? 'Updating...' : 'Update Password'}
-              </button>
-            </>
-          )}
-
-          {message && (
-            <div style={{ 
-              color: message.includes('successfully') ? '#2ECC71' : '#FF6B35', 
-              textAlign: 'center', 
-              marginTop: '0.5rem',
-              fontSize: '0.9rem',
-              padding: '0.5rem',
-              background: message.includes('successfully') ? 'rgba(46,204,113,0.1)' : 'rgba(255,107,53,0.1)',
-              borderRadius: '0.25rem'
-            }}>
-              {message}
-            </div>
-          )}
-        </form>
+                {message}
+              </div>
+            )}
+          </form>
         </div>
       )}
-      
-      <style>{`
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-        
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-          }
-          to {
-            opacity: 1;
-          }
-        }
-        
-        @keyframes slideUp {
-          from {
-            transform: translateY(20px);
-            opacity: 0;
-          }
-          to {
-            transform: translateY(0);
-            opacity: 1;
-          }
-        }
-        
-        @media (max-width: 480px) {
-          form {
-            padding: 1.5rem 1.25rem !important;
-            max-width: 100% !important;
-            margin: 0.5rem !important;
-          }
-          
-          h2 {
-            font-size: 1.5rem !important;
-          }
-          
-          button {
-            font-size: 0.95rem !important;
-          }
-          
-          div[style*="position: fixed"] {
-            padding: 0.5rem !important;
-          }
-        }
-        
-        @media (max-width: 768px) {
-          form {
-            max-width: 90% !important;
-          }
-        }
-        
-        /* Scrollbar styling for modal */
-        form::-webkit-scrollbar {
-          width: 6px;
-        }
-        
-        form::-webkit-scrollbar-track {
-          background: #1E222A;
-          border-radius: 3px;
-        }
-        
-        form::-webkit-scrollbar-thumb {
-          background: #3A3F47;
-          border-radius: 3px;
-        }
-        
-        form::-webkit-scrollbar-thumb:hover {
-          background: #4A4F57;
-        }
-      `}</style>
     </div>
   );
 }
