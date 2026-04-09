@@ -635,10 +635,18 @@ router.patch('/admin/complaints/:id', authMiddleware, coAdminMiddleware, async (
   }
 });
 
-// User: Get a specific complaint
+// Helpers to decide complaint access (user vs admin/coadmin)
+function getComplaintQueryForUserOrAdmin(req) {
+  if (req.user && (req.user.role === 'admin' || req.user.role === 'coadmin')) {
+    return { _id: req.params.id };
+  }
+  return { _id: req.params.id, user: req.user.id };
+}
+
+// User/Admin: Get a specific complaint
 router.get('/complaints/:id', authMiddleware, async (req, res) => {
   try {
-    const complaint = await Complaint.findOne({ _id: req.params.id, user: req.user.id });
+    const complaint = await Complaint.findOne(getComplaintQueryForUserOrAdmin(req));
     if (!complaint) {
       return res.status(404).json({ message: 'Complaint not found or access denied.' });
     }
@@ -648,10 +656,10 @@ router.get('/complaints/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// User: Get chat messages for a complaint
+// User/Admin: Get chat messages for a complaint
 router.get('/complaints/:id/chat', authMiddleware, async (req, res) => {
   try {
-    const complaint = await Complaint.findOne({ _id: req.params.id, user: req.user.id });
+    const complaint = await Complaint.findOne(getComplaintQueryForUserOrAdmin(req));
     if (!complaint) {
       return res.status(404).json({ message: 'Complaint not found or access denied.' });
     }
@@ -661,7 +669,7 @@ router.get('/complaints/:id/chat', authMiddleware, async (req, res) => {
   }
 });
 
-// User: Send a message in complaint chat
+// User/Admin: Send a message in complaint chat
 router.post('/complaints/:id/chat', authMiddleware, async (req, res) => {
   try {
     const { text } = req.body;
@@ -669,14 +677,14 @@ router.post('/complaints/:id/chat', authMiddleware, async (req, res) => {
       return res.status(400).json({ message: 'Message text is required.' });
     }
     
-    const complaint = await Complaint.findOne({ _id: req.params.id, user: req.user.id });
+    const complaint = await Complaint.findOne(getComplaintQueryForUserOrAdmin(req));
     if (!complaint) {
       return res.status(404).json({ message: 'Complaint not found or access denied.' });
     }
     
-    // Add the new message to the chat
+    const from = req.user && (req.user.role === 'admin' || req.user.role === 'coadmin') ? 'admin' : 'user';
     const newMessage = {
-      from: 'user',
+      from,
       text: text,
       time: new Date()
     };

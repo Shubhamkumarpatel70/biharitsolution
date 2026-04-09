@@ -1,7 +1,9 @@
 import axios from "axios";
 
 const instance = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || "https://askcweb.in",
+  // Use relative URLs by default so CRA `proxy` works in dev
+  // and production works on the same origin.
+  baseURL: process.env.REACT_APP_API_URL || "",
   timeout: 30000, // Increased timeout to 30 seconds
   headers: {
     "Content-Type": "application/json",

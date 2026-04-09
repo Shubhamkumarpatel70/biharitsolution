@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import PageHero from '../components/PageHero';
 import { Icon } from '../components/icons';
+import axios from '../axios';
 
 const contactMethods = [
   {
@@ -57,6 +58,7 @@ function Contact() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
 
   useEffect(() => {
     setIsVisible(true);
@@ -71,11 +73,22 @@ function Contact() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
     setIsSubmitting(true);
     setMessage('');
+    setError('');
 
-    setTimeout(() => {
-      setMessage('Thank you for your message! We\'ll get back to you soon.');
+    try {
+      const payload = {
+        name: form.name.trim(),
+        email: form.email.trim(),
+        phone: form.phone.trim() || undefined,
+        subject: form.subject.trim() || undefined,
+        message: form.message.trim(),
+      };
+      await axios.post('/api/auth/contact', payload);
+
+      setMessage("Thank you for your message! We'll get back to you soon.");
       setForm({
         name: '',
         email: '',
@@ -83,8 +96,12 @@ function Contact() {
         subject: '',
         message: ''
       });
+    } catch (err) {
+      console.error('Error submitting contact form:', err);
+      setError(err.response?.data?.message || 'Something went wrong. Please try again.');
+    } finally {
       setIsSubmitting(false);
-    }, 2000);
+    }
   };
 
   return (

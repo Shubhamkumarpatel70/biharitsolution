@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Logo from './Logo';
 import { Icon } from './icons';
+import axios from '../axios';
 
 const quickLinks = [
   { to: '/', label: 'Home' },
@@ -40,17 +41,18 @@ const Footer = () => {
     setNewsletterMsg('');
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
+      const payload = { email: email.trim().toLowerCase() };
       if (subscribeOption === 'subscribe') {
-        setNewsletterMsg('Thank you for subscribing to our newsletter!');
+        const res = await axios.post('/api/auth/newsletter/subscribe', payload);
+        setNewsletterMsg(res.data?.message || 'Subscribed successfully.');
         setEmail('');
       } else {
-        setNewsletterMsg('You have been unsubscribed from our newsletter.');
+        const res = await axios.post('/api/auth/newsletter/unsubscribe', payload);
+        setNewsletterMsg(res.data?.message || 'Unsubscribed successfully.');
         setEmail('');
       }
     } catch (error) {
-      setNewsletterMsg('Something went wrong. Please try again.');
+      setNewsletterMsg(error?.response?.data?.message || 'Something went wrong. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
