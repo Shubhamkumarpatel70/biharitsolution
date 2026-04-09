@@ -6,14 +6,19 @@ const Hero = () => {
   const [typed, setTyped] = useState('');
   const [phraseIndex, setPhraseIndex] = useState(0);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [verbIndex, setVerbIndex] = useState(0);
+  const [verbText, setVerbText] = useState('build');
+  const [verbAnim, setVerbAnim] = useState('');
 
   const phrases = [
+    'Your idea into reality',
     'Modern Web Development',
     'E‑Commerce Solutions',
     'Custom Mobile Apps',
-    'Cloud & DevOps',
-    'Support for Bihar Startups'
+    'Support for Startups'
   ];
+
+  const verbs = ['build', 'develop', 'testing', 'launch'];
 
   useEffect(() => {
     const targets = [textRef.current];
@@ -46,10 +51,25 @@ const Hero = () => {
       } else if (isDeleting && nextText === '') {
         setIsDeleting(false);
         setPhraseIndex((i) => (i + 1) % phrases.length);
+        setVerbIndex((v) => (v + 1) % verbs.length);
       }
     }, speed);
     return () => clearTimeout(timer);
   }, [typed, isDeleting, phraseIndex, phrases]);
+
+  // Animate verb change (flip out, then swap)
+  useEffect(() => {
+    const next = verbs[verbIndex % verbs.length];
+    if (next === verbText) return;
+    // First flip out the current verb, then swap, then flip in the new verb.
+    setVerbAnim('animate__animated animate__flipOutX');
+    const t = setTimeout(() => {
+      setVerbText(next);
+      setVerbAnim('animate__animated animate__flipInX');
+      setTimeout(() => setVerbAnim(''), 500);
+    }, 260);
+    return () => clearTimeout(t);
+  }, [verbIndex, verbs, verbText]);
 
   return (
     <section
@@ -95,13 +115,16 @@ const Hero = () => {
             </p>
 
             {/* Typewriter Text */}
-            <div
-              className="text-xl md:text-2xl text-text-main mb-10 min-h-[2.5rem] flex items-center justify-center gap-2 font-medium"
-              aria-live="polite"
-            >
-              <span className="text-text-light">We build</span>
-              <span className="font-bold text-primary-600">{typed}</span>
-              <span className="animate-pulse text-primary-400 font-light" aria-hidden="true">|</span>
+            <div className="mb-10 text-center" aria-live="polite">
+              <div className="text-xl md:text-2xl text-text-light font-semibold">
+                We <span className={`inline-block text-primary-700 font-bold ${verbAnim}`}>{verbText}</span>
+              </div>
+              <div className="mt-2 text-2xl md:text-3xl text-primary-600 font-black tracking-tight min-h-[2.75rem] flex items-center justify-center">
+                <span className="inline-flex items-center">
+                  <span>{typed}</span>
+                  <span className="animate-pulse text-primary-400 font-light ml-1" aria-hidden="true">|</span>
+                </span>
+              </div>
             </div>
 
             {/* CTA Buttons */}

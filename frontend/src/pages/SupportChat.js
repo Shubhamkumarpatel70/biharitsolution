@@ -1,6 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import axios from '../axios';
+import { Icon } from '../components/icons';
+
+const statusColor = {
+  open: 'text-amber-700 bg-amber-100 border-amber-200',
+  resolved: 'text-emerald-700 bg-emerald-100 border-emerald-200',
+};
 
 const SupportChat = () => {
   const { complaintId } = useParams();
@@ -10,73 +16,83 @@ const SupportChat = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [sendError, setSendError] = useState('');
+  const [sending, setSending] = useState(false);
   const messagesEndRef = useRef(null);
+
+  const fetchComplaint = useCallback(async () => {
+    if (!complaintId) return;
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.get(`/api/auth/complaints/${complaintId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setComplaint(res.data.complaint);
+      setError('');
+    } catch (err) {
+      if (err.response?.status === 401) setError('Not authorized. Please log in again.');
+      else if (err.response?.status === 404) setError('Complaint not found or you do not have access.');
+      else setError('Could not load complaint.');
+    }
+  }, [complaintId]);
+
+  const fetchChat = useCallback(async () => {
+    if (!complaintId) return;
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.get(`/api/auth/complaints/${complaintId}/chat`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setMessages(res.data.chat || []);
+    } catch {
+      // keep previous messages on intermittent errors
+    }
+  }, [complaintId]);
 
   useEffect(() => {
     if (!complaintId) {
       setLoading(false);
       return;
     }
-    const fetchComplaint = async () => {
+    const load = async () => {
       setLoading(true);
-      setError('');
-      try {
-        const token = localStorage.getItem('token');
-        const res = await axios.get(`/api/auth/complaints/${complaintId}` , {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        setComplaint(res.data.complaint);
-      } catch (err) {
-        if (err.response) {
-          if (err.response.status === 401) {
-            setError('Not authorized. Please log in again.');
-          } else if (err.response.status === 404) {
-            setError('Complaint not found or you do not have access.');
-          } else {
-            setError('Could not load complaint.');
-          }
-        } else {
-          setError('Network error. Please try again.');
-        }
-      }
+      await Promise.all([fetchComplaint(), fetchChat()]);
       setLoading(false);
     };
-    fetchComplaint();
-  }, [complaintId]);
+    load();
+  }, [complaintId, fetchComplaint, fetchChat]);
 
+  // Real-time feel via polling every 3s
   useEffect(() => {
-    if (!complaintId) return;
-    const fetchChat = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        const res = await axios.get(`/api/auth/complaints/${complaintId}/chat`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        setMessages(res.data.chat || []);
-      } catch (err) {
-        setMessages([]);
-      }
-    };
-    fetchChat();
-  }, [complaintId]);
+    if (!complaintId) return undefined;
+    const id = setInterval(() => {
+      fetchChat();
+      fetchComplaint();
+    }, 3000);
+    return () => clearInterval(id);
+  }, [complaintId, fetchChat, fetchComplaint]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const sendMessage = async e => {
+  const sendMessage = async (e) => {
     e.preventDefault();
     setSendError('');
-    if (!input.trim()) return;
+    if (!input.trim() || sending) return;
+    setSending(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.post(`/api/auth/complaints/${complaintId}/chat`, { text: input }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setMessages(res.data.chat);
+      const res = await axios.post(
+        `/api/auth/complaints/${complaintId}/chat`,
+        { text: input.trim() },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setMessages(res.data.chat || []);
       setInput('');
-    } catch (err) {
+    } catch {
       setSendError('Could not send message.');
+    } finally {
+      setSending(false);
     }
   };
 
@@ -84,71 +100,82 @@ const SupportChat = () => {
 
   if (!complaintId) {
     return (
-      <div style={{ 
-        color: '#E5E7EB', 
-        maxWidth: '500px', 
-        margin: '2rem auto', 
-        textAlign: 'center',
-        background: '#23272F',
-        padding: '2rem',
-        borderRadius: '1rem'
-      }}>
-        <h2 style={{ color: '#FF6B35' }}>No Complaint Selected</h2>
-        <p style={{ margin: '1rem 0' }}>
-          Please select a complaint from your dashboard to view the chat.
-        </p>
-        <Link 
-          to="/dashboard/support" 
-          style={{ 
-            background: '#2ECC71', 
-            color: '#181A20', 
-            textDecoration: 'none',
-            padding: '0.7rem 1.5rem',
-            borderRadius: '0.5rem',
-            fontWeight: 700
-          }}
-        >
-          Go to Support
-        </Link>
+      <div className="max-w-lg mx-auto bg-white border border-slate-200 rounded-2xl shadow-sm p-6 text-center">
+        <h2 className="text-red-600 text-xl font-bold mb-2">No complaint selected</h2>
+        <p className="text-slate-600 mb-4">Please select a complaint from your dashboard to view the chat.</p>
+        <Link to="/dashboard/support" className="btn btn-primary">Go to support</Link>
       </div>
     );
   }
 
   return (
-    <div style={{ color: '#E5E7EB', maxWidth: '500px', margin: '0 auto' }}>
-      <h2 style={{ color: '#2ECC71', fontWeight: 700, fontSize: '1.7rem', marginBottom: '1.2rem' }}>Support Chat</h2>
-      {loading ? <div>Loading...</div> : error ? <div style={{ color: '#FF6B35' }}>{error}</div> : !complaint ? <div>Complaint not found.</div> : (
+    <div className="max-w-3xl mx-auto px-2 sm:px-0">
+      <h2 className="text-2xl sm:text-3xl font-bold text-primary-900 mb-4">Support Chat</h2>
+
+      {loading ? (
+        <div className="bg-white border border-slate-200 rounded-2xl p-8 text-center text-slate-600">
+          <div className="w-10 h-10 border-4 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          Loading...
+        </div>
+      ) : error ? (
+        <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-4">{error}</div>
+      ) : !complaint ? (
+        <div className="bg-white border border-slate-200 rounded-2xl p-6 text-slate-600">Complaint not found.</div>
+      ) : (
         <>
-          <div style={{ marginBottom: '1.5rem', background: '#23272F', borderRadius: '1rem', padding: '1.2rem' }}>
-            <div><b>Issue:</b> {complaint.message}</div>
-            <div><b>Status:</b> <span style={{ color: complaint.status === 'resolved' ? '#2ECC71' : '#FF6B35' }}>{complaint.status}</span></div>
-            {complaint.status === 'resolved' && <div style={{ color: '#2ECC71' }}>This complaint is resolved. Chat is closed.</div>}
-            {complaint.reopenStatus === 'pending' && <div style={{ color: '#FFA500' }}>Reopen requested (awaiting admin)</div>}
-            {complaint.reopenStatus === 'rejected' && <div style={{ color: '#FF6B35' }}>Reopen rejected by admin</div>}
+          <div className="mb-4 bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-sm">
+            <p className="text-sm sm:text-base text-slate-800"><strong>Issue:</strong> {complaint.message}</p>
+            <div className="mt-2">
+              <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border text-xs sm:text-sm font-semibold ${statusColor[complaint.status] || 'text-slate-700 bg-slate-100 border-slate-200'}`}>
+                <Icon name={complaint.status === 'resolved' ? 'check' : 'clock'} className="w-4 h-4" />
+                {complaint.status}
+              </span>
+            </div>
+            {complaint.status === 'resolved' && <p className="mt-2 text-emerald-700 text-sm">This complaint is resolved. Chat is closed.</p>}
+            {complaint.reopenStatus === 'pending' && <p className="mt-2 text-amber-700 text-sm">Reopen requested (awaiting admin).</p>}
+            {complaint.reopenStatus === 'rejected' && <p className="mt-2 text-red-700 text-sm">Reopen rejected by admin.</p>}
           </div>
-          <div style={{ background: '#23272F', borderRadius: '1rem', padding: '2rem', boxShadow: '0 2px 12px rgba(0,0,0,0.08)', minHeight: '300px', marginBottom: '1rem' }}>
-            <div style={{ maxHeight: '200px', overflowY: 'auto', marginBottom: '1rem' }}>
-              {messages.map((msg, i) => (
-                <div key={i} style={{ textAlign: msg.from === 'user' ? 'right' : 'left', margin: '0.5rem 0' }}>
-                  <span style={{ background: msg.from === 'user' ? '#2ECC71' : '#0057D9', color: '#fff', borderRadius: '1rem', padding: '0.5rem 1rem', display: 'inline-block', maxWidth: '80%' }}>
-                    {msg.text}
-                  </span>
-                </div>
-              ))}
+
+          <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-3 sm:p-4">
+            <div className="h-[48vh] min-h-[260px] max-h-[520px] overflow-y-auto px-1 sm:px-2">
+              {messages.length === 0 ? (
+                <div className="h-full flex items-center justify-center text-slate-400 text-sm">No messages yet.</div>
+              ) : (
+                messages.map((msg, i) => (
+                  <div key={i} className={`my-2 flex ${msg.from === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div
+                      className={`max-w-[85%] sm:max-w-[75%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed shadow-sm ${
+                        msg.from === 'user'
+                          ? 'bg-primary-600 text-white rounded-br-md'
+                          : 'bg-emerald-100 text-emerald-900 rounded-bl-md border border-emerald-200'
+                      }`}
+                    >
+                      <p className="mb-0 whitespace-pre-wrap break-words">{msg.text}</p>
+                    </div>
+                  </div>
+                ))
+              )}
               <div ref={messagesEndRef} />
             </div>
-            <form onSubmit={sendMessage} style={{ display: 'flex', gap: '0.5rem' }}>
+
+            <form onSubmit={sendMessage} className="mt-3 flex flex-col sm:flex-row gap-2">
               <input
                 type="text"
                 value={input}
-                onChange={e => setInput(e.target.value)}
-                placeholder={canChat ? "Type your message..." : "Chat is closed for this complaint."}
-                style={{ flex: 1, padding: '0.7rem', borderRadius: '0.5rem', border: '1px solid #333', background: '#181A20', color: '#E5E7EB' }}
-                disabled={!canChat}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder={canChat ? 'Type your message...' : 'Chat is closed for this complaint.'}
+                className="flex-1 px-4 py-3 rounded-xl border border-slate-300 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary-500/30"
+                disabled={!canChat || sending}
               />
-              <button type="submit" style={{ background: '#2ECC71', color: '#181A20', border: 'none', borderRadius: '0.5rem', padding: '0.7rem 1.2rem', fontWeight: 700, fontSize: '1rem', cursor: canChat ? 'pointer' : 'not-allowed' }} disabled={!canChat}>Send</button>
+              <button
+                type="submit"
+                disabled={!canChat || sending}
+                className="px-5 py-3 rounded-xl bg-primary-600 text-white font-semibold hover:bg-primary-700 disabled:opacity-50"
+              >
+                {sending ? 'Sending...' : 'Send'}
+              </button>
             </form>
-            {sendError && <div style={{ color: '#FF6B35', marginTop: '0.5rem' }}>{sendError}</div>}
+            {sendError && <div className="text-red-600 mt-2 text-sm">{sendError}</div>}
           </div>
         </>
       )}
@@ -156,4 +183,4 @@ const SupportChat = () => {
   );
 };
 
-export default SupportChat; 
+export default SupportChat;

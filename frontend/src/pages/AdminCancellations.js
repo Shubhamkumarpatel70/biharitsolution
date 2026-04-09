@@ -15,10 +15,16 @@ const AdminCancellations = () => {
   const [filterStatus, setFilterStatus] = useState('all');
   const [rejectingId, setRejectingId] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
   useEffect(() => {
     fetchCancellations();
   }, [filterStatus]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterStatus, cancellations.length]);
 
   const fetchCancellations = async () => {
     setLoading(true);
@@ -93,6 +99,10 @@ const AdminCancellations = () => {
     });
   };
 
+  const totalPages = Math.max(1, Math.ceil(cancellations.length / itemsPerPage));
+  const start = (currentPage - 1) * itemsPerPage;
+  const pageItems = cancellations.slice(start, start + itemsPerPage);
+
   return (
     <div className="max-w-7xl mx-auto space-y-6 pb-20 lg:pb-6">
       <h2 className="text-2xl md:text-3xl font-bold text-success-500 mb-6">Subscription Cancellations</h2>
@@ -137,8 +147,17 @@ const AdminCancellations = () => {
         ) : cancellations.length === 0 ? (
           <div className="text-gray-400 text-center py-12">No subscription cancellations found.</div>
         ) : (
+          <>
+          <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm">
+            <p className="text-gray-400">
+              Showing recent <span className="text-white font-semibold">5</span> per page
+            </p>
+            <p className="text-gray-400">
+              Page <span className="text-white font-semibold">{currentPage}</span> of <span className="text-white font-semibold">{totalPages}</span>
+            </p>
+          </div>
           <div className="space-y-4">
-            {cancellations.map((sub) => {
+            {pageItems.map((sub) => {
               const isPending = sub.cancellationStatus === 'pending';
               const isApproved = sub.cancellationStatus === 'approved';
               const isRejected = sub.cancellationStatus === 'rejected';
@@ -306,6 +325,41 @@ const AdminCancellations = () => {
             );
             })}
           </div>
+          {totalPages > 1 && (
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-4 py-2 rounded-lg border border-gray-600 bg-gray-700 text-white disabled:opacity-50"
+              >
+                Previous
+              </button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setCurrentPage(p)}
+                  className={`px-3 py-2 rounded-lg border text-sm font-semibold ${
+                    p === currentPage
+                      ? 'bg-success-500 border-success-400 text-white'
+                      : 'bg-gray-700 border-gray-600 text-gray-200 hover:bg-gray-600'
+                  }`}
+                >
+                  {p}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="px-4 py-2 rounded-lg border border-gray-600 bg-gray-700 text-white disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+          )}
+          </>
         )}
       </div>
     </div>

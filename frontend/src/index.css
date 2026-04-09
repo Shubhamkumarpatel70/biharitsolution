@@ -148,6 +148,54 @@
   }
 }
 
+/* Animate.css-style helpers (minimal) */
+.animate__animated {
+  animation-duration: 0.2s;
+  animation-fill-mode: both;
+  backface-visibility: visible;
+}
+
+@keyframes animate__flipOutX {
+  from {
+    transform: perspective(400px);
+  }
+  30% {
+    transform: perspective(400px) rotateX(-20deg);
+    opacity: 1;
+  }
+  to {
+    transform: perspective(400px) rotateX(90deg);
+    opacity: 0;
+  }
+}
+
+.animate__flipOutX {
+  animation-name: animate__flipOutX;
+  animation-duration: 0.2s;
+}
+
+@keyframes animate__flipInX {
+  from {
+    transform: perspective(400px) rotateX(90deg);
+    opacity: 0;
+  }
+  40% {
+    transform: perspective(400px) rotateX(-10deg);
+  }
+  70% {
+    transform: perspective(400px) rotateX(10deg);
+  }
+  to {
+    transform: perspective(400px);
+    opacity: 1;
+  }
+}
+
+.animate__flipInX {
+  animation-name: animate__flipInX;
+  animation-duration: 0.2s;
+}
+
 @keyframes float {
   0%, 100% { 
     transform: translateY(0px) rotate(0deg); 

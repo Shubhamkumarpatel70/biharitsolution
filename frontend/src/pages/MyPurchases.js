@@ -55,16 +55,16 @@ const MyPurchases = () => {
   };
 
   return (
-    <div style={{ color: '#E5E7EB', maxWidth: '800px', margin: '0 auto' }}>
-      <h2 style={{ color: '#2ECC71', fontWeight: 700, fontSize: '1.7rem', marginBottom: '1.2rem' }}>My Purchases</h2>
-      {error && <div style={{ color: '#FF6B35', background: 'rgba(255, 107, 53, 0.1)', padding: '1rem', borderRadius: '0.5rem', marginBottom: '1rem' }}>{error}</div>}
-      <div style={{ background: '#23272F', borderRadius: '1rem', padding: '2rem', boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}>
+    <div className="max-w-4xl mx-auto px-2 sm:px-0">
+      <h2 className="text-2xl sm:text-3xl font-bold text-primary-900 mb-4">My Purchases</h2>
+      {error && <div className="text-red-700 bg-red-50 border border-red-200 px-4 py-3 rounded-lg mb-4">{error}</div>}
+      <div className="space-y-4">
         {loading ? (
-          <div>Loading...</div>
+          <div className="bg-white border border-slate-200 rounded-xl p-8 text-center text-slate-600">Loading...</div>
         ) : subscriptions.length === 0 ? (
-          <div>No purchases found.</div>
+          <div className="bg-white border border-slate-200 rounded-xl p-8 text-center text-slate-500">No purchases found.</div>
         ) : (
-          <ul style={{ listStyle: 'none', padding: 0 }}>
+          <ul className="list-none p-0 space-y-4">
             {subscriptions.map((sub) => {
               const isExpired = sub.status === 'expired';
               const isRenewalPending = sub.renewalStatus === 'pending';
@@ -74,71 +74,63 @@ const MyPurchases = () => {
               const showRenewButton = isExpired && !isRenewalPending && !cancellationApproved;
 
               return (
-                <li key={sub._id} style={{ marginBottom: '1.5rem', background: '#181A20', borderRadius: '0.5rem', padding: '1.5rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                    <div>
+                <li key={sub._id} className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 shadow-sm">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-3">
+                    <div className="text-slate-800 text-sm sm:text-base space-y-1">
                       <div><b>Plan:</b> {planDisplayNames[sub.plan]}</div>
                       <div><b>Subscription ID:</b> {sub.uniqueId}</div>
-                      <div><b>Status:</b> <span style={{ color: sub.status === 'active' ? '#2ECC71' : '#FF6B35', fontWeight: 700 }}>{sub.status}</span></div>
+                      <div><b>Status:</b> <span className={`font-bold ${sub.status === 'active' ? 'text-emerald-600' : 'text-orange-600'}`}>{sub.status}</span></div>
                       {cancellationApproved && (
                         <div style={{ color: '#FF6B35', fontWeight: 700, fontSize: '1rem', marginTop: '0.5rem' }}>
                           ❌ Plan Cancelled
                         </div>
                       )}
-                      {sub.expiresAt && <div style={{ fontSize: '0.95rem', color: '#A0AEC0' }}>Expires: {new Date(sub.expiresAt).toLocaleString()}</div>}
+                      {sub.expiresAt && <div className="text-sm text-slate-500">Expires: {new Date(sub.expiresAt).toLocaleDateString()}</div>}
                     </div>
                     {isExpired && !isRenewalPending && !cancellationApproved && (
-                      <span style={{ background: '#FF6B35', color: '#fff', borderRadius: '0.7rem', padding: '0.2rem 0.8rem', fontWeight: 700, fontSize: '0.95rem' }}>Expired</span>
+                      <span className="bg-orange-500 text-white rounded-full px-3 py-1 font-bold text-xs sm:text-sm">Expired</span>
                     )}
                     {cancellationApproved && (
-                      <span style={{ background: '#FF6B35', color: '#fff', borderRadius: '0.7rem', padding: '0.2rem 0.8rem', fontWeight: 700, fontSize: '0.95rem' }}>Cancelled</span>
+                      <span className="bg-orange-500 text-white rounded-full px-3 py-1 font-bold text-xs sm:text-sm">Cancelled</span>
                     )}
                   </div>
 
                   {isRenewalPending && (
-                    <div style={{ background: 'rgba(255, 165, 0, 0.1)', padding: '1rem', borderRadius: '0.5rem', color: '#FFA500', fontWeight: 600 }}>
+                    <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-lg text-yellow-800 font-semibold text-sm">
                       Renewal request is pending approval from admin.
                     </div>
                   )}
                   
                   {sub.renewalStatus === 'rejected' && (
-                     <div style={{ background: 'rgba(255, 107, 53, 0.1)', padding: '1rem', borderRadius: '0.5rem', color: '#FF6B35', fontWeight: 600 }}>
+                     <div className="bg-red-50 border border-red-200 p-3 rounded-lg text-red-700 font-semibold text-sm">
                        <strong>Renewal Rejected:</strong> {sub.renewalRejectionReason}
                      </div>
                   )}
 
                   {cancellationPending && (
-                    <div style={{ background: 'rgba(255, 165, 0, 0.1)', padding: '1rem', borderRadius: '0.5rem', color: '#FFA500', fontWeight: 600 }}>
+                    <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-lg text-yellow-800 font-semibold text-sm">
                       ⏳ Cancellation request is pending approval from admin.
                     </div>
                   )}
 
                   {cancellationApproved && (
-                    <div style={{ background: 'rgba(255, 107, 53, 0.1)', padding: '1rem', borderRadius: '0.5rem', color: '#FF6B35', fontWeight: 700 }}>
+                    <div className="bg-orange-50 border border-orange-200 p-3 rounded-lg text-orange-700 font-semibold text-sm">
                       ❌ Plan Cancelled - Your subscription has been cancelled and is now inactive.
                     </div>
                   )}
 
                   {cancellationRejected && sub.cancellationRejectionReason && (
-                    <div style={{ background: 'rgba(59, 130, 246, 0.1)', padding: '1rem', borderRadius: '0.5rem', color: '#3B82F6', fontWeight: 600 }}>
+                    <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg text-blue-700 font-semibold text-sm">
                       <strong>Cancellation Rejected:</strong> {sub.cancellationRejectionReason}
                     </div>
                   )}
 
                   {showRenewButton && (
-                    <div style={{ marginTop: '1rem' }}>
+                    <div className="mt-3">
                       <button
                         onClick={() => handleRenewalRequest(sub._id)}
                         disabled={requestStatus[sub._id] === 'pending'}
-                        style={{
-                          background: '#2ECC71',
-                          color: '#181A20',
-                          border: 'none',
-                          borderRadius: '0.5rem',
-                          padding: '0.7rem 1.2rem',
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                        }}
+                        className="bg-primary-600 text-white rounded-lg px-4 py-2.5 font-semibold text-sm hover:bg-primary-700 disabled:opacity-50"
                       >
                         {requestStatus[sub._id] === 'pending' ? 'Requesting...' : 'Request Renewal'}
                       </button>

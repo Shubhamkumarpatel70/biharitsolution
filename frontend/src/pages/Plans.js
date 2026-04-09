@@ -33,6 +33,8 @@ function Plans() {
   const [error, setError] = useState(null);
   const [isVisible, setIsVisible] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(null);
+  const [sharePlan, setSharePlan] = useState(null);
+  const [shareNotice, setShareNotice] = useState('');
 
   useEffect(() => {
     setIsVisible(true);
@@ -56,6 +58,51 @@ function Plans() {
 
   const handlePlanSelect = (plan) => {
     setSelectedPlan(plan);
+  };
+
+  const slugify = (value) => String(value || '').toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9]/g, '');
+
+  const planShareUrl = (plan) => {
+    if (typeof window === 'undefined') return '/plans#plans';
+    const slug = slugify(plan?.name) || 'plan';
+    return `${window.location.origin}/plans#plans-${slug}`;
+  };
+
+  const planShareMessage = (plan) => {
+    const url = planShareUrl(plan);
+    const details = [
+      plan?.name ? `Plan: ${plan.name}` : '',
+      plan?.price ? `Price: ₹${plan.price}` : '',
+      plan?.duration ? `Duration: ${plan.duration} days` : '',
+    ].filter(Boolean).join(' · ');
+    return `askc web pricing plan\n\n${details}\n\n${url}`;
+  };
+
+  const copyToClipboard = async (text, okText) => {
+    setShareNotice('');
+    try {
+      await navigator.clipboard.writeText(text);
+      setShareNotice(okText);
+      setTimeout(() => setShareNotice(''), 2500);
+    } catch {
+      setShareNotice('Copy not supported in this browser.');
+      setTimeout(() => setShareNotice(''), 3000);
+    }
+  };
+
+  const openNativeShare = async (plan) => {
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: 'askc web — Pricing plans',
+          text: `askc web pricing plan: ${plan.name}`,
+          url: planShareUrl(plan),
+        });
+        setSharePlan(null);
+      }
+    } catch (e) {
+      if (e.name !== 'AbortError') setShareNotice('Could not open share sheet.');
+    }
   };
 
   const sortedPlans = Array.isArray(plans) ? plans.sort((a, b) => a.price - b.price) : [];
@@ -143,6 +190,7 @@ function Plans() {
               {sortedPlans.map((plan, index) => (
                 <div
                   key={plan._id || index}
+                  id={`plans-${slugify(plan.name)}`}
                   className={`group relative bg-white rounded-2xl p-6 md:p-8 border-2 transition-all duration-300 cursor-pointer hover:-translate-y-2 hover:shadow-lg ${plan.highlight
                       ? 'border-accent-400 shadow-md bg-amber-50/60 ring-1 ring-accent-200/60'
                       : 'border-gray-200 hover:border-primary-300'
@@ -205,22 +253,120 @@ function Plans() {
                   </div>
 
                   {/* CTA Button */}
-                  <Link
-                    to={`/payment/${plan.name.toLowerCase().replace(/\s+/g, '')}`}
-                    className="btn btn-primary w-full justify-center py-3 font-medium group rounded-xl"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <span className="transition-colors duration-300">Get started</span>
-                    <span className="transition-all duration-300 group-hover:translate-x-0.5" aria-hidden>
-                      →
-                    </span>
-                  </Link>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <Link
+                      to={`/payment/${plan.name.toLowerCase().replace(/\s+/g, '')}`}
+                      className="btn btn-primary w-full justify-center py-3 font-medium group rounded-xl"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <span className="transition-colors duration-300">Get started</span>
+                      <span className="transition-all duration-300 group-hover:translate-x-0.5" aria-hidden>
+                        →
+                      </span>
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSharePlan(plan);
+                        setShareNotice('');
+                      }}
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 border-primary-200 bg-primary-600 text-white font-semibold text-sm shadow-sm hover:bg-primary-700 hover:border-primary-300 hover:shadow-md transition-all"
+                      aria-label={`Share ${plan.name} plan`}
+                    >
+                      <Icon name="share" className="w-4 h-4" />
+                      Share
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
           )}
         </div>
       </section>
+
+      {sharePlan && (
+        <div
+          className="fixed inset-0 z-[2300] flex items-end sm:items-center justify-center p-0 sm:p-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[env(safe-area-inset-bottom)] bg-slate-900/50 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="share-plan-title"
+          onClick={(e) => e.target === e.currentTarget && setSharePlan(null)}
+        >
+          <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full max-w-md max-h-[100dvh] sm:max-h-[min(90dvh,calc(100dvh-2rem))] flex flex-col border border-gray-200 overflow-hidden">
+            <div className="flex items-start justify-between gap-3 px-4 sm:px-5 py-4 border-b border-gray-100">
+              <div className="min-w-0">
+                <h2 id="share-plan-title" className="text-lg font-bold text-primary-900 leading-snug">
+                  Share plan
+                </h2>
+                <p className="text-xs text-text-muted mt-1">Send this plan on WhatsApp or copy it.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSharePlan(null)}
+                className="p-2 rounded-lg hover:bg-gray-100 text-text-muted shrink-0"
+                aria-label="Close"
+              >
+                <Icon name="close" className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-5 space-y-4">
+              <div>
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Message</p>
+                <div className="rounded-xl border border-gray-200 bg-slate-50 px-3 py-3 text-sm text-slate-800 whitespace-pre-wrap break-words">
+                  {planShareMessage(sharePlan)}
+                </div>
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Link</p>
+                <a href={planShareUrl(sharePlan)} className="text-sm text-primary-600 hover:underline break-all block">
+                  {planShareUrl(sharePlan)}
+                </a>
+              </div>
+              {shareNotice && (
+                <p className="text-sm text-emerald-700 font-medium" role="status">
+                  {shareNotice}
+                </p>
+              )}
+              <div className="flex flex-col gap-2">
+                {typeof navigator !== 'undefined' && typeof navigator.share === 'function' && (
+                  <button
+                    type="button"
+                    onClick={() => openNativeShare(sharePlan)}
+                    className="w-full py-2.5 rounded-xl bg-primary-600 text-white font-semibold text-sm hover:bg-primary-700"
+                  >
+                    Share…
+                  </button>
+                )}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => copyToClipboard(planShareMessage(sharePlan), 'Message copied.')}
+                    className="py-2.5 rounded-xl border border-gray-200 font-semibold text-sm text-slate-800 hover:bg-gray-50"
+                  >
+                    Copy message
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => copyToClipboard(planShareUrl(sharePlan), 'Link copied.')}
+                    className="py-2.5 rounded-xl border border-gray-200 font-semibold text-sm text-slate-800 hover:bg-gray-50"
+                  >
+                    Copy link
+                  </button>
+                </div>
+                <a
+                  href={`https://wa.me/?text=${encodeURIComponent(planShareMessage(sharePlan))}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-2.5 rounded-xl border border-emerald-200 bg-emerald-50 font-semibold text-sm text-emerald-900 hover:bg-emerald-100 text-center inline-flex items-center justify-center"
+                >
+                  WhatsApp
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* FAQ Section */}
       <section className="py-12 md:py-20 bg-white">

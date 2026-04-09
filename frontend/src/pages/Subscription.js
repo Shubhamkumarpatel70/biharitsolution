@@ -80,18 +80,18 @@ const Subscription = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-gray-200 text-center">
-          <div className="w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p>Loading subscription...</p>
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-slate-600">Loading subscription...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 text-gray-200">
+    <div className="max-w-4xl mx-auto px-2 sm:px-6 lg:px-8 py-4 sm:py-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-        <h2 className="text-green-500 font-bold text-2xl sm:text-3xl">My Subscription</h2>
+        <h2 className="text-primary-900 font-bold text-2xl sm:text-3xl">My Subscription</h2>
         <div className="flex gap-2">
           {isExpired && !cancellationPending && (
             <span className="bg-orange-500 text-white rounded-lg px-3 py-1.5 font-bold text-sm sm:text-base">
@@ -107,24 +107,24 @@ const Subscription = () => {
       </div>
 
       {error && (
-        <div className="bg-red-500/10 border border-red-500/30 text-red-400 p-4 rounded-lg mb-4">
+        <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg mb-4">
           {error}
         </div>
       )}
       
       {!subscription && !error ? (
-        <div className="text-gray-400 text-center bg-gray-800 p-8 rounded-xl">
+        <div className="text-slate-500 text-center bg-white border border-slate-200 p-8 rounded-xl">
           No subscription found.
         </div>
       ) : subscription && (
-        <div className="bg-gray-800 rounded-xl p-4 sm:p-6 lg:p-8 shadow-lg">
+        <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-6 lg:p-8 shadow-sm">
           <div className="space-y-4 mb-6">
             <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-              <span className="font-semibold text-gray-300">Current Plan:</span>
-              <span className="text-white text-lg">{planDisplayNames[subscription.plan] || subscription.plan}</span>
+              <span className="font-semibold text-slate-600">Current Plan:</span>
+              <span className="text-slate-900 text-lg">{planDisplayNames[subscription.plan] || subscription.plan}</span>
             </div>
             <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-              <span className="font-semibold text-gray-300">Status:</span>
+              <span className="font-semibold text-slate-600">Status:</span>
               <span className={`font-bold ${
                 subscription.status === 'active' ? 'text-green-500' : 'text-orange-500'
               }`}>
@@ -132,27 +132,27 @@ const Subscription = () => {
               </span>
             </div>
             <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-              <span className="font-semibold text-gray-300">Expires At:</span>
-              <span className="text-gray-200">
+              <span className="font-semibold text-slate-600">Expires At:</span>
+              <span className="text-slate-800">
                 {subscription.expiresAt ? new Date(subscription.expiresAt).toLocaleDateString() : 'N/A'}
               </span>
             </div>
           </div>
           
           {cancellationPending && (
-            <div className="bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 p-4 rounded-lg mb-4">
+            <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 p-4 rounded-lg mb-4">
               ⏳ Cancellation request is pending approval from admin.
             </div>
           )}
 
           {cancellationApproved && (
-            <div className="bg-orange-500/10 border border-orange-500/30 text-orange-400 p-4 rounded-lg mb-4 font-bold">
+            <div className="bg-orange-50 border border-orange-200 text-orange-700 p-4 rounded-lg mb-4 font-bold">
               ❌ Plan Cancelled - Your subscription has been cancelled and is now inactive.
             </div>
           )}
 
           {cancellationRejected && subscription.cancellationRejectionReason && (
-            <div className="bg-blue-500/10 border border-blue-500/30 text-blue-400 p-4 rounded-lg mb-4">
+            <div className="bg-blue-50 border border-blue-200 text-blue-700 p-4 rounded-lg mb-4">
               <strong>Cancellation Rejected:</strong> {subscription.cancellationRejectionReason}
             </div>
           )}
@@ -161,7 +161,7 @@ const Subscription = () => {
             {canCancel && (
               <button 
                 onClick={() => setShowCancelModal(true)} 
-                className="bg-orange-500 hover:bg-orange-600 text-white border-none rounded-lg px-6 py-3 font-bold text-base cursor-pointer transition-colors duration-200 shadow-lg hover:shadow-xl"
+                className="bg-orange-500 hover:bg-orange-600 text-white rounded-lg px-6 py-3 font-bold text-base transition-colors duration-200 shadow-sm hover:shadow"
               >
                 Cancel Subscription
               </button>
@@ -170,7 +170,7 @@ const Subscription = () => {
             {showBuyNewPlan && (
               <Link
                 to="/plans"
-                className="bg-green-500 hover:bg-green-600 text-gray-900 border-none rounded-lg px-6 py-3 font-bold text-base cursor-pointer transition-all duration-200 shadow-lg hover:shadow-xl text-center no-underline inline-block transform hover:scale-105"
+                className="bg-primary-600 hover:bg-primary-700 text-white rounded-lg px-6 py-3 font-bold text-base transition-all duration-200 shadow-sm hover:shadow text-center no-underline inline-block"
               >
                 📦 Buy New Plan
               </Link>
@@ -182,25 +182,25 @@ const Subscription = () => {
       {/* Cancel Subscription Modal */}
       {showCancelModal && (
         <div 
-          className="fixed inset-0 bg-black/80 flex items-center justify-center z-[1000] p-4"
+          className="fixed inset-0 bg-slate-900/60 flex items-center justify-center z-[1000] p-4"
           onClick={() => !canceling && setShowCancelModal(false)}
         >
           <div 
-            className="bg-gray-800 rounded-xl p-6 sm:p-8 max-w-lg w-full border-2 border-orange-500 animate-fade-in-up"
+            className="bg-white rounded-xl p-6 sm:p-8 max-w-lg w-full border border-orange-200 shadow-xl animate-fade-in-up"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="text-center mb-6">
               <div className="text-6xl mb-4">⚠️</div>
-              <h3 className="text-orange-500 text-xl sm:text-2xl font-bold mb-2">
+              <h3 className="text-orange-700 text-xl sm:text-2xl font-bold mb-2">
                 Cancel Subscription Warning
               </h3>
-              <p className="text-gray-200 text-sm sm:text-base leading-relaxed">
+              <p className="text-slate-700 text-sm sm:text-base leading-relaxed">
                 If you cancel your subscription, you will receive only <strong className="text-orange-500">50%</strong> of your total amount as a refund.
               </p>
             </div>
             
             <div className="mb-6">
-              <label className="block text-gray-200 mb-2 font-semibold">
+              <label className="block text-slate-700 mb-2 font-semibold">
                 Reason for Cancellation <span className="text-orange-500">*</span>
               </label>
               <textarea
@@ -209,7 +209,7 @@ const Subscription = () => {
                 placeholder="Please provide a reason for canceling your subscription..."
                 required
                 rows={4}
-                className="w-full p-3 bg-gray-900 border border-gray-700 rounded-lg text-gray-200 text-sm resize-y focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                className="w-full p-3 bg-white border border-slate-300 rounded-lg text-slate-800 text-sm resize-y focus:outline-none focus:ring-2 focus:ring-orange-500/30"
               />
             </div>
             
@@ -219,7 +219,7 @@ const Subscription = () => {
                 disabled={canceling || !cancelReason.trim()}
                 className={`flex-1 rounded-lg py-3 font-bold text-base transition-all ${
                   canceling || !cancelReason.trim()
-                    ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                    ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
                     : 'bg-orange-500 hover:bg-orange-600 text-white cursor-pointer shadow-lg hover:shadow-xl'
                 }`}
               >
@@ -232,7 +232,7 @@ const Subscription = () => {
                   setError('');
                 }}
                 disabled={canceling}
-                className="flex-1 bg-gray-700 hover:bg-gray-600 text-gray-200 border-none rounded-lg py-3 font-bold text-base cursor-pointer transition-colors"
+                className="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg py-3 font-bold text-base transition-colors"
               >
                 Cancel
               </button>

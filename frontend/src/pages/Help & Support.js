@@ -1,13 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from '../axios';
 import { useNavigate } from 'react-router-dom';
-
-const faqs = [
-  { q: 'How do I upgrade my subscription?', a: 'Go to the Subscription tab and click Upgrade. You can select a new plan and proceed to payment.' },
-  { q: 'How do I contact support?', a: 'Use the contact form on the Contact page or start a chat below.' },
-  { q: 'How do I change my password?', a: 'Go to Account Settings and use the Change Password form.' },
-  { q: 'What happens if my subscription expires?', a: 'You will lose access to premium features until you renew or upgrade your plan.' },
-];
+import { Icon } from '../components/icons';
 
 const HelpAndSupport = () => {
   const [complaints, setComplaints] = useState([]);
@@ -25,11 +19,12 @@ const HelpAndSupport = () => {
       const res = await axios.get('/api/auth/complaints', {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setComplaints(res.data.complaints);
-    } catch (err) {
+      setComplaints(res.data.complaints || []);
+    } catch {
       setError('Could not fetch your support tickets.');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -48,91 +43,83 @@ const HelpAndSupport = () => {
       const token = localStorage.getItem('token');
       await axios.post(
         '/api/auth/complaints',
-        { message },
+        { message: message.trim() },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setMessage('');
-      fetchComplaints(); // Refresh the list
+      fetchComplaints();
     } catch (err) {
       setError(err.response?.data?.message || 'Could not submit your complaint.');
+    } finally {
+      setSubmitting(false);
     }
-    setSubmitting(false);
   };
-  
-  const getStatusStyle = (status) => {
-    switch (status) {
-      case 'open':
-        return { color: '#FFA500', background: 'rgba(255, 165, 0, 0.1)', borderColor: '#FFA500' };
-      case 'resolved':
-        return { color: '#2ECC71', background: 'rgba(46, 204, 113, 0.1)', borderColor: '#2ECC71' };
-      default:
-        return { color: '#9CA3AF', background: '#23272F', borderColor: '#333' };
-    }
+
+  const statusClass = (status) => {
+    if (status === 'resolved') return 'text-emerald-700 bg-emerald-100 border-emerald-200';
+    return 'text-amber-700 bg-amber-100 border-amber-200';
   };
 
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto', color: '#E5E7EB' }}>
-      <h2 style={{ color: '#2ECC71', fontWeight: 700, fontSize: '1.7rem', marginBottom: '1.5rem' }}>Help & Support</h2>
+    <div className="max-w-5xl mx-auto px-2 sm:px-0 space-y-6">
+      <h2 className="text-2xl sm:text-3xl font-bold text-primary-900">Help & Support</h2>
 
-      {/* Submit new complaint */}
-      <div style={{ background: '#23272F', borderRadius: '1rem', padding: '2rem', marginBottom: '2rem' }}>
-        <h3 style={{ color: '#E5E7EB', marginBottom: '1rem' }}>Submit a New Complaint</h3>
-        <form onSubmit={handleSubmitComplaint}>
+      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-4 sm:p-6">
+        <h3 className="text-lg sm:text-xl font-semibold text-slate-900 mb-3">Submit a New Complaint</h3>
+        <form onSubmit={handleSubmitComplaint} className="space-y-3">
           <textarea
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             placeholder="Please describe your issue in detail..."
-            style={{
-              width: '100%',
-              minHeight: '100px',
-              padding: '1rem',
-              borderRadius: '0.5rem',
-              border: '1px solid #333',
-              background: '#181A20',
-              color: '#E5E7EB',
-              marginBottom: '1rem',
-              resize: 'vertical',
-            }}
+            className="w-full min-h-[120px] p-4 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-primary-500/30"
           />
-          {error && <div style={{ color: '#FF6B35', marginBottom: '1rem' }}>{error}</div>}
-          <button type="submit" disabled={submitting} style={{ background: '#2ECC71', color: '#181A20', border: 'none', borderRadius: '0.5rem', padding: '0.7rem 1.5rem', fontWeight: 700, cursor: 'pointer' }}>
+          {error && (
+            <div className="text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-sm">{error}</div>
+          )}
+          <button type="submit" disabled={submitting} className="btn btn-primary">
             {submitting ? 'Submitting...' : 'Submit Complaint'}
           </button>
         </form>
       </div>
 
-      {/* Existing complaints */}
-      <div>
-        <h3 style={{ color: '#E5E7EB', marginBottom: '1rem' }}>Your Support Tickets</h3>
+      <div className="space-y-3">
+        <h3 className="text-lg sm:text-xl font-semibold text-slate-900">Your Support Tickets</h3>
         {loading ? (
-          <div>Loading tickets...</div>
+          <div className="bg-white border border-slate-200 rounded-2xl p-8 text-center">
+            <div className="w-10 h-10 border-4 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+            <p className="text-slate-600">Loading tickets...</p>
+          </div>
         ) : complaints.length === 0 ? (
-          <div style={{ background: '#23272F', borderRadius: '1rem', padding: '2rem', textAlign: 'center', color: '#9CA3AF' }}>
-            You haven't submitted any complaints yet.
+          <div className="bg-white border border-slate-200 rounded-2xl p-8 text-center text-slate-500">
+            You have not submitted any complaints yet.
           </div>
         ) : (
-          <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gap: '1rem' }}>
-            {complaints.map((c) => {
-               const statusStyle = getStatusStyle(c.status);
-               return (
-                <li key={c._id} style={{ background: '#23272F', borderRadius: '0.5rem', padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <p style={{ margin: 0, marginBottom: '0.75rem', lineHeight: '1.5' }}>{c.message}</p>
-                    <div style={{ fontSize: '0.9rem', color: '#9CA3AF' }}>
-                      Submitted: {new Date(c.createdAt).toLocaleString()}
-                    </div>
+          <ul className="space-y-3">
+            {complaints.map((c) => (
+              <li key={c._id} className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 shadow-sm">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-slate-800 leading-relaxed break-words">{c.message}</p>
+                    <p className="text-sm text-slate-500 mt-2">
+                      Submitted: {new Date(c.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                    </p>
                   </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ ...statusStyle, display: 'inline-block', padding: '0.3rem 0.8rem', borderRadius: '0.5rem', marginBottom: '0.75rem', fontWeight: '600', border: '1px solid' }}>
+                  <div className="sm:text-right flex sm:block gap-2">
+                    <span className={`inline-flex items-center gap-1 border rounded-full px-3 py-1 text-xs font-semibold ${statusClass(c.status)}`}>
+                      <Icon name={c.status === 'resolved' ? 'check' : 'clock'} className="w-3.5 h-3.5" />
                       {c.status}
-                    </div>
-                    <button onClick={() => navigate(`/support-chat/${c._id}`)} style={{ background: '#0057D9', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 1rem', fontWeight: 600, cursor: 'pointer', display: 'block', width: '100%' }}>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/support-chat/${c._id}`)}
+                      className="inline-flex items-center justify-center rounded-lg px-4 py-2 bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700"
+                    >
                       View Chat
                     </button>
                   </div>
-                </li>
-              );
-            })}
+                </div>
+              </li>
+            ))}
           </ul>
         )}
       </div>
@@ -140,4 +127,4 @@ const HelpAndSupport = () => {
   );
 };
 
-export default HelpAndSupport; 
+export default HelpAndSupport;

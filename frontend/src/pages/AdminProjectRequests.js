@@ -41,6 +41,7 @@ const AdminProjectRequests = () => {
   const [success, setSuccess] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
   const [editingId, setEditingId] = useState(null);
   const [editData, setEditData] = useState({
     status: '',
@@ -52,6 +53,10 @@ const AdminProjectRequests = () => {
   useEffect(() => {
     fetchProjects();
   }, [filterStatus, searchQuery]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterStatus, searchQuery, projects.length]);
 
   const fetchProjects = async () => {
     setLoading(true);
@@ -130,6 +135,11 @@ const AdminProjectRequests = () => {
     }
   };
 
+  const itemsPerPage = 5;
+  const totalPages = Math.max(1, Math.ceil(projects.length / itemsPerPage));
+  const start = (currentPage - 1) * itemsPerPage;
+  const pageItems = projects.slice(start, start + itemsPerPage);
+
   return (
     <div className="max-w-7xl mx-auto space-y-6 pb-20 lg:pb-6">
       <h2 className="text-2xl md:text-3xl font-bold text-success-500 mb-6">Project Requests</h2>
@@ -188,8 +198,17 @@ const AdminProjectRequests = () => {
         ) : projects.length === 0 ? (
           <div className="text-gray-400 text-center py-12">No project requirements found.</div>
         ) : (
+          <>
+          <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm">
+            <p className="text-gray-400">
+              Showing recent <span className="text-white font-semibold">5</span> per page
+            </p>
+            <p className="text-gray-400">
+              Page <span className="text-white font-semibold">{currentPage}</span> of <span className="text-white font-semibold">{totalPages}</span>
+            </p>
+          </div>
           <div className="space-y-4">
-            {projects.map((project) => {
+            {pageItems.map((project) => {
               const statusInfo = statusLabels[project.status] || statusLabels.pending;
               const isEditing = editingId === project._id;
               
@@ -408,6 +427,41 @@ const AdminProjectRequests = () => {
               );
             })}
           </div>
+          {totalPages > 1 && (
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-4 py-2 rounded-lg border border-gray-600 bg-gray-700 text-white disabled:opacity-50"
+              >
+                Previous
+              </button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setCurrentPage(p)}
+                  className={`px-3 py-2 rounded-lg border text-sm font-semibold ${
+                    p === currentPage
+                      ? 'bg-success-500 border-success-400 text-white'
+                      : 'bg-gray-700 border-gray-600 text-gray-200 hover:bg-gray-600'
+                  }`}
+                >
+                  {p}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="px-4 py-2 rounded-lg border border-gray-600 bg-gray-700 text-white disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+          )}
+          </>
         )}
       </div>
     </div>
