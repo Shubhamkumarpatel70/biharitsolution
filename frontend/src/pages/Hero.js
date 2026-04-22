@@ -117,7 +117,7 @@ const Hero = () => {
             {/* Typewriter Text */}
             <div className="mb-10 text-center" aria-live="polite">
               <div className="text-xl md:text-2xl text-text-light font-semibold">
-                We <span className={`inline-block text-primary-700 font-bold ${verbAnim}`}>{verbText}</span>
+                We <span className={`inline-block text-primary-700 font-bold ${verbAnim}`}>{verbText}</span>index
               </div>
               <div className="mt-2 text-2xl md:text-3xl text-primary-600 font-black tracking-tight min-h-[2.75rem] flex items-center justify-center">
                 <span className="inline-flex items-center">
