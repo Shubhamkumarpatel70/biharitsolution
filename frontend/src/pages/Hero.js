@@ -1,24 +1,24 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 
 const Hero = () => {
   const textRef = useRef(null);
-  const [typed, setTyped] = useState('');
+  const [typed, setTyped] = useState("");
   const [phraseIndex, setPhraseIndex] = useState(0);
   const [isDeleting, setIsDeleting] = useState(false);
   const [verbIndex, setVerbIndex] = useState(0);
-  const [verbText, setVerbText] = useState('build');
-  const [verbAnim, setVerbAnim] = useState('');
+  const [verbText, setVerbText] = useState("build");
+  const [verbAnim, setVerbAnim] = useState("");
 
   const phrases = [
-    'Your idea into reality',
-    'Modern Web Development',
-    'E‑Commerce Solutions',
-    'Custom Mobile Apps',
-    'Support for Startups'
+    "Your idea into reality",
+    "Modern Web Development",
+    "E‑Commerce Solutions",
+    "Custom Mobile Apps",
+    "Support for Startups",
   ];
 
-  const verbs = ['build', 'develop', 'testing', 'launch'];
+  const verbs = ["build", "develop", "testing", "launch"];
 
   useEffect(() => {
     const targets = [textRef.current];
@@ -26,11 +26,11 @@ const Hero = () => {
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            entry.target.classList.add('opacity-100', 'translate-y-0');
+            entry.target.classList.add("opacity-100", "translate-y-0");
           }
         });
       },
-      { threshold: 0.2 }
+      { threshold: 0.2 },
     );
     targets.forEach((el) => el && observer.observe(el));
     return () => observer.disconnect();
@@ -48,7 +48,7 @@ const Hero = () => {
 
       if (!isDeleting && nextText === current) {
         setTimeout(() => setIsDeleting(true), 900);
-      } else if (isDeleting && nextText === '') {
+      } else if (isDeleting && nextText === "") {
         setIsDeleting(false);
         setPhraseIndex((i) => (i + 1) % phrases.length);
         setVerbIndex((v) => (v + 1) % verbs.length);
@@ -62,11 +62,11 @@ const Hero = () => {
     const next = verbs[verbIndex % verbs.length];
     if (next === verbText) return;
     // First flip out the current verb, then swap, then flip in the new verb.
-    setVerbAnim('animate__animated animate__flipOutX');
+    setVerbAnim("animate__animated animate__flipOutX");
     const t = setTimeout(() => {
       setVerbText(next);
-      setVerbAnim('animate__animated animate__flipInX');
-      setTimeout(() => setVerbAnim(''), 500);
+      setVerbAnim("animate__animated animate__flipInX");
+      setTimeout(() => setVerbAnim(""), 500);
     }, 260);
     return () => clearTimeout(t);
   }, [verbIndex, verbs, verbText]);
@@ -79,7 +79,14 @@ const Hero = () => {
       aria-describedby="hero-subtitle"
     >
       {/* Very Subtle Background Pattern */}
-      <div className="absolute inset-0 bg-grid-slate-100/[0.04] bg-[size:20px_20px]" aria-hidden="true" style={{ backgroundImage: 'radial-gradient(circle, #e5e7eb 1px, transparent 1px)' }}></div>
+      <div
+        className="absolute inset-0 bg-grid-slate-100/[0.04] bg-[size:20px_20px]"
+        aria-hidden="true"
+        style={{
+          backgroundImage:
+            "radial-gradient(circle, #e5e7eb 1px, transparent 1px)",
+        }}
+      ></div>
 
       <div className="container relative z-10 px-4 sm:px-6">
         <div className="flex flex-col items-center justify-center text-center max-w-4xl mx-auto">
@@ -100,10 +107,8 @@ const Hero = () => {
               className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black mb-6 leading-[1.1] text-primary-900 tracking-tight"
               id="hero-title"
             >
-              Welcome to{' '}
-              <span className="text-primary-600 block sm:inline">
-                askc web
-              </span>
+              Welcome to{" "}
+              <span className="text-primary-600 block sm:inline">askc web</span>
             </h1>
 
             {/* Subtitle */}
@@ -117,12 +122,22 @@ const Hero = () => {
             {/* Typewriter Text */}
             <div className="mb-10 text-center" aria-live="polite">
               <div className="text-xl md:text-2xl text-text-light font-semibold">
-                We <span className={`inline-block text-primary-700 font-bold ${verbAnim}`}>{verbText}</span>index
+                We{" "}
+                <span
+                  className={`inline-block text-primary-700 font-bold ${verbAnim}`}
+                >
+                  {verbText}
+                </span>
               </div>
               <div className="mt-2 text-2xl md:text-3xl text-primary-600 font-black tracking-tight min-h-[2.75rem] flex items-center justify-center">
                 <span className="inline-flex items-center">
                   <span>{typed}</span>
-                  <span className="animate-pulse text-primary-400 font-light ml-1" aria-hidden="true">|</span>
+                  <span
+                    className="animate-pulse text-primary-400 font-light ml-1"
+                    aria-hidden="true"
+                  >
+                    |
+                  </span>
                 </span>
               </div>
             </div>
@@ -142,7 +157,12 @@ const Hero = () => {
                 aria-label="Contact us"
               >
                 Contact us
-                <span className="inline-block transition-transform duration-300 group-hover:translate-x-0.5" aria-hidden="true">→</span>
+                <span
+                  className="inline-block transition-transform duration-300 group-hover:translate-x-0.5"
+                  aria-hidden="true"
+                >
+                  →
+                </span>
               </Link>
             </div>
           </div>
