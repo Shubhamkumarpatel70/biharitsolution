@@ -19,11 +19,11 @@ const formatFeaturesForInput = (features = []) =>
     .filter(Boolean)
     .map((feature) => feature.trim())
     .filter(Boolean)
-    .join(",\n");
+    .join("\n");
 
 const parseFeaturesFromInput = (raw = "") =>
   raw
-    .split(/[\n,]+/)
+    .split(/\n+/)
     .map((item) => item.trim())
     .filter(Boolean);
 
@@ -32,11 +32,11 @@ const formatNotesForInput = (notes = []) =>
     .filter(Boolean)
     .map((note) => note.trim())
     .filter(Boolean)
-    .join(",\n");
+    .join("\n");
 
 const parseNotesFromInput = (raw = "") =>
   raw
-    .split(/[\n,]+/)
+    .split(/\n+/)
     .map((item) => item.trim())
     .filter(Boolean);
 
@@ -60,21 +60,17 @@ const AdminPlans = () => {
     fetchPlans();
   }, []);
 
+  const handleAddNewLine = (fieldName) => {
+    setForm((f) => ({
+      ...f,
+      [fieldName]: f[fieldName] ? `${f[fieldName]}\n` : "",
+    }));
+  };
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    if (name === "features") {
-      const cleanedValue = value
-        .replace(/\s*,\s*/g, ", ")
-        .replace(/,\s*(?!\n)/g, ",\n");
-      setForm((f) => ({ ...f, features: cleanedValue }));
-      return;
-    }
-
-    if (name === "notes") {
-      const cleanedValue = value
-        .replace(/\s*,\s*/g, ", ")
-        .replace(/,\s*(?!\n)/g, ",\n");
-      setForm((f) => ({ ...f, notes: cleanedValue }));
+    if (name === "features" || name === "notes") {
+      setForm((f) => ({ ...f, [name]: value }));
       return;
     }
 
@@ -260,21 +256,45 @@ const AdminPlans = () => {
           />
         </div>
         <div className="mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs text-gray-400">
+              Included items (one per line, commas stay in same line)
+            </span>
+            <button
+              type="button"
+              onClick={() => handleAddNewLine("features")}
+              className="text-xs px-2 py-1 rounded bg-gray-700 hover:bg-gray-600 text-gray-200 border border-gray-600"
+            >
+              Add New Line
+            </button>
+          </div>
           <textarea
             name="features"
             value={form.features}
             onChange={handleChange}
-            placeholder="Features (comma/new line separated)"
+            placeholder="Included features (one per line)"
             rows={4}
             className="w-full px-4 py-2 rounded-lg bg-gray-700 text-gray-200 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
           />
         </div>
         <div className="mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs text-gray-400">
+              Not included / notes (one per line, commas stay in same line)
+            </span>
+            <button
+              type="button"
+              onClick={() => handleAddNewLine("notes")}
+              className="text-xs px-2 py-1 rounded bg-gray-700 hover:bg-gray-600 text-gray-200 border border-gray-600"
+            >
+              Add New Line
+            </button>
+          </div>
           <textarea
             name="notes"
             value={form.notes}
             onChange={handleChange}
-            placeholder="Notes / Not Included (comma/new line separated)"
+            placeholder="Not included items (one per line)"
             rows={3}
             className="w-full px-4 py-2 rounded-lg bg-gray-700 text-gray-200 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
           />
@@ -343,13 +363,24 @@ const AdminPlans = () => {
                     </span>
                   )}
                 </h4>
-                <div className="text-sm sm:text-base text-gray-400 mb-2">
-                  <strong>Features:</strong> {plan.features.join(", ")}
-                </div>
+                {Array.isArray(plan.features) && plan.features.length > 0 && (
+                  <div className="text-sm sm:text-base text-gray-400 mb-2">
+                    <strong>Included:</strong>
+                    <ul className="list-disc ml-5 mt-1 space-y-1">
+                      {plan.features.map((feature, index) => (
+                        <li key={`${plan._id}-feature-${index}`}>{feature}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
                 {Array.isArray(plan.notes) && plan.notes.length > 0 && (
                   <div className="text-sm sm:text-base text-amber-300 mb-2">
-                    <strong>Notes / Not Included:</strong>{" "}
-                    {plan.notes.join(", ")}
+                    <strong>Not Included:</strong>
+                    <ul className="list-disc ml-5 mt-1 space-y-1">
+                      {plan.notes.map((note, index) => (
+                        <li key={`${plan._id}-note-${index}`}>{note}</li>
+                      ))}
+                    </ul>
                   </div>
                 )}
                 <div className="text-sm sm:text-base text-gray-400 mb-4">
