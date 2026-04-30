@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import axios from '../axios';
 import { UserContext } from '../UserContext';
 import { Icon } from '../components/icons';
+import VerifyOtp from './VerifyOtp';
 
 function Register() {
   const [name, setName] = useState('');
@@ -11,6 +12,8 @@ function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showOtp, setShowOtp] = useState(false);
+  const [otpVerified, setOtpVerified] = useState(false);
   const navigate = useNavigate();
   const { setUser } = useContext(UserContext);
 
@@ -18,6 +21,20 @@ function Register() {
     e.preventDefault();
     setLoading(true);
     setMessage('');
+    try {
+      await axios.post('/api/auth/register/send-otp', { email });
+      setLoading(false);
+      setShowOtp(true);
+    } catch (err) {
+      setLoading(false);
+      setMessage(err.response?.data?.message || 'Failed to send OTP.');
+    }
+  };
+
+  const handleOtpSuccess = async () => {
+    setOtpVerified(true);
+    setMessage('OTP verified! Completing registration...');
+    setLoading(true);
     try {
       const res = await axios.post('/api/auth/register', { name, email, password });
       localStorage.setItem('token', res.data.token);
@@ -27,8 +44,18 @@ function Register() {
     } catch (err) {
       setLoading(false);
       setMessage(err.response?.data?.message || 'Registration failed.');
+      setShowOtp(false);
+      setOtpVerified(false);
     }
   };
+
+  if (showOtp && !otpVerified) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 pt-24 sm:pt-28">
+        <VerifyOtp email={email} onSuccess={handleOtpSuccess} />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 pt-24 sm:pt-28">
@@ -117,7 +144,6 @@ function Register() {
 
           <div>
             <button
-              type="submit"
               disabled={loading}
               className="btn btn-primary w-full justify-center py-3 rounded-xl text-base"
             >

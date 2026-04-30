@@ -22,6 +22,8 @@ function Login() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showForgotOtp, setShowForgotOtp] = useState(false);
+  const [forgotOtp, setForgotOtp] = useState('');
   const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -130,6 +132,8 @@ function Login() {
         setUserInfo(null);
         setNewPassword('');
         setConfirmPassword('');
+        setShowForgotOtp(false);
+        setForgotOtp('');
         setMessage('');
       }
     };
@@ -143,7 +147,7 @@ function Login() {
     };
   }, [showForgotPassword]);
 
-  const handleVerifyEmail = async (e) => {
+  const handleSendForgotOtp = async (e) => {
     e.preventDefault();
     if (!forgotEmail.trim() || !forgotEmail.includes('@')) {
       setMessage('Please enter a valid email address.');
@@ -152,12 +156,31 @@ function Login() {
     setForgotPasswordLoading(true);
     setMessage('');
     try {
-      const res = await axios.post('/api/auth/forgot-password/verify-email', { email: forgotEmail.trim() });
+      await axios.post('/api/auth/forgot-password/send-otp', { email: forgotEmail.trim() });
+      setShowForgotOtp(true);
+      setMessage('OTP sent to your email.');
+    } catch (err) {
+      setMessage(err.response?.data?.message || 'Could not send OTP. Please try again.');
+    } finally {
+      setForgotPasswordLoading(false);
+    }
+  };
+
+  const handleVerifyForgotOtp = async (e) => {
+    e.preventDefault();
+    if (!forgotOtp.trim()) {
+      setMessage('Please enter the OTP.');
+      return;
+    }
+    setForgotPasswordLoading(true);
+    setMessage('');
+    try {
+      const res = await axios.post('/api/auth/forgot-password/verify-otp', { email: forgotEmail.trim(), otp: forgotOtp.trim() });
       setUserInfo(res.data.user);
+      setShowForgotOtp(false);
       setMessage('');
     } catch (err) {
-      setMessage(err.response?.data?.message || 'Could not verify email. Please try again.');
-      setUserInfo(null);
+      setMessage(err.response?.data?.message || 'Invalid OTP. Please try again.');
     } finally {
       setForgotPasswordLoading(false);
     }
@@ -188,6 +211,8 @@ function Login() {
         setUserInfo(null);
         setNewPassword('');
         setConfirmPassword('');
+        setShowForgotOtp(false);
+        setForgotOtp('');
         setMessage('');
         navigate('/login', { state: { success: 'Password reset successfully! Please login with your new password.' } });
       }, 2000);
@@ -356,6 +381,8 @@ function Login() {
               setForgotEmail('');
               setNewPassword('');
               setConfirmPassword('');
+              setShowForgotOtp(false);
+              setForgotOtp('');
             }}
             className="font-semibold text-primary-600 hover:text-primary-700 text-center sm:text-right bg-transparent border-none cursor-pointer"
           >
@@ -374,12 +401,14 @@ function Login() {
               setUserInfo(null);
               setNewPassword('');
               setConfirmPassword('');
+              setShowForgotOtp(false);
+              setForgotOtp('');
               setMessage('');
             }
           }}
         >
           <form
-            onSubmit={userInfo ? handleResetPassword : handleVerifyEmail}
+            onSubmit={userInfo ? handleResetPassword : (showForgotOtp ? handleVerifyForgotOtp : handleSendForgotOtp)}
             onClick={(e) => e.stopPropagation()}
             className="relative w-full max-w-md max-h-[90vh] overflow-y-auto bg-primary-950 border border-primary-700/50 rounded-2xl p-6 sm:p-8 shadow-2xl flex flex-col gap-4 text-gray-100"
           >
@@ -391,6 +420,8 @@ function Login() {
                 setUserInfo(null);
                 setNewPassword('');
                 setConfirmPassword('');
+                setShowForgotOtp(false);
+                setForgotOtp('');
                 setMessage('');
               }}
               className="absolute top-4 right-4 p-2 rounded-lg bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white transition-colors"
@@ -399,34 +430,62 @@ function Login() {
               <Icon name="close" className="w-5 h-5" />
             </button>
 
-            <h2 className="text-xl font-bold text-center text-white pr-8">{userInfo ? 'Reset password' : 'Forgot password'}</h2>
+            <h2 className="text-xl font-bold text-center text-white pr-8">{userInfo ? 'Reset password' : (showForgotOtp ? 'Verify OTP' : 'Forgot password')}</h2>
 
             {!userInfo ? (
-              <>
-                <p className="text-sm text-gray-400 text-center">Enter your email and we&apos;ll help you reset your password.</p>
-                <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" aria-hidden>
-                    <Icon name="mail" className="w-5 h-5" />
-                  </span>
-                  <input
-                    id="forgot-email"
-                    type="email"
-                    placeholder="Your email"
-                    value={forgotEmail}
-                    onChange={(e) => setForgotEmail(e.target.value)}
-                    required
-                    disabled={forgotPasswordLoading}
-                    className={inputDarkClass}
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={forgotPasswordLoading || !forgotEmail.trim()}
-                  className="btn btn-primary w-full justify-center rounded-xl bg-accent-500 hover:bg-accent-400 text-primary-900 border-0"
-                >
-                  {forgotPasswordLoading ? 'Checking…' : 'Continue'}
-                </button>
-              </>
+              !showForgotOtp ? (
+                <>
+                  <p className="text-sm text-gray-400 text-center">Enter your email and we&apos;ll send an OTP to reset your password.</p>
+                  <div className="relative">
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" aria-hidden>
+                      <Icon name="mail" className="w-5 h-5" />
+                    </span>
+                    <input
+                      id="forgot-email"
+                      type="email"
+                      placeholder="Your email"
+                      value={forgotEmail}
+                      onChange={(e) => setForgotEmail(e.target.value)}
+                      required
+                      disabled={forgotPasswordLoading}
+                      className={inputDarkClass}
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={forgotPasswordLoading || !forgotEmail.trim()}
+                    className="btn btn-primary w-full justify-center rounded-xl bg-accent-500 hover:bg-accent-400 text-primary-900 border-0"
+                  >
+                    {forgotPasswordLoading ? 'Sending…' : 'Send OTP'}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm text-gray-400 text-center">Enter the verification code sent to your email.</p>
+                  <div className="relative">
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" aria-hidden>
+                      <Icon name="lock" className="w-5 h-5" />
+                    </span>
+                    <input
+                      id="forgot-otp"
+                      type="text"
+                      placeholder="Enter 6-digit OTP"
+                      value={forgotOtp}
+                      onChange={(e) => setForgotOtp(e.target.value)}
+                      required
+                      disabled={forgotPasswordLoading}
+                      className={inputDarkClass}
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={forgotPasswordLoading || !forgotOtp.trim()}
+                    className="btn btn-primary w-full justify-center rounded-xl bg-accent-500 hover:bg-accent-400 text-primary-900 border-0"
+                  >
+                    {forgotPasswordLoading ? 'Verifying…' : 'Verify OTP'}
+                  </button>
+                </>
+              )
             ) : (
               <>
                 <div className="rounded-xl bg-white/5 border border-white/10 p-4 text-sm">

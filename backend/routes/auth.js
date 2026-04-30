@@ -13,7 +13,18 @@ const {
   verifyEmailForPasswordReset,
   resetPassword,
   getLoginCaptcha,
+  sendRegisterOtp,
+  verifyRegisterOtp,
+  sendForgotOtp,
+  verifyForgotOtp,
 } = require("../controllers/authController");
+// OTP routes for registration
+router.post("/register/send-otp", sendRegisterOtp);
+router.post("/register/verify-otp", verifyRegisterOtp);
+
+// OTP routes for forgot password
+router.post("/forgot-password/send-otp", sendForgotOtp);
+router.post("/forgot-password/verify-otp", verifyForgotOtp);
 const Subscription = require("../models/Subscription");
 const jwt = require("jsonwebtoken");
 const Plan = require("../models/Plan");
@@ -542,11 +553,9 @@ router.put(
 
       // Validate role
       if (!role || !["user", "admin", "coadmin"].includes(role)) {
-        return res
-          .status(400)
-          .json({
-            message: 'Invalid role. Must be "user", "admin", or "coadmin".',
-          });
+        return res.status(400).json({
+          message: 'Invalid role. Must be "user", "admin", or "coadmin".',
+        });
       }
 
       // Prevent admin from changing their own role
@@ -908,12 +917,9 @@ router.post("/renewal-request", authMiddleware, async (req, res) => {
     }
 
     if (subscription.renewalStatus === "pending") {
-      return res
-        .status(400)
-        .json({
-          message:
-            "A renewal request is already pending for this subscription.",
-        });
+      return res.status(400).json({
+        message: "A renewal request is already pending for this subscription.",
+      });
     }
 
     if (subscription.status !== "expired") {
@@ -1979,19 +1985,15 @@ router.post("/project-requirement", authMiddleware, async (req, res) => {
     }
 
     if (!projectReq) {
-      return res
-        .status(500)
-        .json({
-          message: "Could not create submission reference. Please try again.",
-        });
+      return res.status(500).json({
+        message: "Could not create submission reference. Please try again.",
+      });
     }
 
-    res
-      .status(201)
-      .json({
-        projectRequirement: projectReq,
-        message: "Project requirement submitted successfully.",
-      });
+    res.status(201).json({
+      projectRequirement: projectReq,
+      message: "Project requirement submitted successfully.",
+    });
   } catch (err) {
     console.error("Error creating project requirement:", err);
     res.status(500).json({ message: "Could not submit project requirement." });
@@ -2122,11 +2124,9 @@ router.patch(
 
           if (status === "finished") {
             if (!(projectLink || "").trim()) {
-              return res
-                .status(400)
-                .json({
-                  message: "Project link is required when marking as finished.",
-                });
+              return res.status(400).json({
+                message: "Project link is required when marking as finished.",
+              });
             }
             setFields.projectLink = projectLink.trim();
             if (prevStatus !== "finished") {

@@ -6,6 +6,123 @@ const Notification = require("../models/Notification");
 const Subscription = require("../models/Subscription");
 const LoginCaptcha = require("../models/LoginCaptcha");
 const { parsePlanDurationDays } = require("../utils/planDuration");
+const Otp = require("../models/Otp");
+const { sendEmail } = require("../utils/email");
+// Helper to generate a 6-digit OTP
+function generateOtp() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+const generateOtpEmailHtml = (otp, title, description) => `
+<div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f8fafc; padding: 40px 20px; border-radius: 12px;">
+  <div style="background-color: #ffffff; padding: 40px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); text-align: center; border: 1px solid #e2e8f0;">
+    <h1 style="color: #0f172a; margin-top: 0; font-size: 24px; font-weight: 700;">${title}</h1>
+    <p style="color: #475569; font-size: 16px; line-height: 1.6; margin-bottom: 32px;">
+      ${description}
+    </p>
+    <div style="background-color: #f1f5f9; padding: 24px; border-radius: 8px; margin-bottom: 32px; border: 1px dashed #cbd5e1;">
+      <span style="font-size: 36px; font-weight: 800; color: #0f172a; letter-spacing: 8px;">${otp}</span>
+    </div>
+    <p style="color: #64748b; font-size: 14px; line-height: 1.5;">
+      This code will expire in 10 minutes.<br/>
+      If you did not request this, please ignore this email.
+    </p>
+  </div>
+</div>
+`;
+
+// Send OTP for registration
+exports.sendRegisterOtp = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ message: "Email is required." });
+    const existingUser = await User.findOne({ email });
+    if (existingUser)
+      return res.status(400).json({ message: "User already exists." });
+    const otp = generateOtp();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    await Otp.deleteMany({ email, purpose: "register" });
+    await Otp.create({ email, otp, purpose: "register", expiresAt });
+    
+    const html = generateOtpEmailHtml(
+      otp, 
+      "Verify your Email", 
+      "Thank you for registering. Please use the verification code below to complete your registration."
+    );
+    await sendEmail(email, "Your Registration Verification Code", `Your OTP is: ${otp}`, html);
+    res.json({ message: "OTP sent to email." });
+  } catch (err) {
+    res.status(500).json({ message: "Could not send OTP." });
+  }
+};
+
+// Verify OTP for registration
+exports.verifyRegisterOtp = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+    if (!email || !otp)
+      return res.status(400).json({ message: "Email and OTP required." });
+    const record = await Otp.findOne({ email, otp, purpose: "register" });
+    if (!record || record.expiresAt < new Date()) {
+      return res.status(400).json({ message: "Invalid or expired OTP." });
+    }
+    await Otp.deleteMany({ email, purpose: "register" });
+    res.json({ message: "OTP verified." });
+  } catch (err) {
+    res.status(500).json({ message: "Could not verify OTP." });
+  }
+};
+
+// Send OTP for forgot password
+exports.sendForgotOtp = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ message: "Email is required." });
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: "User not found." });
+    const otp = generateOtp();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    await Otp.deleteMany({ email, purpose: "forgot" });
+    await Otp.create({ email, otp, purpose: "forgot", expiresAt });
+    
+    const html = generateOtpEmailHtml(
+      otp, 
+      "Reset your Password", 
+      "We received a request to reset your password. Please use the verification code below to proceed."
+    );
+    await sendEmail(email, "Your Password Reset Code", `Your OTP is: ${otp}`, html);
+    res.json({ message: "OTP sent to email." });
+  } catch (err) {
+    res.status(500).json({ message: "Could not send OTP." });
+  }
+};
+
+// Verify OTP for forgot password
+exports.verifyForgotOtp = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+    if (!email || !otp)
+      return res.status(400).json({ message: "Email and OTP required." });
+    const record = await Otp.findOne({ email, otp, purpose: "forgot" });
+    if (!record || record.expiresAt < new Date()) {
+      return res.status(400).json({ message: "Invalid or expired OTP." });
+    }
+    await Otp.deleteMany({ email, purpose: "forgot" });
+    
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: "User not found." });
+
+    res.json({ 
+      message: "OTP verified.",
+      user: {
+        name: user.name,
+        email: user.email
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Could not verify OTP." });
+  }
+};
 
 const CAPTCHA_CHARS =
   "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
@@ -93,17 +210,15 @@ exports.registerUser = async (req, res) => {
       secure: process.env.NODE_ENV === "production",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
-    res
-      .status(201)
-      .json({
-        token,
-        user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-        },
-      });
+    res.status(201).json({
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    });
   } catch (err) {
     res.status(500).json({ message: "Server error." });
   }
@@ -142,11 +257,9 @@ exports.loginUser = async (req, res) => {
 
     const captcha = await LoginCaptcha.findById(captchaId);
     if (!captcha || captcha.expiresAt < new Date()) {
-      return res
-        .status(400)
-        .json({
-          message: "Captcha expired or invalid. Please refresh and try again.",
-        });
+      return res.status(400).json({
+        message: "Captcha expired or invalid. Please refresh and try again.",
+      });
     }
 
     const submitted = String(captchaAnswer).trim();
@@ -270,17 +383,15 @@ exports.registerAdmin = async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: "7d" },
     );
-    res
-      .status(201)
-      .json({
-        token,
-        user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-        },
-      });
+    res.status(201).json({
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    });
   } catch (err) {
     res.status(500).json({ message: "Server error." });
   }
