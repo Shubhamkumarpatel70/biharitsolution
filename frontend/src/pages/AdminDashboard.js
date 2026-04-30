@@ -45,6 +45,10 @@ const AdminDashboard = () => {
 
   const userRole = getUserRole();
   const isCoAdmin = userRole === 'coadmin';
+  const roleLabel = isCoAdmin ? 'Co-Admin' : 'Admin';
+  const roleDescription = isCoAdmin
+    ? 'Operational control with scoped permissions.'
+    : 'Full platform governance and approvals.';
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -118,7 +122,7 @@ const AdminDashboard = () => {
       <button
         type="button"
         onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 bg-white text-slate-800 border border-slate-200 rounded-xl p-2.5 shadow-md hover:bg-slate-50 transition-colors"
+        className="lg:hidden fixed top-4 left-4 z-50 bg-slate-900 text-white border border-slate-700 rounded-xl p-2.5 shadow-lg hover:bg-slate-800 transition-colors"
         aria-label="Open sidebar"
       >
         <Icon name="menu" className="w-6 h-6" strokeWidth={2} />
@@ -142,30 +146,42 @@ const AdminDashboard = () => {
       </aside>
 
       <main className="flex-1 lg:ml-0 min-h-screen flex flex-col">
-        <div className="hidden lg:block bg-white border-b border-slate-200 px-6 py-4 sticky top-0 z-30 shadow-sm">
+        <div className="hidden lg:block bg-white/95 backdrop-blur border-b border-slate-200 px-6 py-4 sticky top-0 z-30">
           <div className="flex items-center justify-between gap-4">
-            <div>
-              <h1 className="text-xl font-bold text-slate-900 tracking-tight">
-                {isCoAdmin ? 'Co-Admin dashboard' : 'Admin dashboard'}
-              </h1>
-              <p className="text-sm text-slate-500 mt-0.5">
-                Overview, approvals, and content in one place.
+            <div className="min-w-0">
+              <div className="flex items-center gap-2.5 mb-1">
+                <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+                  {roleLabel} Dashboard
+                </h1>
+                <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold border ${
+                  isCoAdmin
+                    ? 'bg-sky-50 text-sky-700 border-sky-200'
+                    : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                }`}>
+                  {roleLabel}
+                </span>
+              </div>
+              <p className="text-sm text-slate-500">
+                {roleDescription}
               </p>
             </div>
-            <div className="text-right text-sm text-slate-500">
-              <span className="block text-xs uppercase tracking-wide text-slate-400">Updated</span>
-              <span className="font-medium text-slate-700 tabular-nums">{new Date().toLocaleTimeString()}</span>
+            <div className="text-right text-sm text-slate-500 rounded-xl border border-slate-200 px-3 py-2 bg-slate-50">
+              <span className="block text-[11px] uppercase tracking-wider text-slate-400">Last refresh</span>
+              <span className="font-semibold text-slate-700 tabular-nums">{new Date().toLocaleTimeString()}</span>
             </div>
           </div>
         </div>
 
-        <div className="lg:hidden bg-white border-b border-slate-200 px-4 py-3 pt-14 flex items-center sticky top-0 z-30 shadow-sm">
-          <h1 className="text-base font-bold text-slate-900 flex-1 text-center">
-            {isCoAdmin ? 'Co-Admin' : 'Admin'}
-          </h1>
+        <div className="lg:hidden bg-white border-b border-slate-200 px-4 py-3 pt-14 flex items-center sticky top-0 z-30">
+          <div className="flex-1 text-center">
+            <h1 className="text-base font-bold text-slate-900">{roleLabel} Dashboard</h1>
+            <p className="text-[11px] text-slate-500">Control panel</p>
+          </div>
         </div>
 
-        <div className="flex-1 p-4 md:p-6 lg:p-8 pb-24 lg:pb-8">{renderContent()}</div>
+        <div className="flex-1 p-4 md:p-6 lg:p-8 pb-24 lg:pb-8 bg-gradient-to-b from-slate-100 to-slate-50">
+          {renderContent()}
+        </div>
       </main>
 
       <AdminBottomNav activeTab={activeTab} setActiveTab={setActiveTab} userRole={userRole} />

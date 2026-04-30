@@ -65,19 +65,18 @@ const AdminSidebar = ({ onLogout, activeTab, setActiveTab, onClose, userRole = '
   }, [filteredNavItems]);
 
   const isCoAdmin = userRole === 'coadmin';
+  const totalSections = Object.keys(groupedItems).length;
 
   return (
-    <div className="h-full min-h-0 w-64 max-w-[100vw] bg-slate-900 border-r border-slate-800 flex flex-col shadow-xl overflow-hidden">
-      <div className="shrink-0 p-5 border-b border-slate-800">
-        <div className="flex items-center gap-3 mb-1">
-          <div className="w-11 h-11 rounded-xl bg-accent-500 flex items-center justify-center shadow-lg">
-            <Icon name="shield" className="w-6 h-6 text-slate-900" strokeWidth={2} />
+    <div className="h-full min-h-0 w-[19rem] max-w-[100vw] bg-gradient-to-b from-slate-950 via-slate-900 to-slate-900 border-r border-slate-800/90 flex flex-col shadow-2xl overflow-hidden">
+      <div className="shrink-0 p-5 border-b border-slate-800/90">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-accent-400 to-accent-600 flex items-center justify-center shadow-lg shadow-accent-900/40">
+            <Icon name="shield" className="w-6 h-6 text-slate-950" strokeWidth={2.2} />
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="text-sm font-bold text-white leading-tight">
-              {isCoAdmin ? 'Co-Admin' : 'Admin'}
-            </h2>
-            <p className="text-xs text-slate-400">Control center</p>
+            <h2 className="text-sm font-semibold text-white leading-tight">Control Console</h2>
+            <p className="text-xs text-slate-400">{isCoAdmin ? 'Co-Admin workspace' : 'Admin workspace'}</p>
           </div>
           <button
             type="button"
@@ -88,9 +87,22 @@ const AdminSidebar = ({ onLogout, activeTab, setActiveTab, onClose, userRole = '
             <Icon name="close" className="w-5 h-5" />
           </button>
         </div>
+        <div className="rounded-xl border border-slate-700/70 bg-slate-800/60 px-3 py-2">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[11px] font-semibold tracking-wide text-slate-300 uppercase">
+              {isCoAdmin ? 'Co-Admin Access' : 'Admin Access'}
+            </span>
+            <span className="inline-flex items-center rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-semibold text-emerald-300">
+              Online
+            </span>
+          </div>
+          <p className="text-[11px] text-slate-400 mt-1">
+            {baseNavItems.length} modules across {totalSections} sections
+          </p>
+        </div>
       </div>
 
-      <div className="shrink-0 p-3 border-b border-slate-800">
+      <div className="shrink-0 p-3 border-b border-slate-800/90">
         <div className="relative">
           <input
             type="text"
@@ -121,7 +133,7 @@ const AdminSidebar = ({ onLogout, activeTab, setActiveTab, onClose, userRole = '
         ) : (
           Object.entries(groupedItems).map(([category, items]) => (
             <div key={category} className="mb-5">
-              <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 px-3">
+              <h3 className="text-[10px] font-semibold text-slate-500 uppercase tracking-[0.16em] mb-2 px-3">
                 {categoryLabels[category] || category}
               </h3>
               {items.map(item => (
@@ -133,16 +145,16 @@ const AdminSidebar = ({ onLogout, activeTab, setActiveTab, onClose, userRole = '
                     if (onClose) onClose();
                   }}
                   className={`
-                    group w-full flex items-center gap-3 px-3 py-2.5 mb-1 rounded-lg text-left transition-all duration-150 min-w-0
+                    group w-full flex items-center gap-3 px-3 py-2.5 mb-1 rounded-xl text-left transition-all duration-150 min-w-0
                     ${activeTab === item.id
-                      ? 'bg-white text-slate-900 font-semibold shadow-md ring-1 ring-white/20'
-                      : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                      ? 'bg-gradient-to-r from-white to-slate-100 text-slate-900 font-semibold shadow-md ring-1 ring-white/30'
+                      : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'
                     }
                   `}
                 >
                   <span
                     className={`shrink-0 ${
-                      activeTab === item.id ? 'text-slate-900' : 'text-slate-400 group-hover:text-white'
+                      activeTab === item.id ? 'text-slate-900' : 'text-slate-400 group-hover:text-slate-100'
                     }`}
                   >
                     <Icon name={item.iconName} className="w-5 h-5" strokeWidth={activeTab === item.id ? 2.25 : 1.75} />
@@ -155,11 +167,11 @@ const AdminSidebar = ({ onLogout, activeTab, setActiveTab, onClose, userRole = '
         )}
       </nav>
 
-      <div className="shrink-0 p-3 border-t border-slate-800">
+      <div className="shrink-0 p-3 border-t border-slate-800/90 bg-slate-900/60">
         <button
           type="button"
           onClick={onLogout}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-red-500/15 hover:bg-red-500/25 text-red-300 rounded-lg font-medium transition-colors border border-red-500/25"
+          className="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-red-500/15 hover:bg-red-500/25 text-red-300 rounded-xl font-medium transition-colors border border-red-500/25"
         >
           <Icon name="logout" className="w-5 h-5" />
           <span>Logout</span>
