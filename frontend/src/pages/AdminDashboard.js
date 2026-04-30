@@ -13,6 +13,7 @@ import AdminUsers from './AdminUsers';
 import AdminStats from './AdminStats';
 import AdminNotifications from './AdminNotifications';
 import AdminPlans from './AdminPlans';
+import AdminFunds from './AdminFunds';
 import AdminContacts from './AdminContacts';
 import AdminRenewalRequests from './AdminRenewalRequests';
 import AdminNewsletter from './AdminNewsletter';
@@ -23,6 +24,8 @@ import AdminServices from './AdminServices';
 import AdminPaymentOptions from './AdminPaymentOptions';
 import AdminCareers from './AdminCareers';
 import AdminCareerApplications from './AdminCareerApplications';
+import AdminPromotionalEmail from './AdminPromotionalEmail';
+import AdminPromotionalUnsubscribed from './AdminPromotionalUnsubscribed';
 import { Icon } from '../components/icons';
 
 const AdminDashboard = () => {
@@ -66,6 +69,8 @@ const AdminDashboard = () => {
         return <AdminHome />;
       case 'approve':
         return <AdminApprove />;
+      case 'funds':
+        return <AdminFunds />;
       case 'approved-plans':
         return <AdminApprovedPlans />;
       case 'cancellations':
@@ -86,6 +91,10 @@ const AdminDashboard = () => {
         return <AdminContacts />;
       case 'newsletter':
         return <AdminNewsletter />;
+      case 'promotional-email':
+        return <AdminPromotionalEmail />;
+      case 'promotional-unsubscribed':
+        return <AdminPromotionalUnsubscribed />;
       case 'renewal-requests':
         return <AdminRenewalRequests />;
       case 'team':
@@ -122,10 +131,11 @@ const AdminDashboard = () => {
       <button
         type="button"
         onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 bg-slate-900 text-white border border-slate-700 rounded-xl p-2.5 shadow-lg hover:bg-slate-800 transition-colors"
+        className="lg:hidden fixed top-4 left-4 z-50 inline-flex items-center gap-2 bg-slate-900 text-white border border-slate-700 rounded-xl px-3 py-2.5 shadow-lg hover:bg-slate-800 transition-colors"
         aria-label="Open sidebar"
       >
-        <Icon name="menu" className="w-6 h-6" strokeWidth={2} />
+        <Icon name="menu" className="w-5 h-5" strokeWidth={2.2} />
+        <span className="text-xs font-semibold tracking-wide">Menu</span>
       </button>
 
       <aside

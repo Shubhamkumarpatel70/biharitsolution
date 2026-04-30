@@ -35,6 +35,7 @@ import NotFound from './pages/NotFound';
 import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
 import Refund from './pages/Refund';
+import UnsubscribeEmail from './pages/UnsubscribeEmail';
 import { UserProvider, UserContext } from './UserContext';
 import axios from 'axios';
 
@@ -113,6 +114,7 @@ function AppContent() {
             <Route path='contacts' element={<AdminContacts />} />
           </Route>
           <Route path='/support-chat/:complaintId' element={<SupportChat />} />
+          <Route path='/unsubscribe-email' element={<UnsubscribeEmail />} />
           <Route path='*' element={<NotFound />} />
         </Routes>
       </main>

@@ -7,8 +7,7 @@ const Hero = () => {
   const [phraseIndex, setPhraseIndex] = useState(0);
   const [isDeleting, setIsDeleting] = useState(false);
   const [verbIndex, setVerbIndex] = useState(0);
-  const [verbText, setVerbText] = useState("build");
-  const [verbAnim, setVerbAnim] = useState("");
+  const [verbAnimKey, setVerbAnimKey] = useState(0);
 
   const phrases = [
     "Your idea into reality",
@@ -19,6 +18,7 @@ const Hero = () => {
   ];
 
   const verbs = ["build", "develop", "testing", "launch"];
+  const currentVerb = verbs[verbIndex % verbs.length];
 
   useEffect(() => {
     const targets = [textRef.current];
@@ -57,19 +57,10 @@ const Hero = () => {
     return () => clearTimeout(timer);
   }, [typed, isDeleting, phraseIndex, phrases]);
 
-  // Animate verb change (flip out, then swap)
+  // Re-trigger animation every time verb changes
   useEffect(() => {
-    const next = verbs[verbIndex % verbs.length];
-    if (next === verbText) return;
-    // First flip out the current verb, then swap, then flip in the new verb.
-    setVerbAnim("animate__animated animate__flipOutX");
-    const t = setTimeout(() => {
-      setVerbText(next);
-      setVerbAnim("animate__animated animate__flipInX");
-      setTimeout(() => setVerbAnim(""), 500);
-    }, 260);
-    return () => clearTimeout(t);
-  }, [verbIndex, verbs, verbText]);
+    setVerbAnimKey((k) => k + 1);
+  }, [verbIndex]);
 
   return (
     <section
@@ -124,9 +115,10 @@ const Hero = () => {
               <div className="text-xl md:text-2xl text-text-light font-semibold">
                 We{" "}
                 <span
-                  className={`inline-block text-primary-700 font-bold ${verbAnim}`}
+                  key={verbAnimKey}
+                  className="inline-block text-primary-700 font-bold rotate-hor-center"
                 >
-                  {verbText}
+                  {currentVerb}
                 </span>
               </div>
               <div className="mt-2 text-2xl md:text-3xl text-primary-600 font-black tracking-tight min-h-[2.75rem] flex items-center justify-center">

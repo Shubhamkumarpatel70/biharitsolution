@@ -43,6 +43,8 @@ const PaymentOption = require("../models/PaymentOption");
 const ProjectRequirement = require("../models/ProjectRequirement");
 const Career = require("../models/Career");
 const CareerApplication = require("../models/CareerApplication");
+const FundTransaction = require("../models/FundTransaction");
+const { sendEmail } = require("../utils/email");
 const { parsePlanDurationDays } = require("../utils/planDuration");
 const multer = require("multer");
 const path = require("path");
@@ -645,6 +647,97 @@ router.get(
   },
 );
 
+// Admin/Co-Admin: Get funds balance and statements
+router.get(
+  "/admin/funds",
+  authMiddleware,
+  coAdminMiddleware,
+  async (req, res) => {
+    try {
+      const transactions = await FundTransaction.find()
+        .populate("createdBy", "name email role")
+        .sort({ createdAt: -1 });
+
+      const balance = transactions.reduce((total, item) => {
+        if (item.type === "add") return total + item.amount;
+        return total - item.amount;
+      }, 0);
+
+      res.json({
+        balance: Math.max(0, Math.round(balance * 100) / 100),
+        transactions,
+      });
+    } catch (err) {
+      console.error("Error fetching funds:", err);
+      res.status(500).json({ message: "Could not fetch funds data." });
+    }
+  },
+);
+
+// Admin/Co-Admin: Add or withdraw funds
+router.post(
+  "/admin/funds",
+  authMiddleware,
+  coAdminMiddleware,
+  async (req, res) => {
+    try {
+      const { type, amount, reason } = req.body;
+      const normalizedType = String(type || "").trim().toLowerCase();
+      const parsedAmount = Number(amount);
+      const normalizedReason = String(reason || "").trim();
+
+      if (!["add", "withdraw"].includes(normalizedType)) {
+        return res.status(400).json({ message: "Invalid transaction type." });
+      }
+      if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+        return res.status(400).json({ message: "Amount must be greater than zero." });
+      }
+      if (!normalizedReason) {
+        return res.status(400).json({ message: "Reason is required." });
+      }
+
+      const transactions = await FundTransaction.find().sort({ createdAt: -1 });
+      const currentBalance = transactions.reduce((total, item) => {
+        if (item.type === "add") return total + item.amount;
+        return total - item.amount;
+      }, 0);
+
+      if (normalizedType === "withdraw" && parsedAmount > currentBalance) {
+        return res.status(400).json({ message: "Insufficient funds for withdrawal." });
+      }
+
+      const transaction = await FundTransaction.create({
+        type: normalizedType,
+        amount: Math.round(parsedAmount * 100) / 100,
+        reason: normalizedReason,
+        createdBy: req.user.id,
+      });
+
+      const updatedBalance =
+        normalizedType === "add"
+          ? currentBalance + transaction.amount
+          : currentBalance - transaction.amount;
+
+      const populated = await FundTransaction.findById(transaction._id).populate(
+        "createdBy",
+        "name email role",
+      );
+
+      res.status(201).json({
+        message:
+          normalizedType === "add"
+            ? "Funds added successfully."
+            : "Funds withdrawn successfully.",
+        transaction: populated,
+        balance: Math.max(0, Math.round(updatedBalance * 100) / 100),
+      });
+    } catch (err) {
+      console.error("Error updating funds:", err);
+      res.status(500).json({ message: "Could not process fund transaction." });
+    }
+  },
+);
+
 // Admin: Send notification
 router.post(
   "/admin/notifications",
@@ -1115,6 +1208,87 @@ router.get(
       res.json({ subscribers });
     } catch (err) {
       res.status(500).json({ message: "Could not fetch subscribers." });
+    }
+  },
+);
+
+// Admin: Get unsubscribed newsletter users
+router.get(
+  "/admin/newsletter-unsubscribed",
+  authMiddleware,
+  coAdminMiddleware,
+  async (req, res) => {
+    try {
+      const subscribers = await NewsletterSubscriber.find({
+        status: "unsubscribed",
+      }).sort({ updatedAt: -1 });
+      res.json({ subscribers });
+    } catch (err) {
+      res.status(500).json({ message: "Could not fetch unsubscribed users." });
+    }
+  },
+);
+
+// Admin: Send promotional email to a specific email
+router.post(
+  "/admin/promotional-email",
+  authMiddleware,
+  coAdminMiddleware,
+  async (req, res) => {
+    try {
+      const { email, subject, message } = req.body;
+      const normalizedEmail = String(email || "")
+        .trim()
+        .toLowerCase();
+      const normalizedSubject = String(subject || "").trim();
+      const normalizedMessage = String(message || "").trim();
+
+      if (!normalizedEmail) {
+        return res.status(400).json({ message: "Email is required." });
+      }
+      if (!normalizedSubject) {
+        return res.status(400).json({ message: "Subject is required." });
+      }
+      if (!normalizedMessage) {
+        return res.status(400).json({ message: "Message is required." });
+      }
+
+      await NewsletterSubscriber.findOneAndUpdate(
+        { email: normalizedEmail },
+        { email: normalizedEmail, status: "subscribed" },
+        { upsert: true, new: true, setDefaultsOnInsert: true },
+      );
+
+      const clientBase = process.env.CLIENT_URL || "http://localhost:3000";
+      const unsubscribeUrl = `${clientBase.replace(/\/$/, "")}/unsubscribe-email?email=${encodeURIComponent(
+        normalizedEmail,
+      )}`;
+      const html = `
+        <div style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto; color: #0f172a;">
+          <h2 style="margin-bottom: 12px;">${normalizedSubject}</h2>
+          <div style="font-size: 15px; line-height: 1.6; color: #334155; white-space: pre-line;">${normalizedMessage}</div>
+          <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
+          <p style="font-size: 12px; color: #64748b; margin-bottom: 10px;">
+            You received this email because you have subscribed to updates from ASKC Digital Web.
+          </p>
+          <a href="${unsubscribeUrl}" style="display:inline-block;padding:10px 14px;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:8px;color:#0f172a;text-decoration:none;font-size:12px;font-weight:600;">
+            Unsubscribe
+          </a>
+        </div>
+      `;
+
+      await sendEmail(
+        normalizedEmail,
+        normalizedSubject,
+        normalizedMessage,
+        html,
+        "ASKC Digital Web <info@askcweb.in>",
+      );
+
+      res.json({ message: "Promotional email sent successfully." });
+    } catch (err) {
+      console.error("Error sending promotional email:", err);
+      res.status(500).json({ message: "Could not send promotional email." });
     }
   },
 );

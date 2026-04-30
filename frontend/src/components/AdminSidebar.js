@@ -3,6 +3,7 @@ import { Icon } from './icons';
 
 export const adminNavItems = [
   { id: 'home', label: 'Dashboard', iconName: 'home', category: 'main' },
+  { id: 'funds', label: 'Funds', iconName: 'currency', category: 'main' },
   { id: 'approve', label: 'Approve Subs', iconName: 'check', category: 'subscriptions' },
   { id: 'approved-plans', label: 'Approved Plans', iconName: 'clipboard', category: 'subscriptions' },
   { id: 'cancellations', label: 'Cancellations', iconName: 'close', category: 'subscriptions' },
@@ -19,6 +20,8 @@ export const adminNavItems = [
   { id: 'contacts', label: 'Contacts', iconName: 'mail', category: 'communication' },
   { id: 'careers', label: 'Careers', iconName: 'briefcase', category: 'careers' },
   { id: 'career-applications', label: 'Career Applications', iconName: 'document', category: 'careers' },
+  { id: 'promotional-email', label: 'Promotional Email', iconName: 'mail', category: 'communication' },
+  { id: 'promotional-unsubscribed', label: 'Promotional Unsubscribed', iconName: 'close', category: 'communication' },
   { id: 'newsletter', label: 'Newsletter Subs', iconName: 'clipboard', category: 'communication' },
   { id: 'payment-options', label: 'Payment Options', iconName: 'creditCard', category: 'settings' },
   { id: 'coupons', label: 'Coupons', iconName: 'currency', category: 'settings' },
