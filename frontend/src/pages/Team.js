@@ -160,7 +160,7 @@ function Team() {
 
                       {/* Bio */}
                       <p className="text-text-muted text-sm leading-relaxed line-clamp-3">
-                        {member.bio || 'Team member at askc web'}
+                        {member.bio || 'Team member at ASKC Digital Web'}
                       </p>
                     </div>
                   </div>

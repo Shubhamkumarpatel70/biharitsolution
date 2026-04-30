@@ -76,8 +76,8 @@ const Footer = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 lg:gap-10 mb-14 lg:mb-16">
           {/* Column 1 — Company */}
           <div className="lg:pr-8 xl:pr-10">
-            <div title="askc web">
-              <Logo showText={true} size="large" />
+            <div title="ASKC Digital Web">
+              <Logo showText={true} size="large" theme="dark" />
             </div>
             <p className="text-white/85 text-sm leading-relaxed mt-5 max-w-md">
               We build fast, accessible websites and apps with modern stacks—so your business can grow with a
@@ -107,7 +107,7 @@ const Footer = () => {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-white/10 hover:bg-accent-500 text-white border border-white/10 hover:border-accent-400 transition-all duration-300 hover:scale-105"
-                aria-label="askc web on Instagram"
+                aria-label="ASKC Digital Web on Instagram"
                 title="Instagram @askc_digitalweb"
               >
                 <Icon name="instagram" className="w-5 h-5" />
@@ -280,7 +280,7 @@ const Footer = () => {
 
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2 border-t border-white/10">
           <p className="text-white/55 text-sm text-center sm:text-left">
-            © {currentYear} askc web. All rights reserved.
+            © {currentYear} ASKC Digital Web. All rights reserved.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm">
             <Link to="/careers" className="text-accent-300 hover:text-accent-200 font-semibold transition-colors">

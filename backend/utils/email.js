@@ -1,25 +1,36 @@
 const nodemailer = require("nodemailer");
 
-// Configure your SMTP settings here
+const port = Number(process.env.SMTP_PORT);
+
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || "smtp.gmail.com",
-  port: parseInt(process.env.SMTP_PORT || "465"),
-  secure: parseInt(process.env.SMTP_PORT || "465") === 465, // true for 465, false for other ports
+  host: process.env.SMTP_HOST,
+  port,
+  secure: port === 465,
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
+  connectionTimeout: 5000, // 5 seconds
+  greetingTimeout: 5000,
+  socketTimeout: 5000,
 });
 
 async function sendEmail(to, subject, text, html, from) {
-  const mailOptions = {
-    from: from || process.env.SMTP_FROM || '"AskC Web" <no-reply@askcweb.in>',
-    to,
-    subject,
-    text,
-    html: html || text,
-  };
-  return transporter.sendMail(mailOptions);
+  try {
+    const info = await transporter.sendMail({
+      from: from || process.env.SMTP_FROM,
+      to,
+      subject,
+      text,
+      html: html || text,
+    });
+
+    console.log("Email sent:", info.response);
+    return info;
+  } catch (error) {
+    console.error("EMAIL ERROR:", error);
+    throw error;
+  }
 }
 
 module.exports = { sendEmail };

@@ -198,7 +198,7 @@ function Features() {
             <div className="bg-white rounded-xl border border-gray-200 shadow-md overflow-hidden min-w-[520px] sm:min-w-0">
               <div className="grid grid-cols-3 gap-2 sm:gap-4 bg-gradient-primary p-3 sm:p-4 text-white font-bold text-sm sm:text-base">
                 <div className="text-left pl-1">Feature</div>
-                <div className="text-center">askc web</div>
+                <div className="text-center">ASKC Digital Web</div>
                 <div className="text-center">Typical</div>
               </div>
               <div className="divide-y divide-gray-200">
@@ -247,7 +247,7 @@ function Features() {
           <div className="max-w-3xl mx-auto text-center px-2">
             <h2 className="text-3xl md:text-4xl font-black text-white mb-4">Ready to use these features?</h2>
             <p className="text-white/90 text-lg mb-8">
-              Get started with askc web and ship a site that is fast, secure, and easy to maintain.
+              Get started with ASKC Digital Web and ship a site that is fast, secure, and easy to maintain.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link

@@ -78,7 +78,7 @@ function Careers() {
     const text = `askc digital web opening positions for ${job.title}`;
     try {
       if (navigator.share) {
-        await navigator.share({ title: 'askc web — Careers', text, url });
+        await navigator.share({ title: 'ASKC Digital Web — Careers', text, url });
         setShareJob(null);
       }
     } catch (e) {

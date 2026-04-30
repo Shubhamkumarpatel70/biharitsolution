@@ -132,9 +132,9 @@ function Navbar() {
               to="/"
               className="flex items-center no-underline z-[1100] min-w-0 shrink"
               aria-label="Home"
-              title="askc web"
+              title="ASKC Digital Web"
             >
-              <Logo showText={true} size="default" />
+              <Logo showText={!isMobileMenuOpen} size="default" />
             </Link>
 
             {/* Desktop Navigation */}

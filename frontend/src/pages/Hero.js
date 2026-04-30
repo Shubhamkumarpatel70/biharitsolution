@@ -107,8 +107,8 @@ const Hero = () => {
               className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black mb-6 leading-[1.1] text-primary-900 tracking-tight"
               id="hero-title"
             >
-              Welcome to{" "}
-              <span className="text-primary-600 block sm:inline">askc web</span>
+              Welcome to
+              <span className="text-primary-600 block mt-2">ASKC Digital Web</span>
             </h1>
 
             {/* Subtitle */}

@@ -76,23 +76,42 @@ exports.verifyRegisterOtp = async (req, res) => {
 // Send OTP for forgot password
 exports.sendForgotOtp = async (req, res) => {
   try {
+    console.log("sendForgotOtp requested for:", req.body.email);
     const { email } = req.body;
     if (!email) return res.status(400).json({ message: "Email is required." });
+    
+    console.log("Checking if user exists...");
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: "User not found." });
+    
+    console.log("Generating OTP...");
     const otp = generateOtp();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    
+    console.log("Saving OTP to database...");
     await Otp.deleteMany({ email, purpose: "forgot" });
-    await Otp.create({ email, otp, purpose: "forgot", expiresAt });
+    const savedOtp = await Otp.create({ email, otp, purpose: "forgot", expiresAt });
+    console.log("SUCCESS: OTP stored in database! Record:", savedOtp);
     
     const html = generateOtpEmailHtml(
       otp, 
       "Reset your Password", 
       "We received a request to reset your password. Please use the verification code below to proceed."
     );
+    
+    console.log("Attempting to send email via SMTP...");
     await sendEmail(email, "Your Password Reset Code", `Your OTP is: ${otp}`, html);
+    
+    console.log("==================================================");
+    console.log("SUCCESS: OTP EMAIL SENT SUCCESSFULLY!");
+    console.log("==================================================");
+    
     res.json({ message: "OTP sent to email." });
   } catch (err) {
+    console.log("==================================================");
+    console.error("FAILURE: OTP EMAIL FAILED TO SEND!");
+    console.error("Error details:", err.message);
+    console.log("==================================================");
     res.status(500).json({ message: "Could not send OTP." });
   }
 };

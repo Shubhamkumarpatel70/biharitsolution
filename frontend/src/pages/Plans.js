@@ -86,7 +86,7 @@ function Plans() {
     ]
       .filter(Boolean)
       .join(" · ");
-    return `askc web pricing plan\n\n${details}\n\n${url}`;
+    return `ASKC Digital Web pricing plan\n\n${details}\n\n${url}`;
   };
 
   const copyToClipboard = async (text, okText) => {
@@ -105,8 +105,8 @@ function Plans() {
     try {
       if (navigator.share) {
         await navigator.share({
-          title: "askc web — Pricing plans",
-          text: `askc web pricing plan: ${plan.name}`,
+          title: "ASKC Digital Web — Pricing plans",
+          text: `ASKC Digital Web pricing plan: ${plan.name}`,
           url: planShareUrl(plan),
         });
         setSharePlan(null);

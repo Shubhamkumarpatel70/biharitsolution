@@ -243,7 +243,7 @@ function Login() {
       >
         <div className="text-center">
           <h1 className="text-2xl sm:text-3xl font-bold text-primary-900 tracking-tight">Sign in</h1>
-          <p className="text-text-muted text-sm mt-1">Welcome back to askc web</p>
+          <p className="text-text-muted text-sm mt-1">Welcome back to ASKC Digital Web</p>
         </div>
 
         {location.state?.success && (

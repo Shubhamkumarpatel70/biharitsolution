@@ -16,7 +16,7 @@ function HomeIntro() {
             <div 
               className="intro-image" 
               role="img" 
-              aria-label="askc web team working on digital projects"
+              aria-label="ASKC Digital Web team working on digital projects"
             >
               {/* Optional: Add actual image tag or background image */}
               <div className="image-placeholder">
@@ -29,7 +29,7 @@ function HomeIntro() {
           <div className="intro-content">
             <header className="intro-header">
               <h2 id="intro-title" className="intro-title">
-                About askc web
+                About ASKC Digital Web
               </h2>
               <p className="intro-subtitle">
                 Delivering excellence in digital innovation

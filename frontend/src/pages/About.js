@@ -4,7 +4,7 @@ import PageHero from '../components/PageHero';
 import { Icon } from '../components/icons';
 
 const highlights = [
-  { year: '2022', text: 'Founded askc web', icon: 'rocket', description: 'Started our journey with a vision to create amazing digital experiences' },
+  { year: '2022', text: 'Founded ASKC Digital Web', icon: 'rocket', description: 'Started our journey with a vision to create amazing digital experiences' },
   { year: '2023', text: '10+ Satisfied Clients', icon: 'users', description: 'Built trust and delivered exceptional results for our growing client base' },
   { year: '2024', text: '12+ Projects Completed', icon: 'trophy', description: 'Successfully launched diverse projects across different industries' },
 ];
@@ -38,7 +38,7 @@ function About() {
             <div className="space-y-6">
               <h2 className="section-title text-left">Who We Are</h2>
               <p className="text-text-main leading-relaxed text-lg">
-                At <span className="font-bold text-primary-600">askc web</span>, we believe in delivering excellence in every project. Our team is passionate about building creative, innovative, and reliable digital solutions that help our clients grow online.
+                At <span className="font-bold text-primary-600">ASKC Digital Web</span>, we believe in delivering excellence in every project. Our team is passionate about building creative, innovative, and reliable digital solutions that help our clients grow online.
               </p>
               <p className="text-text-muted leading-relaxed">
                 We specialize in creating modern, responsive websites that not only look great but also perform exceptionally well. Our commitment to quality, innovation, and customer satisfaction sets us apart in the competitive web development industry.
@@ -94,6 +94,43 @@ function About() {
                 ))}
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Certifications & Recognition */}
+      <section className="py-12 md:py-20 bg-white border-t border-gray-100">
+        <div className="container">
+          <div className="section-header text-center mb-10">
+            <h2 className="section-title">Certifications & Recognition</h2>
+            <p className="section-subtitle mx-auto">
+              We are proud to be recognized by the Government of India for our innovation and contribution to the digital economy.
+            </p>
+          </div>
+          <div className="flex flex-col md:flex-row justify-center gap-8 md:gap-12 items-center">
+            
+            {/* Startup India Badge */}
+            <div className="flex flex-col items-center p-6 bg-gray-50 border border-gray-200 rounded-2xl w-full max-w-sm hover:shadow-lg transition-all duration-300">
+              <div className="w-20 h-20 bg-gradient-to-br from-orange-500 to-orange-600 text-white rounded-full flex items-center justify-center mb-4 shadow-md ring-4 ring-orange-100">
+                <Icon name="rocket" className="w-10 h-10" strokeWidth={2} />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Startup India</h3>
+              <p className="text-gray-600 text-center text-sm">
+                Recognized as a certified Startup under the Department for Promotion of Industry and Internal Trade (DPIIT), Government of India.
+              </p>
+            </div>
+
+            {/* MSME Badge */}
+            <div className="flex flex-col items-center p-6 bg-gray-50 border border-gray-200 rounded-2xl w-full max-w-sm hover:shadow-lg transition-all duration-300">
+              <div className="w-20 h-20 bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-full flex items-center justify-center mb-4 shadow-md ring-4 ring-blue-100">
+                <Icon name="shield" className="w-10 h-10" strokeWidth={2} />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">MSME Registered</h3>
+              <p className="text-gray-600 text-center text-sm">
+                Officially registered under the Ministry of Micro, Small and Medium Enterprises, ensuring trusted and verified business operations.
+              </p>
+            </div>
+
           </div>
         </div>
       </section>
