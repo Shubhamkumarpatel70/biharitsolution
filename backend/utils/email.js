@@ -9,9 +9,9 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-async function sendEmail(to, subject, text, html) {
+async function sendEmail(to, subject, text, html, from) {
   const mailOptions = {
-    from: process.env.SMTP_USER,
+    from: from || process.env.SMTP_FROM || '"AskC Web" <no-reply@askcweb.in>',
     to,
     subject,
     text,
