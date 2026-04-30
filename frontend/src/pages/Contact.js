@@ -6,8 +6,8 @@ import axios from '../axios';
 const contactMethods = [
   {
     title: 'Email',
-    content: 'askcweb@gmail.com',
-    link: 'mailto:askcweb@gmail.com',
+    content: 'contact@askcweb.in',
+    link: 'mailto:contact@askcweb.in',
     icon: 'mail'
   },
   {
@@ -271,8 +271,8 @@ function Contact() {
 
                 {message && (
                   <div className={`p-4 rounded-lg ${message.includes('Thank you')
-                      ? 'bg-success-50 text-success-600 border border-success-200'
-                      : 'bg-danger-50 text-danger-600 border border-danger-200'
+                    ? 'bg-success-50 text-success-600 border border-success-200'
+                    : 'bg-danger-50 text-danger-600 border border-danger-200'
                     }`}>
                     {message}
                   </div>
@@ -337,7 +337,7 @@ function Contact() {
               Let's discuss your requirements and create something amazing together.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <a href="mailto:askcweb@gmail.com" className="btn btn-primary">
+              <a href="mailto:contact@askcweb.in" className="btn btn-primary">
                 Email Us Now
                 <span className="transition-transform duration-300 group-hover:translate-x-1">→</span>
               </a>

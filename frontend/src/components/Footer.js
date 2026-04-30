@@ -129,10 +129,9 @@ const Footer = () => {
                       to={link.to}
                       className={`
                         group flex items-center gap-2 py-2 text-sm rounded-lg px-2 -mx-2 transition-colors
-                        ${
-                          link.highlight
-                            ? 'text-accent-300 font-semibold hover:bg-white/10'
-                            : 'text-white/80 hover:text-white hover:bg-white/5'
+                        ${link.highlight
+                          ? 'text-accent-300 font-semibold hover:bg-white/10'
+                          : 'text-white/80 hover:text-white hover:bg-white/5'
                         }
                       `}
                     >
@@ -178,7 +177,7 @@ const Footer = () => {
             <div className="space-y-4 max-w-md">
               {[
                 { icon: 'mapPin', label: 'Address', value: 'Bihar, Patna, India' },
-                { icon: 'mail', label: 'Email', value: 'askcweb@gmail.com', link: 'mailto:askcweb@gmail.com' },
+                { icon: 'mail', label: 'Email', value: 'contact@askcweb.in', link: 'mailto:contact@askcweb.in' },
                 { icon: 'phone', label: 'Phone', value: '+91 9027880288', link: 'tel:+919027880288' },
                 { icon: 'clock', label: 'Hours', value: 'Mon–Fri: 11AM – 4PM' },
               ].map((item, idx) => (
@@ -264,11 +263,10 @@ const Footer = () => {
             </div>
             {newsletterMsg && (
               <div
-                className={`text-center py-3 px-4 rounded-xl text-sm font-medium ${
-                  newsletterMsg.includes('Thank you') || newsletterMsg.includes('unsubscribed')
+                className={`text-center py-3 px-4 rounded-xl text-sm font-medium ${newsletterMsg.includes('Thank you') || newsletterMsg.includes('unsubscribed')
                     ? 'bg-emerald-500/15 text-emerald-200 border border-emerald-400/25'
                     : 'bg-red-500/15 text-red-200 border border-red-400/25'
-                }`}
+                  }`}
                 role="status"
                 aria-live="polite"
               >

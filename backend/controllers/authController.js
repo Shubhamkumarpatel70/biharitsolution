@@ -14,21 +14,108 @@ function generateOtp() {
 }
 
 const generateOtpEmailHtml = (otp, title, description) => `
-<div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f8fafc; padding: 40px 20px; border-radius: 12px;">
-  <div style="background-color: #ffffff; padding: 40px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); text-align: center; border: 1px solid #e2e8f0;">
-    <h1 style="color: #0f172a; margin-top: 0; font-size: 24px; font-weight: 700;">${title}</h1>
-    <p style="color: #475569; font-size: 16px; line-height: 1.6; margin-bottom: 32px;">
-      ${description}
-    </p>
-    <div style="background-color: #f1f5f9; padding: 24px; border-radius: 8px; margin-bottom: 32px; border: 1px dashed #cbd5e1;">
-      <span style="font-size: 36px; font-weight: 800; color: #0f172a; letter-spacing: 8px;">${otp}</span>
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background-color: #ffffff;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 500px;
+      margin: 0 auto;
+      padding: 40px 20px;
+      text-align: center;
+    }
+    .logo {
+      font-size: 24px;
+      font-weight: 900;
+      color: #0f172a;
+      letter-spacing: -0.5px;
+      margin-bottom: 40px;
+      text-decoration: none;
+    }
+    .title {
+      color: #0f172a;
+      font-size: 24px;
+      font-weight: 700;
+      margin: 0 0 30px 0;
+    }
+    .otp-box {
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 30px 20px;
+      margin-bottom: 30px;
+    }
+    .otp-code {
+      font-size: 42px;
+      font-weight: 800;
+      color: #6366f1; /* Modern indigo/purple */
+      letter-spacing: 6px;
+      margin: 0;
+    }
+    .desc {
+      color: #334155;
+      font-size: 14px;
+      margin: 0 0 15px 0;
+    }
+    .note {
+      color: #0f172a;
+      font-size: 14px;
+      margin: 0;
+    }
+    .divider {
+      border: none;
+      border-top: 1px solid #e2e8f0;
+      margin: 40px 0;
+    }
+    .footer {
+      color: #64748b;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+    .footer a {
+      color: #64748b;
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div style="margin-bottom: 30px;">
+      <a href="https://askcweb.in" class="logo">ASKC Digital Web</a>
     </div>
-    <p style="color: #64748b; font-size: 14px; line-height: 1.5;">
-      This code will expire in 10 minutes.<br/>
-      If you did not request this, please ignore this email.
-    </p>
+    
+    <h1 class="title">${title}</h1>
+    
+    <div class="otp-box">
+      <p class="otp-code">${otp}</p>
+    </div>
+    
+    <p class="desc">Please make sure you never share this code with anyone.</p>
+    <p class="note"><b>Note:</b> The code will expire in 10 minutes.</p>
+    
+    <hr class="divider" />
+    
+    <div class="footer">
+      <p style="margin-bottom: 20px;">
+        You have received this email because you initiated a request at ASKC Digital Web, to ensure the security of your account.
+      </p>
+      <p>
+        <a href="https://askcweb.in/privacy">Privacy policy</a> | <a href="https://askcweb.in/contact">Help center</a><br/>
+        Contact Us: <a href="mailto:support@askcweb.in">support@askcweb.in</a>
+      </p>
+      <p style="margin-top: 20px;">
+        &copy; ${new Date().getFullYear()} ASKC Digital Web. All rights reserved.
+      </p>
+    </div>
   </div>
-</div>
+</body>
+</html>
 `;
 
 // Send OTP for registration
@@ -43,10 +130,10 @@ exports.sendRegisterOtp = async (req, res) => {
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
     await Otp.deleteMany({ email, purpose: "register" });
     await Otp.create({ email, otp, purpose: "register", expiresAt });
-    
+
     const html = generateOtpEmailHtml(
-      otp, 
-      "Verify your Email", 
+      otp,
+      "Verify your Email",
       "Thank you for registering. Please use the verification code below to complete your registration."
     );
     await sendEmail(email, "Your Registration Verification Code", `Your OTP is: ${otp}`, html);
@@ -79,35 +166,35 @@ exports.sendForgotOtp = async (req, res) => {
     console.log("sendForgotOtp requested for:", req.body.email);
     const { email } = req.body;
     if (!email) return res.status(400).json({ message: "Email is required." });
-    
+
     console.log("Checking if user exists...");
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: "User not found." });
-    
+
     console.log("Generating OTP...");
     const otp = generateOtp();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
-    
+
     console.log("Saving OTP to database...");
     await Otp.deleteMany({ email, purpose: "forgot" });
     const savedOtp = await Otp.create({ email, otp, purpose: "forgot", expiresAt });
     console.log("SUCCESS: OTP stored in database! Record:", savedOtp);
-    
+
     const html = generateOtpEmailHtml(
-      otp, 
-      "Reset your Password", 
+      otp,
+      "Reset your Password",
       "We received a request to reset your password. Please use the verification code below to proceed."
     );
-    
+
     console.log("Attempting to send email via SMTP...");
     console.log("Before sending email");
     await sendEmail(email, "Your Password Reset Code", `Your OTP is: ${otp}`, html);
     console.log("After sending email");
-    
+
     console.log("==================================================");
     console.log("SUCCESS: OTP EMAIL SENT SUCCESSFULLY!");
     console.log("==================================================");
-    
+
     res.json({ message: "OTP sent to email." });
   } catch (err) {
     console.log("==================================================");
@@ -129,11 +216,11 @@ exports.verifyForgotOtp = async (req, res) => {
       return res.status(400).json({ message: "Invalid or expired OTP." });
     }
     await Otp.deleteMany({ email, purpose: "forgot" });
-    
+
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: "User not found." });
 
-    res.json({ 
+    res.json({
       message: "OTP verified.",
       user: {
         name: user.name,

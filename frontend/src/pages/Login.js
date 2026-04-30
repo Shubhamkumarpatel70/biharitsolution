@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import axios from '../axios';
 import { UserContext } from '../UserContext';
 import { Icon } from '../components/icons';
-
+import OtpInput from '../components/OtpInput';
 function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -168,8 +168,8 @@ function Login() {
 
   const handleVerifyForgotOtp = async (e) => {
     e.preventDefault();
-    if (!forgotOtp.trim()) {
-      setMessage('Please enter the OTP.');
+    if (forgotOtp.length !== 6) {
+      setMessage('Please enter all 6 digits.');
       return;
     }
     setForgotPasswordLoading(true);
@@ -461,22 +461,13 @@ function Login() {
                 </>
               ) : (
                 <>
-                  <p className="text-sm text-gray-400 text-center">Enter the verification code sent to your email.</p>
-                  <div className="relative">
-                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" aria-hidden>
-                      <Icon name="lock" className="w-5 h-5" />
-                    </span>
-                    <input
-                      id="forgot-otp"
-                      type="text"
-                      placeholder="Enter 6-digit OTP"
-                      value={forgotOtp}
-                      onChange={(e) => setForgotOtp(e.target.value)}
-                      required
-                      disabled={forgotPasswordLoading}
-                      className={inputDarkClass}
-                    />
-                  </div>
+                  <p className="text-sm text-gray-400 text-center">Enter the 6-digit verification code sent to your email.</p>
+                  <OtpInput 
+                    length={6} 
+                    value={forgotOtp} 
+                    onChange={setForgotOtp} 
+                    disabled={forgotPasswordLoading} 
+                  />
                   <button
                     type="submit"
                     disabled={forgotPasswordLoading || !forgotOtp.trim()}

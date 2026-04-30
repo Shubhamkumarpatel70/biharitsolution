@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import axios from "../axios";
 import { useNavigate } from "react-router-dom";
+import OtpInput from "../components/OtpInput";
 
 function VerifyOtp({ email, onSuccess }) {
   const [otp, setOtp] = useState("");
@@ -10,6 +11,10 @@ function VerifyOtp({ email, onSuccess }) {
 
   const handleVerify = async (e) => {
     e.preventDefault();
+    if (otp.length !== 6) {
+      setMessage("Please enter all 6 digits.");
+      return;
+    }
     setLoading(true);
     setMessage("");
     try {
@@ -29,15 +34,11 @@ function VerifyOtp({ email, onSuccess }) {
   return (
     <div className="max-w-md w-full mx-auto bg-white p-6 rounded-xl shadow border mt-12">
       <h2 className="text-2xl font-bold mb-4 text-center">Verify Email OTP</h2>
+      <p className="text-center text-gray-500 mb-6 text-sm">
+        Enter the 6-digit verification code sent to {email}
+      </p>
       <form onSubmit={handleVerify} className="space-y-4">
-        <input
-          type="text"
-          className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none"
-          placeholder="Enter OTP sent to your email"
-          value={otp}
-          onChange={(e) => setOtp(e.target.value)}
-          required
-        />
+        <OtpInput length={6} value={otp} onChange={setOtp} disabled={loading} />
         {message && (
           <div className="text-center text-sm text-danger-600">{message}</div>
         )}
