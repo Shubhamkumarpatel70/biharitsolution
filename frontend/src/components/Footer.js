@@ -281,14 +281,17 @@ const Footer = () => {
             © {currentYear} ASKC Digital Web. All rights reserved.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm">
+            <Link to="/privacy" className="text-white/70 hover:text-white transition-colors">
+              Privacy Policy
+            </Link>
+            <Link to="/terms" className="text-white/70 hover:text-white transition-colors">
+              Terms & Conditions
+            </Link>
+            <Link to="/refund" className="text-white/70 hover:text-white transition-colors">
+              Refund Policy
+            </Link>
             <Link to="/careers" className="text-accent-300 hover:text-accent-200 font-semibold transition-colors">
               Careers
-            </Link>
-            <Link to="/contact" className="text-white/70 hover:text-white transition-colors">
-              Contact
-            </Link>
-            <Link to="/plans" className="text-white/70 hover:text-white transition-colors">
-              Plans
             </Link>
           </div>
         </div>

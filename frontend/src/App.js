@@ -32,6 +32,9 @@ import AdminPlans from './pages/AdminPlans';
 import AdminContacts from './pages/AdminContacts';
 import AdminCancellations from './pages/AdminCancellations';
 import NotFound from './pages/NotFound';
+import Privacy from './pages/Privacy';
+import Terms from './pages/Terms';
+import Refund from './pages/Refund';
 import { UserProvider, UserContext } from './UserContext';
 import axios from 'axios';
 
@@ -84,6 +87,9 @@ function AppContent() {
           <Route path='/team' element={<Team />} />
           <Route path='/contact' element={<Contact />} />
           <Route path='/careers' element={<Careers />} />
+          <Route path='/privacy' element={<Privacy />} />
+          <Route path='/terms' element={<Terms />} />
+          <Route path='/refund' element={<Refund />} />
           <Route path='/login' element={<Login />} />
           <Route path='/register' element={<Register />} />
           <Route path='/dashboard/*' element={<Dashboard />}>
