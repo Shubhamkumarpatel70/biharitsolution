@@ -100,7 +100,9 @@ exports.sendForgotOtp = async (req, res) => {
     );
     
     console.log("Attempting to send email via SMTP...");
+    console.log("Before sending email");
     await sendEmail(email, "Your Password Reset Code", `Your OTP is: ${otp}`, html);
+    console.log("After sending email");
     
     console.log("==================================================");
     console.log("SUCCESS: OTP EMAIL SENT SUCCESSFULLY!");
