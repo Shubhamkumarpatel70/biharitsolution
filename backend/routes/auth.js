@@ -89,20 +89,7 @@ function normalizeResumeMime(mimetype, originalname) {
 
 // Duplicate resumeUpload declaration removed. Only the first declaration is kept.
 
-// Configure multer for memory storage (to convert to base64)
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit
-  },
-  fileFilter: function (req, file, cb) {
-    if (file.mimetype.startsWith("image/")) {
-      cb(null, true);
-    } else {
-      cb(new Error("Only image files are allowed!"), false);
-    }
-  },
-});
+// Duplicate 'upload' declaration removed. Only the top-of-file declaration is kept.
 
 // Duplicate 'bufferToBase64' declaration removed. Only the first declaration is kept.
 
