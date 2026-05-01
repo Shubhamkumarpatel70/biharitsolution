@@ -1153,9 +1153,12 @@ router.patch(
 // Newsletter subscribe endpoint
 router.post("/newsletter/subscribe", async (req, res) => {
   try {
-    const { email } = req.body;
-    if (!email) return res.status(400).json({ message: "Email is required." });
-    let subscriber = await NewsletterSubscriber.findOne({ email });
+    const normalizedEmail = String(req.body.email || "")
+      .trim()
+      .toLowerCase();
+    if (!normalizedEmail)
+      return res.status(400).json({ message: "Email is required." });
+    let subscriber = await NewsletterSubscriber.findOne({ email: normalizedEmail });
     if (subscriber) {
       if (subscriber.status === "subscribed") {
         return res.status(400).json({ message: "Already subscribed." });
@@ -1166,7 +1169,7 @@ router.post("/newsletter/subscribe", async (req, res) => {
       }
     }
     subscriber = await NewsletterSubscriber.create({
-      email,
+      email: normalizedEmail,
       status: "subscribed",
     });
     res.status(201).json({ message: "Subscribed successfully." });
@@ -1178,15 +1181,23 @@ router.post("/newsletter/subscribe", async (req, res) => {
 // Newsletter unsubscribe endpoint
 router.post("/newsletter/unsubscribe", async (req, res) => {
   try {
-    const { email } = req.body;
-    if (!email) return res.status(400).json({ message: "Email is required." });
-    const subscriber = await NewsletterSubscriber.findOne({ email });
-    if (!subscriber)
-      return res
-        .status(404)
-        .json({ message: "Email not found in subscribers." });
-    if (subscriber.status === "unsubscribed")
-      return res.status(400).json({ message: "Already unsubscribed." });
+    const normalizedEmail = String(req.body.email || "")
+      .trim()
+      .toLowerCase();
+    if (!normalizedEmail)
+      return res.status(400).json({ message: "Email is required." });
+
+    const subscriber = await NewsletterSubscriber.findOne({ email: normalizedEmail });
+    if (!subscriber) {
+      await NewsletterSubscriber.create({
+        email: normalizedEmail,
+        status: "unsubscribed",
+      });
+      return res.json({ message: "Unsubscribed successfully." });
+    }
+    if (subscriber.status === "unsubscribed") {
+      return res.json({ message: "Unsubscribed successfully." });
+    }
     subscriber.status = "unsubscribed";
     await subscriber.save();
     res.json({ message: "Unsubscribed successfully." });
@@ -1259,21 +1270,41 @@ router.post(
         { upsert: true, new: true, setDefaultsOnInsert: true },
       );
 
-      const clientBase = process.env.CLIENT_URL || "http://localhost:3000";
+      const clientBase = process.env.PROMOTIONAL_UNSUBSCRIBE_URL || "http://localhost:3000";
       const unsubscribeUrl = `${clientBase.replace(/\/$/, "")}/unsubscribe-email?email=${encodeURIComponent(
         normalizedEmail,
       )}`;
+      const escapedSubject = normalizedSubject
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+      const escapedMessage = normalizedMessage
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\n/g, "<br/>");
       const html = `
-        <div style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto; color: #0f172a;">
-          <h2 style="margin-bottom: 12px;">${normalizedSubject}</h2>
-          <div style="font-size: 15px; line-height: 1.6; color: #334155; white-space: pre-line;">${normalizedMessage}</div>
-          <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
-          <p style="font-size: 12px; color: #64748b; margin-bottom: 10px;">
-            You received this email because you have subscribed to updates from ASKC Digital Web.
+        <div style="margin:0;padding:24px;background:#f8fafc;font-family:Arial,Helvetica,sans-serif;color:#0f172a;">
+          <div style="max-width:620px;margin:0 auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;">
+            <div style="padding:20px 24px;background:linear-gradient(135deg,#0f172a,#1e293b);">
+              <div style="font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#94a3b8;font-weight:700;">ASKC Digital Web</div>
+              <h2 style="margin:10px 0 0 0;font-size:22px;line-height:1.3;color:#ffffff;">${escapedSubject}</h2>
+            </div>
+            <div style="padding:24px;">
+              <div style="font-size:15px;line-height:1.7;color:#334155;">${escapedMessage}</div>
+              <div style="margin-top:24px;padding-top:16px;border-top:1px solid #e2e8f0;">
+                <p style="font-size:12px;color:#64748b;margin:0 0 10px 0;">
+                  You received this email because you have subscribed to updates from ASKC Digital Web.
+                </p>
+                <a href="${unsubscribeUrl}" style="display:inline-block;padding:10px 14px;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:8px;color:#0f172a;text-decoration:none;font-size:12px;font-weight:700;">
+                  Unsubscribe
+                </a>
+              </div>
+            </div>
+          </div>
+          <p style="max-width:620px;margin:12px auto 0 auto;font-size:11px;color:#94a3b8;text-align:center;">
+            Need help? Contact support@askcweb.in
           </p>
-          <a href="${unsubscribeUrl}" style="display:inline-block;padding:10px 14px;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:8px;color:#0f172a;text-decoration:none;font-size:12px;font-weight:600;">
-            Unsubscribe
-          </a>
         </div>
       `;
 

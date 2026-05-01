@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { adminNavItems } from './AdminSidebar';
 import { Icon } from './icons';
 
-const AdminBottomNav = ({ activeTab, setActiveTab, userRole = 'admin' }) => {
+const AdminBottomNav = ({ activeTab, setActiveTab, userRole = 'admin', sidebarOpen = false }) => {
   const navigate = useNavigate();
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -16,7 +16,11 @@ const AdminBottomNav = ({ activeTab, setActiveTab, userRole = 'admin' }) => {
     : adminNavItems;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur border-t border-slate-200 z-50 lg:hidden shadow-[0_-8px_24px_rgba(15,23,42,0.08)]">
+    <nav
+      className={`fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur border-t border-slate-200 z-50 lg:hidden shadow-[0_-8px_24px_rgba(15,23,42,0.08)] transition-opacity duration-200 ${
+        sidebarOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'
+      }`}
+    >
       <div className="flex items-stretch justify-around h-16 max-w-lg mx-auto px-1">
         {filteredNavItems.slice(0, 4).map(item => (
           <button

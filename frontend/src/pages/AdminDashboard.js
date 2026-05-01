@@ -122,7 +122,7 @@ const AdminDashboard = () => {
     <div className="min-h-screen min-h-dvh bg-slate-100 flex">
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-slate-900/40 z-40 lg:hidden"
+          className="fixed inset-0 bg-slate-900/40 z-[60] lg:hidden"
           onClick={() => setSidebarOpen(false)}
           aria-hidden
         />
@@ -131,7 +131,7 @@ const AdminDashboard = () => {
       <button
         type="button"
         onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 inline-flex items-center gap-2 bg-slate-900 text-white border border-slate-700 rounded-xl px-3 py-2.5 shadow-lg hover:bg-slate-800 transition-colors"
+        className="lg:hidden fixed top-4 left-4 z-[80] inline-flex items-center gap-2 bg-slate-900 text-white border border-slate-700 rounded-xl px-3 py-2.5 shadow-lg hover:bg-slate-800 transition-colors"
         aria-label="Open sidebar"
       >
         <Icon name="menu" className="w-5 h-5" strokeWidth={2.2} />
@@ -140,7 +140,7 @@ const AdminDashboard = () => {
 
       <aside
         className={`
-        fixed lg:static inset-y-0 left-0 z-50 flex flex-col
+        fixed lg:static inset-y-0 left-0 z-[70] flex flex-col
         h-dvh max-h-dvh lg:h-screen lg:max-h-screen
         transform transition-transform duration-300 ease-in-out
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
@@ -194,7 +194,12 @@ const AdminDashboard = () => {
         </div>
       </main>
 
-      <AdminBottomNav activeTab={activeTab} setActiveTab={setActiveTab} userRole={userRole} />
+      <AdminBottomNav
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        userRole={userRole}
+        sidebarOpen={sidebarOpen}
+      />
     </div>
   );
 };
