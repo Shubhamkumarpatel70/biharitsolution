@@ -218,6 +218,35 @@ function coAdminMiddleware(req, res, next) {
     .json({ message: "Admin or Co-admin access required." });
 }
 
+/**
+ * Absolute base URL of the public website (scheme + host, no trailing slash).
+ * Used for links inside emails so they never point to localhost in production.
+ */
+function getPublicSiteOrigin() {
+  const explicit =
+    process.env.PROMOTIONAL_UNSUBSCRIBE_URL ||
+    process.env.PUBLIC_SITE_URL ||
+    process.env.FRONTEND_URL ||
+    process.env.CLIENT_URL ||
+    process.env.REACT_APP_API_URL;
+
+  if (explicit && String(explicit).trim()) {
+    const raw = String(explicit).trim();
+    try {
+      const u = new URL(raw.includes("://") ? raw : `https://${raw}`);
+      return u.origin.replace(/\/$/, "");
+    } catch {
+      return null;
+    }
+  }
+
+  if (process.env.NODE_ENV !== "production") {
+    return "http://localhost:3000";
+  }
+
+  return null;
+}
+
 // Create a new subscription (after payment)
 router.post(
   "/subscribe",
@@ -682,7 +711,9 @@ router.post(
   async (req, res) => {
     try {
       const { type, amount, reason } = req.body;
-      const normalizedType = String(type || "").trim().toLowerCase();
+      const normalizedType = String(type || "")
+        .trim()
+        .toLowerCase();
       const parsedAmount = Number(amount);
       const normalizedReason = String(reason || "").trim();
 
@@ -690,7 +721,9 @@ router.post(
         return res.status(400).json({ message: "Invalid transaction type." });
       }
       if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
-        return res.status(400).json({ message: "Amount must be greater than zero." });
+        return res
+          .status(400)
+          .json({ message: "Amount must be greater than zero." });
       }
       if (!normalizedReason) {
         return res.status(400).json({ message: "Reason is required." });
@@ -703,7 +736,9 @@ router.post(
       }, 0);
 
       if (normalizedType === "withdraw" && parsedAmount > currentBalance) {
-        return res.status(400).json({ message: "Insufficient funds for withdrawal." });
+        return res
+          .status(400)
+          .json({ message: "Insufficient funds for withdrawal." });
       }
 
       const transaction = await FundTransaction.create({
@@ -718,10 +753,9 @@ router.post(
           ? currentBalance + transaction.amount
           : currentBalance - transaction.amount;
 
-      const populated = await FundTransaction.findById(transaction._id).populate(
-        "createdBy",
-        "name email role",
-      );
+      const populated = await FundTransaction.findById(
+        transaction._id,
+      ).populate("createdBy", "name email role");
 
       res.status(201).json({
         message:
@@ -1158,7 +1192,9 @@ router.post("/newsletter/subscribe", async (req, res) => {
       .toLowerCase();
     if (!normalizedEmail)
       return res.status(400).json({ message: "Email is required." });
-    let subscriber = await NewsletterSubscriber.findOne({ email: normalizedEmail });
+    let subscriber = await NewsletterSubscriber.findOne({
+      email: normalizedEmail,
+    });
     if (subscriber) {
       if (subscriber.status === "subscribed") {
         return res.status(400).json({ message: "Already subscribed." });
@@ -1187,7 +1223,9 @@ router.post("/newsletter/unsubscribe", async (req, res) => {
     if (!normalizedEmail)
       return res.status(400).json({ message: "Email is required." });
 
-    const subscriber = await NewsletterSubscriber.findOne({ email: normalizedEmail });
+    const subscriber = await NewsletterSubscriber.findOne({
+      email: normalizedEmail,
+    });
     if (!subscriber) {
       await NewsletterSubscriber.create({
         email: normalizedEmail,
@@ -1270,8 +1308,15 @@ router.post(
         { upsert: true, new: true, setDefaultsOnInsert: true },
       );
 
-      const clientBase = process.env.PROMOTIONAL_UNSUBSCRIBE_URL || "http://localhost:3000";
-      const unsubscribeUrl = `${clientBase.replace(/\/$/, "")}/unsubscribe-email?email=${encodeURIComponent(
+      const siteOrigin = getPublicSiteOrigin();
+      if (!siteOrigin) {
+        return res.status(500).json({
+          message:
+            "Public site URL is not configured. Set CLIENT_URL or PUBLIC_SITE_URL (or PROMOTIONAL_UNSUBSCRIBE_URL) on the server for unsubscribe links.",
+        });
+      }
+
+      const unsubscribeUrl = `${siteOrigin.replace(/\/$/, "")}/unsubscribe-email?email=${encodeURIComponent(
         normalizedEmail,
       )}`;
       const escapedSubject = normalizedSubject
