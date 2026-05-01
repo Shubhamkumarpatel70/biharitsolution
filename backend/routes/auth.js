@@ -1338,11 +1338,21 @@ router.post(
           );
 
           // Generate unsubscribe URL
-          const unsubscribeUrl = siteOrigin.replace(/\/$/, "") + "/unsubscribe-email?email=" + encodeURIComponent(normalizedEmail);
+          const unsubscribeUrl =
+            siteOrigin.replace(/\/$/, "") +
+            "/unsubscribe-email?email=" +
+            encodeURIComponent(normalizedEmail);
 
           // Build HTML
-          const escapedSubject = normalizedSubject.replace(/&/g, "&amp;").replace(/</g, "<").replace(/>/g, ">");
-          const escapedMessage = normalizedMessage.replace(/&/g, "&amp;").replace(/</g, "<").replace(/>/g, ">").replace(/\n/g, "<br/>");
+          const escapedSubject = normalizedSubject
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "<")
+            .replace(/>/g, ">");
+          const escapedMessage = normalizedMessage
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "<")
+            .replace(/>/g, ">")
+            .replace(/\n/g, "<br/>");
 
           const html = `<div style="margin:0;padding:24px;background:#f8fafc;font-family:Arial,Helvetica,sans-serif;color:#0f172a;">
             <div style="max-width:620px;margin:0 auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;">
@@ -1367,7 +1377,13 @@ router.post(
             </p>
           </div>`;
 
-          await sendEmail(normalizedEmail, normalizedSubject, normalizedMessage, html, "ASKC Digital Web <info@askcweb.in>");
+          await sendEmail(
+            normalizedEmail,
+            normalizedSubject,
+            normalizedMessage,
+            html,
+            "ASKC Digital Web <info@askcweb.in>",
+          );
 
           successCount++;
         } catch (emailErr) {
@@ -1377,13 +1393,28 @@ router.post(
       }
 
       if (successCount === 0) {
-        return res.status(500).json({ message: "Could not send promotional emails." });
+        return res
+          .status(500)
+          .json({ message: "Could not send promotional emails." });
       }
 
       if (errors.length > 0) {
-        res.json({ message: "Email sent to " + successCount + " recipient(s). Failed: " + errors.join(", "), successCount, failedEmails: errors });
-} else {
-        res.json({ message: "Promotional email sent to " + successCount + " recipient(s) successfully." });
+        res.json({
+          message:
+            "Email sent to " +
+            successCount +
+            " recipient(s). Failed: " +
+            errors.join(", "),
+          successCount,
+          failedEmails: errors,
+        });
+      } else {
+        res.json({
+          message:
+            "Promotional email sent to " +
+            successCount +
+            " recipient(s) successfully.",
+        });
       }
     } catch (err) {
       console.error("Error sending promotional email:", err);
@@ -1391,15 +1422,6 @@ router.post(
     }
   },
 );
-); === "application/x-pdf" ? "application/pdf" : mimetype;
-  }
-  if (ext === ".pdf") return "application/pdf";
-  if (ext === ".doc") return "application/msword";
-  if (ext === ".docx") {
-    return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-  }
-  return mimetype || "application/octet-stream";
-}
 
 const resumeUpload = multer({
   storage: multer.memoryStorage(),
@@ -2652,11 +2674,21 @@ router.post(
           );
 
           // Generate unsubscribe URL
-          const unsubscribeUrl = siteOrigin.replace(/\/$/, "") + "/unsubscribe-email?email=" + encodeURIComponent(normalizedEmail);
+          const unsubscribeUrl =
+            siteOrigin.replace(/\/$/, "") +
+            "/unsubscribe-email?email=" +
+            encodeURIComponent(normalizedEmail);
 
           // Build HTML
-          const escapedSubject = normalizedSubject.replace(/&/g, "&amp;").replace(/</g, "<").replace(/>/g, ">");
-          const escapedMessage = normalizedMessage.replace(/&/g, "&amp;").replace(/</g, "<").replace(/>/g, ">").replace(/\n/g, "<br/>");
+          const escapedSubject = normalizedSubject
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "<")
+            .replace(/>/g, ">");
+          const escapedMessage = normalizedMessage
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "<")
+            .replace(/>/g, ">")
+            .replace(/\n/g, "<br/>");
 
           const html = `<div style="margin:0;padding:24px;background:#f8fafc;font-family:Arial,Helvetica,sans-serif;color:#0f172a;">
             <div style="max-width:620px;margin:0 auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;">
@@ -2681,7 +2713,13 @@ router.post(
             </p>
           </div>`;
 
-          await sendEmail(normalizedEmail, normalizedSubject, normalizedMessage, html, "ASKC Digital Web <info@askcweb.in>");
+          await sendEmail(
+            normalizedEmail,
+            normalizedSubject,
+            normalizedMessage,
+            html,
+            "ASKC Digital Web <info@askcweb.in>",
+          );
 
           successCount++;
         } catch (emailErr) {
@@ -2691,13 +2729,28 @@ router.post(
       }
 
       if (successCount === 0) {
-        return res.status(500).json({ message: "Could not send promotional emails." });
+        return res
+          .status(500)
+          .json({ message: "Could not send promotional emails." });
       }
 
       if (errors.length > 0) {
-        res.json({ message: "Email sent to " + successCount + " recipient(s). Failed: " + errors.join(", "), successCount, failedEmails: errors });
+        res.json({
+          message:
+            "Email sent to " +
+            successCount +
+            " recipient(s). Failed: " +
+            errors.join(", "),
+          successCount,
+          failedEmails: errors,
+        });
       } else {
-        res.json({ message: "Promotional email sent to " + successCount + " recipient(s) successfully." });
+        res.json({
+          message:
+            "Promotional email sent to " +
+            successCount +
+            " recipient(s) successfully.",
+        });
       }
 
       const siteOrigin = getPublicSiteOrigin();
