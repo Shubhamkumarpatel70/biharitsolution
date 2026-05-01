@@ -1,49 +1,55 @@
-import React, { useState, useContext } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import axios from '../axios';
-import { UserContext } from '../UserContext';
-import { Icon } from '../components/icons';
-import VerifyOtp from './VerifyOtp';
+import React, { useState, useContext } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import axios from "../axios";
+import { UserContext } from "../UserContext";
+import { Icon } from "../components/icons";
+import VerifyOtp from "./VerifyOtp";
 
 function Register() {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [subscribeOffers, setSubscribeOffers] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [showOtp, setShowOtp] = useState(false);
   const [otpVerified, setOtpVerified] = useState(false);
   const navigate = useNavigate();
   const { setUser } = useContext(UserContext);
 
-  const handleSubmit = async e => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setMessage('');
+    setMessage("");
     try {
-      await axios.post('/api/auth/register/send-otp', { email });
+      await axios.post("/api/auth/register/send-otp", { email });
       setLoading(false);
       setShowOtp(true);
     } catch (err) {
       setLoading(false);
-      setMessage(err.response?.data?.message || 'Failed to send OTP.');
+      setMessage(err.response?.data?.message || "Failed to send OTP.");
     }
   };
 
   const handleOtpSuccess = async () => {
     setOtpVerified(true);
-    setMessage('OTP verified! Completing registration...');
+    setMessage("OTP verified! Completing registration...");
     setLoading(true);
     try {
-      const res = await axios.post('/api/auth/register', { name, email, password });
-      localStorage.setItem('token', res.data.token);
+      const res = await axios.post("/api/auth/register", {
+        name,
+        email,
+        password,
+        subscribeOffers,
+      });
+      localStorage.setItem("token", res.data.token);
       setUser(res.data.user);
       setLoading(false);
-      navigate('/dashboard');
+      navigate("/dashboard");
     } catch (err) {
       setLoading(false);
-      setMessage(err.response?.data?.message || 'Registration failed.');
+      setMessage(err.response?.data?.message || "Registration failed.");
       setShowOtp(false);
       setOtpVerified(false);
     }
@@ -56,6 +62,9 @@ function Register() {
       </div>
     );
   }
+
+  // Check if checkbox is checked to enable submit
+  const isCheckboxChecked = subscribeOffers === true;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 pt-24 sm:pt-28">
@@ -72,7 +81,10 @@ function Register() {
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-4">
             <div>
-              <label htmlFor="name" className="block text-sm font-semibold text-text-main mb-2">
+              <label
+                htmlFor="name"
+                className="block text-sm font-semibold text-text-main mb-2"
+              >
                 Full Name
               </label>
               <input
@@ -84,12 +96,15 @@ function Register() {
                 className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all duration-300 bg-white text-text-main"
                 placeholder="Enter your name"
                 value={name}
-                onChange={e => setName(e.target.value)}
+                onChange={(e) => setName(e.target.value)}
               />
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-sm font-semibold text-text-main mb-2">
+              <label
+                htmlFor="email"
+                className="block text-sm font-semibold text-text-main mb-2"
+              >
                 Email Address
               </label>
               <input
@@ -101,66 +116,152 @@ function Register() {
                 className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all duration-300 bg-white text-text-main"
                 placeholder="Enter your email"
                 value={email}
-                onChange={e => setEmail(e.target.value)}
+                onChange={(e) => setEmail(e.target.value)}
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-semibold text-text-main mb-2">
+              <label
+                htmlFor="password"
+                className="block text-sm font-semibold text-text-main mb-2"
+              >
                 Password
               </label>
               <div className="relative">
                 <input
                   id="password"
                   name="password"
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   autoComplete="new-password"
                   required
                   className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all duration-300 bg-white text-text-main pr-10"
                   placeholder="Create a password"
                   value={password}
-                  onChange={e => setPassword(e.target.value)}
+                  onChange={(e) => setPassword(e.target.value)}
                 />
                 <button
                   type="button"
                   className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-primary-600 transition-colors duration-200 rounded-lg"
                   onClick={() => setShowPassword(!showPassword)}
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
                 >
-                  <Icon name={showPassword ? 'eyeOff' : 'eye'} className="w-5 h-5" />
+                  <Icon
+                    name={showPassword ? "eyeOff" : "eye"}
+                    className="w-5 h-5"
+                  />
                 </button>
+              </div>
+            </div>
+
+            {/* Subscribe to offers checkbox - Required */}
+            <div className="flex items-start gap-3">
+              <div className="flex items-center h-5">
+                <input
+                  id="subscribeOffers"
+                  name="subscribeOffers"
+                  type="checkbox"
+                  checked={subscribeOffers}
+                  onChange={(e) => setSubscribeOffers(e.target.checked)}
+                  className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                />
+              </div>
+              <div className="ml-2 text-sm">
+                <label
+                  htmlFor="subscribeOffers"
+                  className="font-medium text-text-main"
+                >
+                  I agree to receive updates and offers *
+                </label>
+                <p className="text-text-muted">
+                  Get notified about new services, special offers, and updates.
+                </p>
+              </div>
+            </div>
+
+            {/* Terms and Privacy acceptance - Required */}
+            <div className="flex items-start gap-3">
+              <div className="flex items-center h-5">
+                <input
+                  id="acceptTerms"
+                  name="acceptTerms"
+                  type="checkbox"
+                  required
+                  className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                />
+              </div>
+              <div className="ml-2 text-sm">
+                <label
+                  htmlFor="acceptTerms"
+                  className="font-medium text-text-main"
+                >
+                  I agree to the{" "}
+                  <Link
+                    to="/terms"
+                    className="text-primary-600 hover:underline"
+                  >
+                    Terms of Service
+                  </Link>
+                  ,{" "}
+                  <Link
+                    to="/privacy"
+                    className="text-primary-600 hover:underline"
+                  >
+                    Privacy Policy
+                  </Link>{" "}
+                  and{" "}
+                  <Link
+                    to="/refund"
+                    className="text-primary-600 hover:underline"
+                  >
+                    Refund Policy
+                  </Link>{" "}
+                  *
+                </label>
               </div>
             </div>
           </div>
 
           {message && (
-            <div className={`p-4 rounded-lg text-sm text-center ${message.includes('failed') || message.includes('error')
-                ? 'bg-danger-50 text-danger-600 border border-danger-200'
-                : 'bg-primary-50 text-primary-700 border border-primary-200'
-              }`}>
+            <div
+              className={`p-4 rounded-lg text-sm text-center ${
+                message.includes("failed") || message.includes("error")
+                  ? "bg-danger-50 text-danger-600 border border-danger-200"
+                  : "bg-primary-50 text-primary-700 border border-primary-200"
+              }`}
+            >
               {message}
             </div>
           )}
 
           <div>
             <button
-              disabled={loading}
-              className="btn btn-primary w-full justify-center py-3 rounded-xl text-base"
+              type="submit"
+              disabled={loading || !isCheckboxChecked}
+              className={`btn w-full justify-center py-3 rounded-xl text-base ${
+                !isCheckboxChecked
+                  ? "opacity-50 cursor-not-allowed bg-gray-400"
+                  : "btn-primary"
+              }`}
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
                   <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
                   Registering...
                 </span>
+              ) : !isCheckboxChecked ? (
+                "Check the box to continue"
               ) : (
-                'Create Account'
+                "Create Account"
               )}
             </button>
           </div>
 
           <div className="text-sm text-center font-medium">
             <span className="text-text-muted">Already have an account? </span>
-            <Link to="/login" className="text-primary-600 hover:text-primary-800 transition-colors">
+            <Link
+              to="/login"
+              className="text-primary-600 hover:text-primary-800 transition-colors"
+            >
               Sign in
             </Link>
           </div>

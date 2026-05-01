@@ -5,6 +5,7 @@ const jwt = require("jsonwebtoken");
 const Notification = require("../models/Notification");
 const Subscription = require("../models/Subscription");
 const LoginCaptcha = require("../models/LoginCaptcha");
+const NewsletterSubscriber = require("../models/NewsletterSubscriber");
 const { parsePlanDurationDays } = require("../utils/planDuration");
 const Otp = require("../models/Otp");
 const { sendEmail } = require("../utils/email");
@@ -134,9 +135,14 @@ exports.sendRegisterOtp = async (req, res) => {
     const html = generateOtpEmailHtml(
       otp,
       "Verify your Email",
-      "Thank you for registering. Please use the verification code below to complete your registration."
+      "Thank you for registering. Please use the verification code below to complete your registration.",
     );
-    await sendEmail(email, "Your Registration Verification Code", `Your OTP is: ${otp}`, html);
+    await sendEmail(
+      email,
+      "Your Registration Verification Code",
+      `Your OTP is: ${otp}`,
+      html,
+    );
     res.json({ message: "OTP sent to email." });
   } catch (err) {
     res.status(500).json({ message: "Could not send OTP." });
@@ -177,18 +183,28 @@ exports.sendForgotOtp = async (req, res) => {
 
     console.log("Saving OTP to database...");
     await Otp.deleteMany({ email, purpose: "forgot" });
-    const savedOtp = await Otp.create({ email, otp, purpose: "forgot", expiresAt });
+    const savedOtp = await Otp.create({
+      email,
+      otp,
+      purpose: "forgot",
+      expiresAt,
+    });
     console.log("SUCCESS: OTP stored in database! Record:", savedOtp);
 
     const html = generateOtpEmailHtml(
       otp,
       "Reset your Password",
-      "We received a request to reset your password. Please use the verification code below to proceed."
+      "We received a request to reset your password. Please use the verification code below to proceed.",
     );
 
     console.log("Attempting to send email via SMTP...");
     console.log("Before sending email");
-    await sendEmail(email, "Your Password Reset Code", `Your OTP is: ${otp}`, html);
+    await sendEmail(
+      email,
+      "Your Password Reset Code",
+      `Your OTP is: ${otp}`,
+      html,
+    );
     console.log("After sending email");
 
     console.log("==================================================");
@@ -224,8 +240,8 @@ exports.verifyForgotOtp = async (req, res) => {
       message: "OTP verified.",
       user: {
         name: user.name,
-        email: user.email
-      }
+        email: user.email,
+      },
     });
   } catch (err) {
     res.status(500).json({ message: "Could not verify OTP." });
@@ -291,7 +307,7 @@ exports.getLoginCaptcha = async (req, res) => {
 
 exports.registerUser = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, subscribeOffers } = req.body;
     if (!name || !email || !password) {
       return res.status(400).json({ message: "All fields are required." });
     }
@@ -307,6 +323,15 @@ exports.registerUser = async (req, res) => {
       role: "user",
     });
     await user.save();
+
+    // Subscribe to newsletter if user opted in
+    if (subscribeOffers === true) {
+      await NewsletterSubscriber.findOneAndUpdate(
+        { email },
+        { email, status: "subscribed" },
+        { upsert: true, new: true, setDefaultsOnInsert: true },
+      );
+    }
     const token = jwt.sign(
       { id: user._id, role: user.role },
       process.env.JWT_SECRET,
