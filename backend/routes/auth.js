@@ -2569,13 +2569,7 @@ router.post(
         });
       }
 
-      const siteOrigin = getPublicSiteOrigin();
-      if (!siteOrigin) {
-        return res.status(500).json({
-          message:
-            "Public site URL is not configured. Set CLIENT_URL or PUBLIC_SITE_URL (or PROMOTIONAL_UNSUBSCRIBE_URL) on the server for unsubscribe links.",
-        });
-      }
+      // Duplicate 'siteOrigin' declaration removed. Already declared above in this function.
 
       const unsubscribeUrl = `${siteOrigin.replace(/\/$/, "")}/unsubscribe-email?email=${encodeURIComponent(
         normalizedEmail,
