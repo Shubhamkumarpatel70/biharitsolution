@@ -87,30 +87,7 @@ function normalizeResumeMime(mimetype, originalname) {
   return mimetype || "application/octet-stream";
 }
 
-const resumeUpload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter(req, file, cb) {
-    const ext = path.extname(file.originalname || "").toLowerCase();
-    const allowedExt = [".pdf", ".doc", ".docx"];
-    const allowedMime = [
-      "application/pdf",
-      "application/x-pdf",
-      "application/msword",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    ];
-    if (allowedExt.includes(ext)) return cb(null, true);
-    if (allowedMime.includes(file.mimetype)) return cb(null, true);
-    if (
-      (file.mimetype === "application/octet-stream" ||
-        file.mimetype === "binary/octet-stream") &&
-      allowedExt.includes(ext)
-    ) {
-      return cb(null, true);
-    }
-    cb(new Error("Resume must be PDF or Word (.doc, .docx)."), false);
-  },
-});
+// Duplicate resumeUpload declaration removed. Only the first declaration is kept.
 
 // Configure multer for memory storage (to convert to base64)
 const upload = multer({
@@ -1277,7 +1254,6 @@ router.get(
     }
   },
 );
-
 
 const resumeUpload = multer({
   storage: multer.memoryStorage(),
