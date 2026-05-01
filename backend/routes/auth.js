@@ -48,6 +48,21 @@ const { sendEmail } = require("../utils/email");
 const { parsePlanDurationDays } = require("../utils/planDuration");
 const multer = require("multer");
 const path = require("path");
+
+// Configure multer for memory storage (to convert to base64)
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+  fileFilter: function (req, file, cb) {
+    if (file.mimetype.startsWith("image/")) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only image files are allowed!"), false);
+    }
+  },
+});
 const crypto = require("crypto");
 
 function generateProjectSubmissionId() {
