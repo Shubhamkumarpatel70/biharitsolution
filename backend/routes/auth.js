@@ -91,10 +91,7 @@ function normalizeResumeMime(mimetype, originalname) {
 
 // Duplicate 'upload' declaration removed. Only the first declaration is kept.
 
-// Helper function to convert buffer to base64
-const bufferToBase64 = (buffer, mimetype) => {
-  return `data:${mimetype};base64,${buffer.toString("base64")}`;
-};
+// Duplicate 'bufferToBase64' declaration removed. Only the first declaration is kept.
 
 router.use(cookieParser());
 
