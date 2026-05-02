@@ -64,6 +64,37 @@ const upload = multer({
     }
   },
 });
+
+const resumeUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter(req, file, cb) {
+    const ext = path.extname(file.originalname || "").toLowerCase();
+    const allowedExt = [".pdf", ".doc", ".docx"];
+    const allowedMime = [
+      "application/pdf",
+      "application/x-pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ];
+    if (allowedExt.includes(ext)) return cb(null, true);
+    if (allowedMime.includes(file.mimetype)) return cb(null, true);
+    if (
+      (file.mimetype === "application/octet-stream" ||
+        file.mimetype === "binary/octet-stream") &&
+      allowedExt.includes(ext)
+    ) {
+      return cb(null, true);
+    }
+    cb(new Error("Resume must be PDF or Word (.doc, .docx)."), false);
+  },
+});
+
+// Helper function to convert buffer to base64
+const bufferToBase64 = (buffer, mimetype) => {
+  return `data:${mimetype};base64,${buffer.toString("base64")}`;
+};
+
 const crypto = require("crypto");
 
 function generateProjectSubmissionId() {
@@ -1300,50 +1331,8 @@ router.get(
   },
 );
 
-const resumeUpload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter(req, file, cb) {
-    const ext = path.extname(file.originalname || "").toLowerCase();
-    const allowedExt = [".pdf", ".doc", ".docx"];
-    const allowedMime = [
-      "application/pdf",
-      "application/x-pdf",
-      "application/msword",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    ];
-    if (allowedExt.includes(ext)) return cb(null, true);
-    if (allowedMime.includes(file.mimetype)) return cb(null, true);
-    if (
-      (file.mimetype === "application/octet-stream" ||
-        file.mimetype === "binary/octet-stream") &&
-      allowedExt.includes(ext)
-    ) {
-      return cb(null, true);
-    }
-    cb(new Error("Resume must be PDF or Word (.doc, .docx)."), false);
-  },
-});
+// Redundant definitions removed (moved to top)
 
-// Configure multer for memory storage (to convert to base64)
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit
-  },
-  fileFilter: function (req, file, cb) {
-    if (file.mimetype.startsWith("image/")) {
-      cb(null, true);
-    } else {
-      cb(new Error("Only image files are allowed!"), false);
-    }
-  },
-});
-
-// Helper function to convert buffer to base64
-const bufferToBase64 = (buffer, mimetype) => {
-  return `data:${mimetype};base64,${buffer.toString("base64")}`;
-};
 
 router.use(cookieParser());
 
