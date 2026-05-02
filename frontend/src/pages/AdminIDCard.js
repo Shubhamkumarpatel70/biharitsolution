@@ -83,7 +83,7 @@ const AdminIDCard = () => {
     if (!element) return;
 
     try {
-      const canvas = await html2canvas(element, { scale: 2, useCORS: true });
+      const canvas = await html2canvas(element, { scale: 3, useCORS: true, backgroundColor: null });
       const link = document.createElement('a');
       link.download = `askc-id-card-${side}.png`;
       link.href = canvas.toDataURL('image/png');
@@ -182,6 +182,8 @@ const AdminIDCard = () => {
             ASKC Digital Web is a creative digital solutions company providing innovative website development, design and digital marketing services to help businesses grow online.
           </p>
           
+          <div className="dashed-divider"></div>
+
           <div className="section-title">CONTACT US</div>
           <div className="contact-info">
             <div className="contact-item">
@@ -204,31 +206,20 @@ const AdminIDCard = () => {
             </div>
             <div className="contact-item">
               <div className="contact-icon">
-                <svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm6.93 6h-2.95c-.32-1.25-.78-2.45-1.38-3.56 1.84.63 3.37 1.91 4.33 3.56zM12 4.04c.83 1.2 1.48 2.53 1.91 3.96h-3.82c.43-1.43 1.08-2.76 1.91-3.96zM4.26 14C4.1 13.36 4 12.69 4 12s.1-1.36.26-2h3.38c-.08.66-.14 1.32-.14 2 0 .68.06 1.34.14 2H4.26zm.82 2h2.95c.32 1.25.78 2.45 1.38 3.56-1.84-.63-3.37-1.9-4.33-3.56zm2.95-8H5.08c.96-1.66 2.49-2.93 4.33-3.56C8.81 5.55 8.35 6.75 8.03 8zM12 19.96c-.83-1.2-1.48-2.53-1.91-3.96h3.82c-.43 1.43-1.08 2.76-1.91 3.96zM14.34 14H9.66c-.09-.66-.16-1.32-.16-2 0-.68.07-1.35.16-2h4.68c.09.65.16 1.32.16 2 0 .68-.07 1.34-.16 2zm.25 5.56c.6-1.11 1.06-2.31 1.38-3.56h2.95c-.96 1.65-2.49 2.93-4.33 3.56zM16.36 14c.08-.66.14-1.32.14-2 0-.68-.06-1.34-.14-2h3.38c.16.64.26 1.31.26 2s-.1 1.36-.26 2h-3.38z"/></svg>
+                <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L8.5 14.5V17c0 1.1.9 2 2 2v.93zM19.93 11c-.17-1.39-.68-2.65-1.43-3.72L14.5 11.28V12c0 1.1-.9 2-2 2h-1v2h2c1.1 0 2 .9 2 2v.41c2.93-1.18 5-4.05 5-7.41z"/></svg>
               </div>
               <div>www.askcweb.in</div>
             </div>
           </div>
           
-          <div className="dashed-divider"></div>
+          <div className="dashed-divider" style={{ marginTop: '5px' }}></div>
           
           <div className="qr-container">
             <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://www.askcweb.in" alt="QR Code" />
           </div>
           
-          <div className="social-section">
-            <div className="social-title">Follow Us</div>
-            <div className="social-icons">
-              <div className="icon">
-                <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12c0 4.99 3.66 9.13 8.44 9.88v-6.99h-2.54V12h2.54V9.8c0-2.51 1.49-3.89 3.78-3.89 1.1 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56V12h2.77l-.44 2.89h-2.33v6.99C18.34 21.13 22 16.99 22 12c0-5.52-4.48-10-10-10z"/></svg>
-              </div>
-              <div className="icon">
-                <svg viewBox="0 0 24 24"><path d="M7.8 2h8.4C19.4 2 22 4.6 22 7.8v8.4a5.8 5.8 0 0 1-5.8 5.8H7.8C4.6 22 2 19.4 2 16.2V7.8A5.8 5.8 0 0 1 7.8 2zm-.2 2A3.6 3.6 0 0 0 4 7.6v8.8C4 18.39 5.61 20 7.6 20h8.8a3.6 3.6 0 0 0 3.6-3.6V7.6C20 5.61 18.39 4 16.4 4H7.6zm9.65 1.5a1.25 1.25 0 0 1 1.25 1.25A1.25 1.25 0 0 1 17.25 8 1.25 1.25 0 0 1 16 6.75a1.25 1.25 0 0 1 1.25-1.25zM12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5zm0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3z"/></svg>
-              </div>
-              <div className="icon">
-                <svg viewBox="0 0 24 24"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>
-              </div>
-            </div>
+          <div style={{ textAlign: 'center', fontSize: '10px', color: '#94a3b8', fontWeight: '600' }}>
+            Follow Us
           </div>
         </div>
       </div>
@@ -353,7 +344,7 @@ const AdminIDCard = () => {
         .id-card-wrapper {
           width: 340px;
           height: 530px;
-          border-radius: 15px;
+          border-radius: 20px;
           box-shadow: 0 15px 35px rgba(0,0,0,0.4);
           position: relative;
           overflow: hidden;
@@ -387,7 +378,7 @@ const AdminIDCard = () => {
           bottom: 0;
           left: 0;
           width: 100%;
-          height: 290px;
+          height: 300px;
           background-color: #0d1b2a;
           z-index: 1;
         }
@@ -427,7 +418,7 @@ const AdminIDCard = () => {
 
         .lanyard-hole {
           width: 50px;
-          height: 8px;
+          height: 10px;
           background-color: #0d1b2a;
           border-radius: 10px;
           margin-top: 15px;
@@ -443,15 +434,15 @@ const AdminIDCard = () => {
           justify-content: center;
         }
         .logo-container img {
-          max-width: 140px;
-          max-height: 70px;
+          max-width: 160px;
+          max-height: 80px;
           object-fit: contain;
           mix-blend-mode: multiply;
         }
 
         .photo-container {
-          width: 140px;
-          height: 140px;
+          width: 150px;
+          height: 150px;
           border-radius: 50%;
           border: 4px solid #0055ff;
           margin-top: 20px;
@@ -469,20 +460,20 @@ const AdminIDCard = () => {
         }
 
         .details {
-          margin-top: 25px;
+          margin-top: 30px;
           text-align: center;
           color: white;
           width: 100%;
         }
         .employee-name {
-          font-size: 24px;
+          font-size: 28px;
           font-weight: 700;
           margin: 0;
           color: #ffffff;
           letter-spacing: 0.5px;
         }
         .employee-title {
-          font-size: 14px;
+          font-size: 16px;
           color: #3b82f6;
           margin: 5px 0 15px 0;
           font-weight: 600;
@@ -495,7 +486,7 @@ const AdminIDCard = () => {
           margin: 0 auto 12px auto;
         }
         .id-label {
-          font-size: 11px;
+          font-size: 12px;
           color: #ffffff;
           margin: 0 0 5px 0;
           font-weight: 600;
@@ -503,12 +494,12 @@ const AdminIDCard = () => {
         .id-number-badge {
           background-color: #0055ff;
           color: white;
-          padding: 6px 20px;
+          padding: 8px 30px;
           border-radius: 20px;
-          font-size: 14px;
+          font-size: 16px;
           font-weight: 700;
           display: inline-block;
-          margin-bottom: 15px;
+          margin-bottom: 20px;
           letter-spacing: 1px;
         }
 
@@ -517,13 +508,13 @@ const AdminIDCard = () => {
           margin-top: 5px;
         }
         .signature {
-          width: 80px;
+          width: 100px;
           height: auto;
           filter: invert(1);
           opacity: 0.8;
         }
         .signatory {
-          font-size: 9px;
+          font-size: 10px;
           color: #b0b5be;
           margin-top: 2px;
         }
@@ -585,7 +576,7 @@ const AdminIDCard = () => {
           position: relative;
           z-index: 10;
           width: 100%;
-          padding: 15px 25px;
+          padding: 15px 30px;
           box-sizing: border-box;
           display: flex;
           flex-direction: column;
@@ -593,8 +584,8 @@ const AdminIDCard = () => {
         }
 
         .back-lanyard-hole {
-          width: 50px;
-          height: 8px;
+          width: 60px;
+          height: 10px;
           background-color: #000;
           border-radius: 10px;
           margin-top: 0;
@@ -606,105 +597,77 @@ const AdminIDCard = () => {
           display: flex;
           align-items: center;
           justify-content: center;
-          margin-bottom: 12px;
-          height: 50px;
+          margin-bottom: 15px;
+          height: 60px;
         }
         .back-logo img {
-          max-height: 50px;
-          max-width: 140px;
+          max-height: 60px;
+          max-width: 180px;
           object-fit: contain;
         }
 
         .section-title {
           color: #3b82f6;
-          font-size: 12px;
+          font-size: 14px;
           font-weight: 700;
-          margin-bottom: 6px;
+          margin-bottom: 8px;
           text-transform: uppercase;
           letter-spacing: 1px;
         }
         
         .about-text {
-          font-size: 9px;
+          font-size: 10px;
           text-align: center;
           color: #e2e8f0;
-          line-height: 1.4;
-          margin-bottom: 15px;
+          line-height: 1.5;
+          margin-bottom: 20px;
           font-weight: 400;
         }
 
         .contact-info {
           width: 100%;
-          font-size: 9px;
+          font-size: 11px;
           color: #ffffff;
           font-weight: 500;
           display: flex;
           flex-direction: column;
-          gap: 10px;
-          margin-bottom: 15px;
+          gap: 12px;
+          margin-bottom: 20px;
         }
         
         .contact-item {
           display: flex;
-          align-items: flex-start;
-          gap: 10px;
+          align-items: center;
+          gap: 15px;
         }
         
         .contact-icon {
-          width: 20px;
-          height: 20px;
+          width: 24px;
+          height: 24px;
           background-color: #1e90ff;
-          border-radius: 50%;
+          border-radius: 6px;
           display: flex;
           justify-content: center;
           align-items: center;
           flex-shrink: 0;
         }
         .contact-icon svg {
-          width: 10px;
-          height: 10px;
+          width: 14px;
+          height: 14px;
           fill: white;
         }
 
         .qr-container {
           background-color: white;
-          padding: 4px;
-          border-radius: 5px;
-          margin-bottom: 10px;
+          padding: 6px;
+          border-radius: 8px;
+          margin-bottom: 15px;
+          box-shadow: 0 4px 10px rgba(0,0,0,0.3);
         }
         .qr-container img {
-          width: 45px;
-          height: 45px;
+          width: 60px;
+          height: 60px;
           display: block;
-        }
-
-        .social-section {
-          text-align: center;
-        }
-        .social-title {
-          font-size: 9px;
-          color: #e2e8f0;
-          margin-bottom: 6px;
-          font-weight: 600;
-        }
-        .social-icons {
-          display: flex;
-          gap: 10px;
-          justify-content: center;
-        }
-        .social-icons .icon {
-          width: 18px;
-          height: 18px;
-          background-color: white;
-          border-radius: 50%;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-        }
-        .social-icons .icon svg {
-          width: 9px;
-          height: 9px;
-          fill: #0d1b2a;
         }
 
         .world-map {
@@ -722,7 +685,7 @@ const AdminIDCard = () => {
         .dashed-divider {
           width: 100%;
           border-top: 1px dashed rgba(255,255,255,0.15);
-          margin-bottom: 12px;
+          margin-bottom: 15px;
         }
 
         /* TABLE STYLES */
@@ -804,7 +767,7 @@ const AdminIDCard = () => {
           background: #1e293b;
           padding: 30px;
           border-radius: 15px;
-          max-width: 800px;
+          max-width: 900px;
           width: 100%;
           display: flex;
           flex-direction: column;
@@ -814,7 +777,7 @@ const AdminIDCard = () => {
 
         .modal-cards {
           display: flex;
-          gap: 20px;
+          gap: 30px;
           flex-wrap: wrap;
           justify-content: center;
           margin-bottom: 25px;
