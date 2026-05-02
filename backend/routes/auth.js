@@ -44,6 +44,7 @@ const ProjectRequirement = require("../models/ProjectRequirement");
 const Career = require("../models/Career");
 const CareerApplication = require("../models/CareerApplication");
 const FundTransaction = require("../models/FundTransaction");
+const IDCard = require("../models/IDCard");
 const { sendEmail } = require("../utils/email");
 const { parsePlanDurationDays } = require("../utils/planDuration");
 const multer = require("multer");
@@ -1002,6 +1003,51 @@ router.post("/complaints/:id/chat", authMiddleware, async (req, res) => {
     res.status(500).json({ message: "Could not send message." });
   }
 });
+
+// ID Card Endpoints
+router.post(
+  "/admin/id-cards",
+  authMiddleware,
+  coAdminMiddleware,
+  async (req, res) => {
+    try {
+      const { name, role, idNumber, photo } = req.body;
+      const idCard = await IDCard.create({ name, role, idNumber, photo });
+      res.status(201).json({ idCard });
+    } catch (err) {
+      console.error("ID Card save error:", err);
+      res.status(500).json({ message: "Could not save ID card." });
+    }
+  },
+);
+
+router.get(
+  "/admin/id-cards",
+  authMiddleware,
+  coAdminMiddleware,
+  async (req, res) => {
+    try {
+      const idCards = await IDCard.find().sort({ createdAt: -1 });
+      res.json({ idCards });
+    } catch (err) {
+      res.status(500).json({ message: "Could not fetch ID cards." });
+    }
+  },
+);
+
+router.delete(
+  "/admin/id-cards/:id",
+  authMiddleware,
+  coAdminMiddleware,
+  async (req, res) => {
+    try {
+      await IDCard.findByIdAndDelete(req.params.id);
+      res.json({ success: true, message: "ID Card deleted successfully." });
+    } catch (err) {
+      res.status(500).json({ message: "Could not delete ID card." });
+    }
+  },
+);
 
 // User: Request subscription renewal
 router.post("/renewal-request", authMiddleware, async (req, res) => {
