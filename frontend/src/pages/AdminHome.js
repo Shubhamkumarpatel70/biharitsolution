@@ -86,6 +86,7 @@ const AdminHome = () => {
     { title: 'User management', body: 'Roles, access, and activity across your customer base.', iconName: 'users', hint: 'Open “Manage Users” in the sidebar.' },
     { title: 'Site statistics', body: 'Growth, subscriptions, and engagement at a glance.', iconName: 'chart', hint: 'Use the “Site Stats” section.' },
     { title: 'Notifications', body: 'Broadcast updates and keep members in the loop.', iconName: 'bell', hint: 'Go to “Notifications”.' },
+    { title: 'ID Card Generator', body: 'Create and manage professional ID cards for team members.', iconName: 'creditCard', hint: 'Open “ID Card” in the sidebar.' },
     { title: 'Content', body: 'Plans, features, services, and team profiles.', iconName: 'folder', hint: 'Explore the content group in the menu.' }
   ];
 
