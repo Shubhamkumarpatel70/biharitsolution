@@ -27,6 +27,7 @@ export default function AdminAgreements() {
   const [activeClient, setActiveClient] = useState(null);
   const [loading, setLoading]         = useState(true);
   const [saving, setSaving]           = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(null); // stores doc._id being emailed
   const [showGen, setShowGen]         = useState(false);
   const [viewDoc, setViewDoc]         = useState(null);  // full agreement object
   const [viewLoading, setViewLoading] = useState(false);
@@ -136,6 +137,30 @@ export default function AdminAgreements() {
       if (activeClient) loadFolder(activeClient.clientName);
       else loadClients();
     } catch { showToast('Failed to delete', 'error'); }
+  };
+
+  // ── Send Email ────────────────────────────────────────────────────
+  const handleSendEmail = async (doc) => {
+    if (!doc.clientEmail) {
+      showToast('No client email on file. Edit the document to add one.', 'error');
+      return;
+    }
+    if (!window.confirm(`Send "${doc.documentTitle}" to ${doc.clientEmail}?`)) return;
+    setSendingEmail(doc._id);
+    try {
+      const r = await axios.post(
+        `/api/auth/admin/agreements/${doc._id}/send-email`,
+        {},
+        { headers }
+      );
+      showToast(r.data.message || 'Email sent!');
+      // Refresh docs so status shows "sent"
+      if (activeClient) loadFolder(activeClient.clientName);
+    } catch (err) {
+      showToast(err?.response?.data?.message || 'Failed to send email', 'error');
+    } finally {
+      setSendingEmail(null);
+    }
   };
 
   // ── Status update ─────────────────────────────────────────────────
@@ -274,6 +299,22 @@ export default function AdminAgreements() {
                     </div>
                     {/* Actions */}
                     <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleSendEmail(doc)}
+                        disabled={sendingEmail === doc._id}
+                        title={doc.clientEmail ? `Send to ${doc.clientEmail}` : 'No client email — set one when generating'}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-colors disabled:opacity-50
+                          ${doc.clientEmail
+                            ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                            : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                          }`}
+                      >
+                        {sendingEmail === doc._id
+                          ? <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          : <span>✉</span>
+                        }
+                        {sendingEmail === doc._id ? 'Sending…' : 'Send Email'}
+                      </button>
                       <button
                         onClick={() => handleView(doc._id)}
                         disabled={viewLoading}

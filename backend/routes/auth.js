@@ -4182,4 +4182,131 @@ router.get(
   }
 );
 
+// Send agreement email to client
+router.post(
+  "/admin/agreements/:id/send-email",
+  authMiddleware,
+  coAdminMiddleware,
+  async (req, res) => {
+    try {
+      const agreement = await Agreement.findById(req.params.id);
+      if (!agreement) return res.status(404).json({ message: "Agreement not found." });
+      if (!agreement.clientEmail) return res.status(400).json({ message: "Client email is not set for this agreement." });
+
+      const docTypeLabels = {
+        nda: "Non-Disclosure Agreement",
+        quotation: "Project Proposal & Quotation",
+        invoice: "Tax Invoice",
+        welcome: "Welcome to ASKC Digital Web",
+        handover: "Project Handover Document",
+        change_request: "Change Request Form",
+        questionnaire: "Client Questionnaire",
+      };
+
+      const greetings = {
+        nda: `We are pleased to share your <strong>Non-Disclosure Agreement (NDA)</strong> as part of our secure project engagement process. Please review the attached document carefully before proceeding.`,
+        quotation: `Thank you for your interest in our services! We have prepared a detailed <strong>Project Proposal & Quotation</strong> tailored specifically for your requirements. Please review it and let us know if you have any questions.`,
+        invoice: `Please find your <strong>Tax Invoice</strong> for the services rendered. Kindly process the payment at your earliest convenience to ensure uninterrupted project progress.`,
+        welcome: `<strong>Welcome aboard! 🎉</strong> We are absolutely thrilled to have you as part of the ASKC Digital Web family. This letter outlines everything you need to know to get started on your digital journey with us.`,
+        handover: `We are delighted to inform you that your project has been <strong>successfully completed</strong>! This Handover Document contains all the deliverables, access credentials, and support information for your reference.`,
+        change_request: `We have received your <strong>Change Request</strong> and our team is reviewing it carefully. The attached document outlines the proposed changes and their impact on scope, timeline, and cost.`,
+        questionnaire: `To better understand your needs and craft the perfect digital solution for you, please fill out the attached <strong>Client Questionnaire</strong>. Your inputs will help us tailor our services specifically to your goals.`,
+      };
+
+      const subject = docTypeLabels[agreement.documentType] || agreement.documentTitle;
+      const greeting = greetings[agreement.documentType] || `Please find your document — <strong>${agreement.documentTitle}</strong> — from ASKC Digital Web.`;
+
+      // Public view link — use the base URL from env or a default
+      const baseUrl = process.env.CLIENT_URL
+        ? process.env.CLIENT_URL.replace("/dashboard", "")
+        : "https://askcweb.in";
+
+      const viewLink = `${baseUrl}/id-card/verify/${agreement._id}`;
+
+      const htmlEmail = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${subject}</title>
+</head>
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:'Segoe UI',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:40px 0;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+
+        <!-- Header -->
+        <tr>
+          <td style="background:#061d4b;border-radius:16px 16px 0 0;padding:30px 40px;text-align:center;">
+            <h1 style="color:#ffffff;font-size:22px;font-weight:800;margin:0;letter-spacing:-0.5px;">ASKC <span style="color:#60a5fa;">Digital Web</span></h1>
+            <p style="color:#94a3b8;font-size:11px;margin:6px 0 0;text-transform:uppercase;letter-spacing:1px;">Digital Excellence</p>
+          </td>
+        </tr>
+
+        <!-- Body -->
+        <tr>
+          <td style="background:#ffffff;padding:40px;">
+            <p style="font-size:16px;color:#334155;font-weight:700;margin:0 0 6px;">Dear ${agreement.clientName},</p>
+            <div style="width:40px;height:3px;background:#165ebc;border-radius:2px;margin-bottom:24px;"></div>
+
+            <p style="font-size:14px;color:#475569;line-height:1.8;margin:0 0 24px;">${greeting}</p>
+
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:20px;margin-bottom:28px;">
+              <p style="font-size:12px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;font-weight:700;margin:0 0 8px;">Document Details</p>
+              <p style="font-size:15px;color:#0f172a;font-weight:800;margin:0 0 4px;">${agreement.documentTitle}</p>
+              <p style="font-size:12px;color:#64748b;margin:0;">Prepared by ASKC Digital Web &bull; ${new Date(agreement.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}</p>
+            </div>
+
+            <!-- CTA Button -->
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td align="center" style="padding:10px 0 28px;">
+                  <a href="${viewLink}" target="_blank"
+                    style="display:inline-block;background:#165ebc;color:#ffffff;font-weight:800;font-size:15px;padding:14px 40px;border-radius:10px;text-decoration:none;letter-spacing:0.3px;">
+                    📄 View Document
+                  </a>
+                </td>
+              </tr>
+            </table>
+
+            <p style="font-size:13px;color:#64748b;line-height:1.7;margin:0 0 8px;">If you have any questions or require clarification, please do not hesitate to contact us. We are committed to ensuring a seamless experience for you.</p>
+            <p style="font-size:13px;color:#64748b;margin:0;">Warm regards,<br><strong style="color:#0f172a;">Shubham Kumar</strong><br>Founder & Senior Web Engineer, ASKC Digital Web</p>
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td style="background:#061d4b;border-radius:0 0 16px 16px;padding:20px 40px;text-align:center;">
+            <p style="color:#94a3b8;font-size:11px;margin:0 0 6px;">📧 shubham@askcweb.in &nbsp;|&nbsp; 🌐 www.askcweb.in &nbsp;|&nbsp; 📞 +91 62626 92632</p>
+            <p style="color:#475569;font-size:10px;margin:0;">Bihar IT Solution, Main Road, Near City Center, Patna, Bihar - 800001</p>
+            <p style="color:#334155;font-size:10px;margin:8px 0 0;">© ${new Date().getFullYear()} ASKC Digital Web. All rights reserved.</p>
+          </td>
+        </tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+
+      await sendEmail(
+        agreement.clientEmail,
+        `${subject} — ASKC Digital Web`,
+        `Dear ${agreement.clientName},\n\nPlease review your document: ${agreement.documentTitle}\n\nView it here: ${viewLink}\n\nRegards,\nShubham Kumar\nASKC Digital Web`,
+        htmlEmail,
+        `"Shubham Kumar | ASKC Digital Web" <shubham@askcweb.in>`
+      );
+
+      // Update status to 'sent'
+      await Agreement.findByIdAndUpdate(req.params.id, { status: "sent" });
+
+      res.json({ message: "Email sent successfully to " + agreement.clientEmail });
+    } catch (err) {
+      console.error("Agreement email error:", err);
+      res.status(500).json({ message: err.message || "Failed to send email." });
+    }
+  }
+);
+
 module.exports = router;
