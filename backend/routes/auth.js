@@ -45,6 +45,7 @@ const Career = require("../models/Career");
 const CareerApplication = require("../models/CareerApplication");
 const FundTransaction = require("../models/FundTransaction");
 const IDCard = require("../models/IDCard");
+const Agreement = require("../models/Agreement");
 const { sendEmail } = require("../utils/email");
 const { parsePlanDurationDays } = require("../utils/planDuration");
 const multer = require("multer");
@@ -4031,6 +4032,154 @@ router.get(
       res.status(500).json({ message: "Could not load applications." });
     }
   },
+);
+
+// ==================== AGREEMENTS ====================
+
+// Save a new agreement document for a client
+router.post(
+  "/admin/agreements",
+  authMiddleware,
+  coAdminMiddleware,
+  async (req, res) => {
+    try {
+      const { clientName, clientEmail, clientCompany, documentType, documentTitle, htmlContent, notes } = req.body;
+      if (!clientName || !documentType || !htmlContent || !documentTitle) {
+        return res.status(400).json({ message: "Missing required fields." });
+      }
+      const agreement = await Agreement.create({
+        clientName,
+        clientEmail: clientEmail || "",
+        clientCompany: clientCompany || "",
+        documentType,
+        documentTitle,
+        htmlContent,
+        notes: notes || "",
+        status: "draft",
+      });
+      res.status(201).json({ agreement });
+    } catch (err) {
+      console.error("Agreement save error:", err);
+      res.status(500).json({ message: "Could not save agreement." });
+    }
+  }
+);
+
+// Get all agreements (grouped by client)
+router.get(
+  "/admin/agreements",
+  authMiddleware,
+  coAdminMiddleware,
+  async (req, res) => {
+    try {
+      const agreements = await Agreement.find()
+        .sort({ createdAt: -1 })
+        .select("-htmlContent")
+        .lean();
+      res.json({ agreements });
+    } catch (err) {
+      res.status(500).json({ message: "Could not load agreements." });
+    }
+  }
+);
+
+// Get agreements for a specific client
+router.get(
+  "/admin/agreements/client/:clientName",
+  authMiddleware,
+  coAdminMiddleware,
+  async (req, res) => {
+    try {
+      const agreements = await Agreement.find({
+        clientName: { $regex: new RegExp(`^${req.params.clientName}$`, "i") },
+      })
+        .sort({ createdAt: -1 })
+        .select("-htmlContent")
+        .lean();
+      res.json({ agreements });
+    } catch (err) {
+      res.status(500).json({ message: "Could not load client agreements." });
+    }
+  }
+);
+
+// Get a single agreement with full HTML content
+router.get(
+  "/admin/agreements/:id",
+  authMiddleware,
+  coAdminMiddleware,
+  async (req, res) => {
+    try {
+      const agreement = await Agreement.findById(req.params.id);
+      if (!agreement) return res.status(404).json({ message: "Agreement not found." });
+      res.json({ agreement });
+    } catch (err) {
+      res.status(500).json({ message: "Could not load agreement." });
+    }
+  }
+);
+
+// Update agreement status
+router.patch(
+  "/admin/agreements/:id/status",
+  authMiddleware,
+  coAdminMiddleware,
+  async (req, res) => {
+    try {
+      const { status } = req.body;
+      const agreement = await Agreement.findByIdAndUpdate(
+        req.params.id,
+        { status },
+        { new: true }
+      );
+      if (!agreement) return res.status(404).json({ message: "Agreement not found." });
+      res.json({ agreement });
+    } catch (err) {
+      res.status(500).json({ message: "Could not update agreement status." });
+    }
+  }
+);
+
+// Delete an agreement
+router.delete(
+  "/admin/agreements/:id",
+  authMiddleware,
+  coAdminMiddleware,
+  async (req, res) => {
+    try {
+      await Agreement.findByIdAndDelete(req.params.id);
+      res.json({ message: "Agreement deleted." });
+    } catch (err) {
+      res.status(500).json({ message: "Could not delete agreement." });
+    }
+  }
+);
+
+// Get list of unique clients
+router.get(
+  "/admin/agreements-clients",
+  authMiddleware,
+  coAdminMiddleware,
+  async (req, res) => {
+    try {
+      const clients = await Agreement.aggregate([
+        {
+          $group: {
+            _id: { $toLower: "$clientName" },
+            clientName: { $first: "$clientName" },
+            clientEmail: { $first: "$clientEmail" },
+            clientCompany: { $first: "$clientCompany" },
+            count: { $sum: 1 },
+            lastActivity: { $max: "$createdAt" },
+          },
+        },
+        { $sort: { lastActivity: -1 } },
+      ]);
+      res.json({ clients });
+    } catch (err) {
+      res.status(500).json({ message: "Could not load clients." });
+    }
+  }
 );
 
 module.exports = router;
