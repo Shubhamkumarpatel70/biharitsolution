@@ -4043,7 +4043,7 @@ router.post(
   coAdminMiddleware,
   async (req, res) => {
     try {
-      const { clientName, clientEmail, clientCompany, documentType, documentTitle, htmlContent, notes } = req.body;
+      const { clientName, clientEmail, clientCompany, documentType, documentTitle, htmlContent, notes, docCode } = req.body;
       if (!clientName || !documentType || !htmlContent || !documentTitle) {
         return res.status(400).json({ message: "Missing required fields." });
       }
@@ -4055,6 +4055,7 @@ router.post(
         documentTitle,
         htmlContent,
         notes: notes || "",
+        docCode: docCode || "",
         status: "draft",
       });
       res.status(201).json({ agreement });

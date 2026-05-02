@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from '../axios';
-import { generateTemplate, DOCUMENT_TYPES } from './agreementTemplates';
+import { generateTemplate, generateDocCode, DOCUMENT_TYPES } from './agreementTemplates';
 import { Icon } from '../components/icons';
 
 const STATUS_COLORS = {
@@ -18,6 +18,16 @@ const DOC_ICONS = {
 const initForm = {
   clientName: '', clientEmail: '', clientCompany: '',
   documentType: 'nda', projectDesc: '', amount: '', notes: '',
+  // Quotation
+  designCost: '', devCost: '', infraCost: '', addonDesc: '', addonCost: '', validDays: '30',
+  // Invoice
+  serviceDesc: '', gstRate: '18', paymentNote: '',
+  // Handover
+  websiteUrl: '', adminUrl: '', hostingInfo: '', deliverables: '',
+  // Change Request
+  timelineImpact: '', costImpact: '', crStatus: 'Pending Review',
+  // Questionnaire answers
+  q1:'', q2:'', q3:'', q4:'', q5:'', q6:'', q7:'', q8:'',
 };
 
 export default function AdminAgreements() {
@@ -86,13 +96,8 @@ export default function AdminAgreements() {
     if (!form.clientName.trim()) return showToast('Client name is required', 'error');
     setSaving(true);
     try {
-      const html = generateTemplate(form.documentType, {
-        clientName: form.clientName,
-        clientEmail: form.clientEmail,
-        clientCompany: form.clientCompany,
-        projectDesc: form.projectDesc,
-        amount: form.amount,
-      });
+      const docCode = generateDocCode(form.clientName);
+      const html = generateTemplate(form.documentType, { ...form, docCode });
       const docLabel = DOCUMENT_TYPES.find(d => d.id === form.documentType)?.label || form.documentType;
       await axios.post('/api/auth/admin/agreements', {
         clientName: form.clientName.trim(),
@@ -102,17 +107,13 @@ export default function AdminAgreements() {
         documentTitle: `${docLabel} — ${form.clientName.trim()}`,
         htmlContent: html,
         notes: form.notes,
+        docCode,
       }, { headers });
       showToast('Document saved successfully!');
       setShowGen(false);
       setForm(initForm);
-      // Refresh view
-      if (view === 'folder' && activeClient) {
-        loadFolder(activeClient.clientName);
-      } else {
-        loadClients();
-        // If the doc was for the same client in folder view, reopen
-      }
+      if (view === 'folder' && activeClient) loadFolder(activeClient.clientName);
+      else loadClients();
     } catch (err) {
       showToast(err?.response?.data?.message || 'Failed to save document', 'error');
     } finally { setSaving(false); }
@@ -294,6 +295,9 @@ export default function AdminAgreements() {
                   {c.clientCompany && <p className="text-sm text-slate-500 mb-3">{c.clientCompany}</p>}
                   {c.clientEmail && <p className="text-xs text-slate-400">✉ {c.clientEmail}</p>}
                   <p className="text-xs text-slate-400 mt-2">Last activity: {new Date(c.lastActivity).toLocaleDateString('en-IN')}</p>
+                  {c.latestDocCode && (
+                    <p className="text-xs font-mono font-bold text-indigo-500 mt-2 bg-indigo-50 px-2 py-1 rounded-md tracking-wide">{c.latestDocCode}</p>
+                  )}
                 </button>
               ))}
             </div>

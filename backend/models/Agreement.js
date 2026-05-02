@@ -17,6 +17,11 @@ const agreementSchema = new mongoose.Schema(
       trim: true,
       default: "",
     },
+    docCode: {
+      type: String,
+      trim: true,
+      default: "",
+    },
     documentType: {
       type: String,
       required: true,
