@@ -4065,6 +4065,28 @@ router.post(
   }
 );
 
+// PUBLIC: Serve agreement HTML page (no auth — for email links)
+router.get("/public/agreements/:id/view", async (req, res) => {
+  try {
+    const agreement = await Agreement.findById(req.params.id);
+    if (!agreement) {
+      return res.status(404).send(`
+        <!DOCTYPE html><html><head><title>Not Found</title>
+        <style>body{font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f1f5f9;margin:0;}
+        .box{background:white;border-radius:16px;padding:40px;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,0.1);}
+        h2{color:#0f172a;}p{color:#64748b;}</style></head>
+        <body><div class="box"><h2>Document Not Found</h2>
+        <p>This document may have been removed or the link has expired.</p>
+        <p style="margin-top:20px;font-size:12px;">ASKC Digital Web &mdash; support@askcweb.in</p></div></body></html>
+      `);
+    }
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.send(agreement.htmlContent);
+  } catch (err) {
+    res.status(500).send("<p>Server error. Please try again later.</p>");
+  }
+});
+
 // Get all agreements (grouped by client)
 router.get(
   "/admin/agreements",
@@ -4221,7 +4243,7 @@ router.post(
         ? process.env.CLIENT_URL.replace("/dashboard", "")
         : "https://askcweb.in";
 
-      const viewLink = `${baseUrl}/id-card/verify/${agreement._id}`;
+      const viewLink = `${baseUrl}/api/auth/public/agreements/${agreement._id}/view`;
 
       const htmlEmail = `
 <!DOCTYPE html>

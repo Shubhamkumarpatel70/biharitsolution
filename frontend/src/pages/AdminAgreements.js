@@ -28,8 +28,8 @@ export default function AdminAgreements() {
   const [loading, setLoading]         = useState(true);
   const [saving, setSaving]           = useState(false);
   const [sendingEmail, setSendingEmail] = useState(null); // stores doc._id being emailed
+  const [stampModal, setStampModal]   = useState(null);  // doc metadata for stamp picker
   const [showGen, setShowGen]         = useState(false);
-  const [viewDoc, setViewDoc]         = useState(null);  // full agreement object
   const [viewLoading, setViewLoading] = useState(false);
   const [form, setForm]               = useState(initForm);
   const [toast, setToast]             = useState(null);
@@ -118,14 +118,59 @@ export default function AdminAgreements() {
     } finally { setSaving(false); }
   };
 
-  // ── View Document ─────────────────────────────────────────────────
-  const handleView = async (id) => {
+  // ── View Document (opens new tab) ────────────────────────────────
+  const openDocument = async (id, addStamp = false, stampText = 'APPROVED') => {
     setViewLoading(true);
     try {
       const r = await axios.get(`/api/auth/admin/agreements/${id}`, { headers });
-      setViewDoc(r.data.agreement);
+      let html = r.data.agreement.htmlContent;
+      if (addStamp) {
+        const stampColors = {
+          APPROVED:  { border: '#16a34a', text: '#16a34a' },
+          SIGNED:    { border: '#2563eb', text: '#2563eb' },
+          VERIFIED:  { border: '#7c3aed', text: '#7c3aed' },
+          PAID:      { border: '#0891b2', text: '#0891b2' },
+          CANCELLED: { border: '#dc2626', text: '#dc2626' },
+        };
+        const c = stampColors[stampText] || stampColors.APPROVED;
+        const stampHtml = `
+          <style>
+            #askc-stamp {
+              position: fixed;
+              top: 50%;
+              left: 50%;
+              transform: translate(-50%, -50%) rotate(-22deg);
+              font-family: 'Arial Black', sans-serif;
+              font-size: 64px;
+              font-weight: 900;
+              color: ${c.text};
+              opacity: 0.22;
+              border: 10px solid ${c.border};
+              border-radius: 12px;
+              padding: 16px 40px;
+              text-transform: uppercase;
+              letter-spacing: 6px;
+              pointer-events: none;
+              z-index: 99999;
+              user-select: none;
+            }
+            @media print { #askc-stamp { position: fixed !important; opacity: 0.20 !important; } }
+          </style>
+          <div id="askc-stamp">${stampText}</div>
+        `;
+        // Inject before </body>
+        html = html.replace('</body>', stampHtml + '</body>');
+      }
+      const w = window.open('', '_blank');
+      w.document.write(html);
+      w.document.close();
     } catch { showToast('Failed to load document', 'error'); }
-    finally { setViewLoading(false); }
+    finally { setViewLoading(false); setStampModal(null); }
+  };
+
+  const handleView = (doc) => {
+    // Show stamp picker modal first
+    setStampModal(doc);
   };
 
   // ── Delete ────────────────────────────────────────────────────────
@@ -172,14 +217,7 @@ export default function AdminAgreements() {
     } catch { showToast('Failed to update status', 'error'); }
   };
 
-  // ── Print ─────────────────────────────────────────────────────────
-  const handlePrint = () => {
-    if (!viewDoc) return;
-    const w = window.open('', '_blank');
-    w.document.write(viewDoc.htmlContent);
-    w.document.close();
-    setTimeout(() => w.print(), 800);
-  };
+  // ── Print is now handled inside the new tab ───────────────────────
 
   // ─────────────────────────────────────────────────────────────────
   return (
@@ -316,7 +354,7 @@ export default function AdminAgreements() {
                         {sendingEmail === doc._id ? 'Sending…' : 'Send Email'}
                       </button>
                       <button
-                        onClick={() => handleView(doc._id)}
+                        onClick={() => handleView(doc)}
                         disabled={viewLoading}
                         className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
                       >
@@ -437,40 +475,46 @@ export default function AdminAgreements() {
         </div>
       )}
 
-      {/* ── VIEW DOCUMENT MODAL ──────────────────────── */}
-      {viewDoc && (
-        <div className="fixed inset-0 z-[300] bg-slate-900/80 backdrop-blur-sm flex flex-col">
-          {/* Toolbar */}
-          <div className="bg-slate-900 text-white px-6 py-3 flex items-center justify-between shrink-0 border-b border-slate-700">
-            <div className="flex items-center gap-3 min-w-0">
-              <span className="text-xl">{DOC_ICONS[viewDoc.documentType] || '📄'}</span>
-              <div className="min-w-0">
-                <p className="font-bold truncate text-sm">{viewDoc.documentTitle}</p>
-                <p className="text-xs text-slate-400">{viewDoc.clientName} · {new Date(viewDoc.createdAt).toLocaleDateString('en-IN')}</p>
+      {/* ── STAMP PICKER MODAL ───────────────────────── */}
+      {stampModal && (
+        <div className="fixed inset-0 z-[300] bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-indigo-900 to-slate-900 px-6 py-5 flex items-center justify-between">
+              <div>
+                <p className="text-indigo-300 text-xs font-bold uppercase tracking-wider mb-1">Document Viewer</p>
+                <h3 className="text-white font-bold text-lg leading-tight truncate">{DOC_ICONS[stampModal.documentType] || '📄'} {stampModal.documentTitle?.split('—')[0]?.trim()}</h3>
               </div>
+              <button onClick={() => setStampModal(null)} className="p-2 hover:bg-white/10 rounded-xl transition-colors">
+                <Icon name="close" className="w-5 h-5 text-white" />
+              </button>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                onClick={handlePrint}
-                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-xl text-sm font-bold transition-colors"
-              >
-                <Icon name="download" className="w-4 h-4" /> Print / Download
-              </button>
-              <button
-                onClick={() => setViewDoc(null)}
-                className="p-2 hover:bg-slate-700 rounded-xl transition-colors"
-              >
-                <Icon name="close" className="w-5 h-5" />
-              </button>
+
+            {/* Stamp Options */}
+            <div className="p-6">
+              <p className="text-sm font-bold text-slate-700 mb-4">Add a stamp to this document?</p>
+              <div className="grid grid-cols-2 gap-3 mb-5">
+                {[
+                  { label: 'No Stamp',  value: null,        color: 'bg-slate-100 text-slate-600 border-slate-200' },
+                  { label: '✅ APPROVED',  value: 'APPROVED',  color: 'bg-green-50 text-green-700 border-green-200' },
+                  { label: '🖊 SIGNED',    value: 'SIGNED',    color: 'bg-blue-50 text-blue-700 border-blue-200' },
+                  { label: '🔍 VERIFIED',  value: 'VERIFIED',  color: 'bg-violet-50 text-violet-700 border-violet-200' },
+                  { label: '💰 PAID',      value: 'PAID',      color: 'bg-cyan-50 text-cyan-700 border-cyan-200' },
+                  { label: '❌ CANCELLED', value: 'CANCELLED', color: 'bg-red-50 text-red-700 border-red-200' },
+                ].map(opt => (
+                  <button
+                    key={opt.label}
+                    onClick={() => openDocument(stampModal._id, !!opt.value, opt.value || 'APPROVED')}
+                    disabled={viewLoading}
+                    className={`px-3 py-2.5 rounded-xl border-2 text-xs font-bold text-left transition-all hover:scale-105 active:scale-95 disabled:opacity-50 ${opt.color}`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-slate-400 text-center">Document will open in a new tab. Use Ctrl+P to print.</p>
             </div>
           </div>
-          {/* iframe */}
-          <iframe
-            title="Document Preview"
-            className="flex-1 w-full bg-slate-200"
-            srcDoc={viewDoc.htmlContent}
-            sandbox="allow-same-origin allow-scripts"
-          />
         </div>
       )}
     </div>
