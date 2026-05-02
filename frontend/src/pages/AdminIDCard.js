@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import html2canvas from 'html2canvas';
 import axios from 'axios';
+import Barcode from 'react-barcode';
 
 const AdminIDCard = () => {
   const [name, setName] = useState('');
@@ -19,7 +20,17 @@ const AdminIDCard = () => {
 
   useEffect(() => {
     fetchIDCards();
+    // Auto-generate ID number if empty
+    if (!idNumber) {
+      generateDynamicID();
+    }
   }, []);
+
+  const generateDynamicID = () => {
+    const randomNum = Math.floor(1000 + Math.random() * 9000);
+    const year = new Date().getFullYear();
+    setIdNumber(`ASKCDW${year}${randomNum}`);
+  };
 
   const fetchIDCards = async () => {
     try {
@@ -56,10 +67,10 @@ const AdminIDCard = () => {
       });
       alert('ID Card saved successfully');
       fetchIDCards();
-      // Clear fields
+      // Reset form
       setName('');
       setRole('');
-      setIdNumber('');
+      generateDynamicID();
     } catch (err) {
       console.error('Error saving ID card:', err);
       alert('Failed to save ID card');
@@ -94,25 +105,33 @@ const AdminIDCard = () => {
   };
 
   const handleShare = async () => {
-    if (!modalFrontRef.current) return;
-    try {
-      const canvas = await html2canvas(modalFrontRef.current, { scale: 2, useCORS: true });
-      const dataUrl = canvas.toDataURL('image/png');
-      const blob = await (await fetch(dataUrl)).blob();
-      const file = new File([blob], 'id-card.png', { type: 'image/png' });
-
-      if (navigator.share) {
+    if (!selectedCard) return;
+    
+    const shareUrl = `${window.location.origin}/id-card/verify/${selectedCard._id}`;
+    
+    if (navigator.share) {
+      try {
         await navigator.share({
-          files: [file],
           title: 'ASKC Digital Web ID Card',
-          text: `ID Card for ${selectedCard.name}`
+          text: `Digital ID Verification for ${selectedCard.name}`,
+          url: shareUrl
         });
-      } else {
-        alert('Sharing not supported on this browser. You can download the card instead.');
+      } catch (err) {
+        console.error('Error sharing:', err);
+        copyToClipboard(shareUrl);
       }
-    } catch (err) {
-      console.error('Error sharing card:', err);
+    } else {
+      copyToClipboard(shareUrl);
     }
+  };
+
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text).then(() => {
+      alert('Verification link copied to clipboard!');
+    }).catch(err => {
+      console.error('Could not copy text: ', err);
+      alert(`Share link: ${text}`);
+    });
   };
 
   const openViewModal = (card) => {
@@ -159,7 +178,7 @@ const AdminIDCard = () => {
     </div>
   );
 
-  const CardBack = ({ reference }) => (
+  const CardBack = ({ cardData, reference }) => (
     <div className="id-card-wrapper" ref={reference}>
       <div className="id-back">
         <div className="back-wave-top"></div>
@@ -190,7 +209,7 @@ const AdminIDCard = () => {
               <div className="contact-icon">
                 <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
               </div>
-              <div>123, 2nd Floor, Tech Park,<br/>Bhopal, Madhya Pradesh, 462023</div>
+              <div>Bihar IT Solution, Main Road,<br/>Patna, Bihar, 800001</div>
             </div>
             <div className="contact-item">
               <div className="contact-icon">
@@ -204,21 +223,20 @@ const AdminIDCard = () => {
               </div>
               <div>support@askcweb.in</div>
             </div>
-            <div className="contact-item">
-              <div className="contact-icon">
-                <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L8.5 14.5V17c0 1.1.9 2 2 2v.93zM19.93 11c-.17-1.39-.68-2.65-1.43-3.72L14.5 11.28V12c0 1.1-.9 2-2 2h-1v2h2c1.1 0 2 .9 2 2v.41c2.93-1.18 5-4.05 5-7.41z"/></svg>
-              </div>
-              <div>www.askcweb.in</div>
-            </div>
           </div>
           
           <div className="dashed-divider" style={{ marginTop: '5px' }}></div>
           
-          <div className="qr-container">
-            <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://www.askcweb.in" alt="QR Code" />
+          <div className="barcode-container" style={{ background: 'white', padding: '10px', borderRadius: '10px', marginTop: '10px' }}>
+            <Barcode 
+              value={cardData.idNumber || idNumber || "ASKCDW2025001"} 
+              height={40} 
+              width={1.2} 
+              fontSize={12}
+            />
           </div>
           
-          <div style={{ textAlign: 'center', fontSize: '10px', color: '#94a3b8', fontWeight: '600' }}>
+          <div style={{ textAlign: 'center', fontSize: '10px', color: '#94a3b8', fontWeight: '600', marginTop: '10px' }}>
             Follow Us
           </div>
         </div>
@@ -283,31 +301,7 @@ const AdminIDCard = () => {
         }
 
         .form-container input:focus {
-          border-color: #0055ff;
-        }
-
-        .download-btns {
-          display: flex;
-          flex-direction: column;
-          gap: 10px;
-          margin-top: 10px;
-        }
-
-        .btn-download {
-          width: 100%;
-          padding: 12px;
-          background: #10b981;
-          border: none;
-          color: white;
-          font-weight: bold;
-          cursor: pointer;
-          border-radius: 6px;
-          font-family: 'Inter', sans-serif;
-          transition: background 0.2s;
-        }
-
-        .btn-download:hover {
-          background: #059669;
+          border-color: #3b82f6;
         }
 
         .btn-save {
@@ -333,14 +327,6 @@ const AdminIDCard = () => {
           cursor: not-allowed;
         }
 
-        .cards-preview {
-          display: flex;
-          gap: 30px;
-          flex-wrap: wrap;
-          justify-content: center;
-        }
-
-        /* CARD DESIGN STYLES */
         .id-card-wrapper {
           width: 340px;
           height: 530px;
@@ -389,7 +375,7 @@ const AdminIDCard = () => {
           left: -30%;
           width: 160%;
           height: 300px;
-          background-color: #0055ff;
+          background-color: #3b82f6;
           border-radius: 50%;
           transform: rotate(-8deg);
           z-index: 1;
@@ -444,7 +430,7 @@ const AdminIDCard = () => {
           width: 150px;
           height: 150px;
           border-radius: 50%;
-          border: 4px solid #0055ff;
+          border: 4px solid #3b82f6;
           margin-top: 20px;
           overflow: hidden;
           background-color: #fff;
@@ -492,7 +478,7 @@ const AdminIDCard = () => {
           font-weight: 600;
         }
         .id-number-badge {
-          background-color: #0055ff;
+          background-color: #3b82f6;
           color: white;
           padding: 8px 30px;
           border-radius: 20px;
@@ -536,7 +522,7 @@ const AdminIDCard = () => {
           right: -40px;
           width: 180px;
           height: 180px;
-          background-color: #0055ff;
+          background-color: #3b82f6;
           border-radius: 50%;
           z-index: 1;
         }
@@ -557,7 +543,7 @@ const AdminIDCard = () => {
           left: -40px;
           width: 140px;
           height: 140px;
-          background-color: #0055ff;
+          background-color: #3b82f6;
           border-radius: 50%;
           z-index: 1;
         }
@@ -644,7 +630,7 @@ const AdminIDCard = () => {
         .contact-icon {
           width: 24px;
           height: 24px;
-          background-color: #1e90ff;
+          background-color: #3b82f6;
           border-radius: 6px;
           display: flex;
           justify-content: center;
@@ -655,19 +641,6 @@ const AdminIDCard = () => {
           width: 14px;
           height: 14px;
           fill: white;
-        }
-
-        .qr-container {
-          background-color: white;
-          padding: 6px;
-          border-radius: 8px;
-          margin-bottom: 15px;
-          box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-        }
-        .qr-container img {
-          width: 60px;
-          height: 60px;
-          display: block;
         }
 
         .world-map {
@@ -761,6 +734,7 @@ const AdminIDCard = () => {
           align-items: center;
           z-index: 1000;
           padding: 20px;
+          overflow-y: auto;
         }
 
         .modal-content {
@@ -773,6 +747,8 @@ const AdminIDCard = () => {
           flex-direction: column;
           align-items: center;
           position: relative;
+          margin-top: auto;
+          margin-bottom: auto;
         }
 
         .modal-cards {
@@ -788,6 +764,7 @@ const AdminIDCard = () => {
           gap: 15px;
           width: 100%;
           justify-content: center;
+          flex-wrap: wrap;
         }
 
         .btn-modal {
@@ -797,101 +774,135 @@ const AdminIDCard = () => {
           font-weight: bold;
           cursor: pointer;
           font-family: 'Inter', sans-serif;
+          min-width: 120px;
         }
 
-        .btn-modal-download { background: #10b981; color: white; }
-        .btn-modal-share { background: #3b82f6; color: white; }
-        .btn-modal-cancel { background: #64748b; color: white; }
+        .btn-cancel {
+          background: #475569;
+          color: white;
+        }
 
-        .close-modal {
-          position: absolute;
-          top: 15px;
-          right: 15px;
-          font-size: 24px;
-          color: #94a3b8;
-          cursor: pointer;
-          background: none;
-          border: none;
+        .btn-download-modal {
+          background: #10b981;
+          color: white;
+        }
+
+        .btn-share {
+          background: #8b5cf6;
+          color: white;
+        }
+        
+        @media (max-width: 768px) {
+          .modal-content {
+            padding: 15px;
+          }
+          .modal-cards {
+            gap: 15px;
+          }
+          .id-card-wrapper {
+            transform: scale(0.85);
+            margin: -40px 0;
+          }
+          .modal-actions {
+            flex-direction: column;
+            gap: 10px;
+          }
+          .btn-modal {
+            width: 100%;
+          }
         }
       `}</style>
 
-      <h2 className="generator-title">ASKC Digital Web - ID Card Management</h2>
-
+      <h1 className="generator-title font-bold text-slate-100 flex items-center gap-3">
+        <span className="p-2 bg-blue-500/20 rounded-lg">
+          <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm5 3a2 2 0 100-4 2 2 0 000 4z" />
+          </svg>
+        </span>
+        Admin ID Card Generator
+      </h1>
+      
       <div className="generator-layout">
-        {/* CONTROLS / FORM */}
         <div className="form-container">
-          <label htmlFor="name">Employee Name</label>
+          <label>Employee Name</label>
           <input 
             type="text" 
-            id="name" 
-            placeholder="e.g. Rohit Sharma" 
+            placeholder="Enter full name" 
             value={name} 
             onChange={(e) => setName(e.target.value)} 
           />
           
-          <label htmlFor="role">Role / Position</label>
+          <label>Job Position</label>
           <input 
             type="text" 
-            id="role" 
-            placeholder="e.g. Web Developer" 
+            placeholder="Enter position" 
             value={role} 
             onChange={(e) => setRole(e.target.value)} 
           />
           
-          <label htmlFor="idNumber">ID Number</label>
+          <label>Employee ID No.</label>
           <input 
             type="text" 
-            id="idNumber" 
-            placeholder="e.g. ASKC2025001" 
+            placeholder="e.g. ASKCDW2025001" 
             value={idNumber} 
             onChange={(e) => setIdNumber(e.target.value)} 
           />
           
-          <label htmlFor="photoInput">Profile Photo</label>
+          <label>Upload Photo</label>
           <input 
             type="file" 
-            id="photoInput" 
             accept="image/*" 
             onChange={handlePhotoChange} 
             style={{ padding: '8px' }}
           />
+
+          <button 
+            className="btn-save" 
+            onClick={handleSave}
+            disabled={loading}
+          >
+            {loading ? 'Saving...' : 'Save to Database'}
+          </button>
           
           <div className="download-btns">
-            <button className="btn-download" onClick={() => downloadCard('front')}>Download Front Preview</button>
-            <button className="btn-download" onClick={() => downloadCard('back')}>Download Back Preview</button>
-            <button className="btn-save" onClick={handleSave} disabled={loading}>
-              {loading ? 'Saving...' : 'Save to Database'}
-            </button>
+            <button className="btn-download" onClick={() => downloadCard('front')}>Download Front</button>
+            <button className="btn-download" style={{ background: '#6366f1' }} onClick={() => downloadCard('back')}>Download Back</button>
           </div>
         </div>
 
-        {/* PREVIEWS */}
         <div className="cards-preview">
           <CardFront cardData={{ name, role, idNumber, photo }} reference={frontRef} />
-          <CardBack reference={backRef} />
+          <CardBack cardData={{ name, role, idNumber }} reference={backRef} />
         </div>
       </div>
 
-      {/* SAVED CARDS TABLE */}
       <div className="saved-cards-section">
-        <h3 className="saved-cards-title">Saved ID Cards</h3>
+        <h2 className="saved-cards-title">Managed ID Cards</h2>
         <div className="cards-table-container">
           <table className="cards-table">
             <thead>
               <tr>
+                <th>Photo</th>
                 <th>Name</th>
                 <th>Role</th>
                 <th>ID Number</th>
-                <th>Date Saved</th>
+                <th>Date</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {idCards.map((card) => (
+              {idCards.map(card => (
                 <tr key={card._id}>
+                  <td>
+                    <img 
+                      src={card.photo || 'https://via.placeholder.com/40'} 
+                      alt={card.name} 
+                      className="w-10 h-10 rounded-full object-cover border border-slate-700"
+                    />
+                  </td>
                   <td>{card.name}</td>
                   <td>{card.role}</td>
-                  <td>{card.idNumber}</td>
+                  <td className="font-mono text-blue-400">{card.idNumber}</td>
                   <td>{new Date(card.createdAt).toLocaleDateString()}</td>
                   <td>
                     <button className="btn-view" onClick={() => openViewModal(card)}>View</button>
@@ -901,7 +912,9 @@ const AdminIDCard = () => {
               ))}
               {idCards.length === 0 && (
                 <tr>
-                  <td colSpan="5" style={{ textAlign: 'center', color: '#94a3b8' }}>No saved cards found</td>
+                  <td colSpan="6" style={{ textAlign: 'center', padding: '30px', color: '#94a3b8' }}>
+                    No ID cards generated yet.
+                  </td>
                 </tr>
               )}
             </tbody>
@@ -909,23 +922,21 @@ const AdminIDCard = () => {
         </div>
       </div>
 
-      {/* VIEW MODAL */}
       {showModal && selectedCard && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <button className="close-modal" onClick={closeViewModal}>&times;</button>
-            <h3 style={{ marginBottom: '20px', fontSize: '24px' }}>ID Card View</h3>
+        <div className="modal-overlay" onClick={closeViewModal}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <h2 className="saved-cards-title w-full text-center mb-6">ID Card Preview</h2>
             
             <div className="modal-cards">
               <CardFront cardData={selectedCard} reference={modalFrontRef} />
-              <CardBack reference={modalBackRef} />
+              <CardBack cardData={selectedCard} reference={modalBackRef} />
             </div>
 
             <div className="modal-actions">
-              <button className="btn-modal btn-modal-download" onClick={() => downloadCard('front', modalFrontRef)}>Download Front</button>
-              <button className="btn-modal btn-modal-download" onClick={() => downloadCard('back', modalBackRef)}>Download Back</button>
-              <button className="btn-modal btn-modal-share" onClick={handleShare}>Share</button>
-              <button className="btn-modal btn-modal-cancel" onClick={closeViewModal}>Cancel</button>
+              <button className="btn-modal btn-download-modal" onClick={() => downloadCard('front', modalFrontRef)}>Download Front</button>
+              <button className="btn-modal btn-download-modal" style={{ background: '#6366f1' }} onClick={() => downloadCard('back', modalBackRef)}>Download Back</button>
+              <button className="btn-modal btn-share" onClick={handleShare}>Share Link</button>
+              <button className="btn-modal btn-cancel" onClick={closeViewModal}>Cancel</button>
             </div>
           </div>
         </div>

@@ -1052,6 +1052,33 @@ router.post(
   },
 );
 
+// Admin: Get single ID card
+router.get(
+  "/admin/id-cards/:id",
+  authMiddleware,
+  coAdminMiddleware,
+  async (req, res) => {
+    try {
+      const idCard = await IDCard.findById(req.params.id);
+      if (!idCard) return res.status(404).json({ message: "ID Card not found." });
+      res.json({ idCard });
+    } catch (err) {
+      res.status(500).json({ message: "Could not fetch ID card." });
+    }
+  },
+);
+
+// Public: Get single ID card for sharing
+router.get("/public/id-cards/:id", async (req, res) => {
+  try {
+    const idCard = await IDCard.findById(req.params.id).select("-__v");
+    if (!idCard) return res.status(404).json({ message: "ID Card not found." });
+    res.json({ idCard });
+  } catch (err) {
+    res.status(500).json({ message: "Could not fetch ID card." });
+  }
+});
+
 router.get(
   "/admin/id-cards",
   authMiddleware,

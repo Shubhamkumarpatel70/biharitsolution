@@ -36,6 +36,7 @@ import NotFound from './pages/NotFound';
 import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
 import Refund from './pages/Refund';
+import PublicIDCard from './pages/PublicIDCard';
 import UnsubscribeEmail from './pages/UnsubscribeEmail';
 import { UserProvider, UserContext } from './UserContext';
 import axios from 'axios';
@@ -115,6 +116,7 @@ function AppContent() {
             <Route path='contacts' element={<AdminContacts />} />
             <Route path='id-card' element={<AdminIDCard />} />
           </Route>
+          <Route path='/id-card/verify/:id' element={<PublicIDCard />} />
           <Route path='/support-chat/:complaintId' element={<SupportChat />} />
           <Route path='/unsubscribe-email' element={<UnsubscribeEmail />} />
           <Route path='*' element={<NotFound />} />
