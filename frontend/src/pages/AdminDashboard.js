@@ -26,6 +26,7 @@ import AdminCareers from './AdminCareers';
 import AdminCareerApplications from './AdminCareerApplications';
 import AdminPromotionalEmail from './AdminPromotionalEmail';
 import AdminPromotionalUnsubscribed from './AdminPromotionalUnsubscribed';
+import AdminIDCard from './AdminIDCard';
 import { Icon } from '../components/icons';
 
 const AdminDashboard = () => {
@@ -113,6 +114,8 @@ const AdminDashboard = () => {
         return <AdminCareerApplications />;
       case 'help':
         return <AdminHelp />;
+      case 'id-card':
+        return <AdminIDCard />;
       default:
         return <AdminHome />;
     }

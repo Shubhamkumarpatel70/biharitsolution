@@ -31,6 +31,7 @@ import AdminNotifications from './pages/AdminNotifications';
 import AdminPlans from './pages/AdminPlans';
 import AdminContacts from './pages/AdminContacts';
 import AdminCancellations from './pages/AdminCancellations';
+import AdminIDCard from './pages/AdminIDCard';
 import NotFound from './pages/NotFound';
 import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
@@ -112,6 +113,7 @@ function AppContent() {
             <Route path='notifications' element={<AdminNotifications />} />
             <Route path='plans' element={<AdminPlans />} />
             <Route path='contacts' element={<AdminContacts />} />
+            <Route path='id-card' element={<AdminIDCard />} />
           </Route>
           <Route path='/support-chat/:complaintId' element={<SupportChat />} />
           <Route path='/unsubscribe-email' element={<UnsubscribeEmail />} />
