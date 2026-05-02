@@ -146,33 +146,27 @@ const AdminIDCard = () => {
 
   const CardFront = ({ cardData, reference }) => (
     <div className="id-card-wrapper" ref={reference}>
-      <div className="front-bg-pattern"></div>
-      <div className="front-bottom-bg"></div>
-      <div className="front-wave-1"></div>
-      <div className="front-wave-2"></div>
-      
-      <div className="id-front front-content">
-        <div className="lanyard-hole"></div>
-        
-        <div className="logo-container">
-          <img src="/askclogonew.jpeg" alt="ASKC Digital Web" />
-        </div>
+      <div className="front-header-bg"></div>
+      <div className="front-content">
+        <h2 className="header-title">IDENTITY CARD</h2>
+        <div className="header-line"></div>
         
         <div className="photo-container">
           <img src={cardData.photo || photo} alt="Profile Photo" />
         </div>
         
         <div className="details">
-          <h2 className="employee-name">{cardData.name || "Rohit Sharma"}</h2>
-          <div className="employee-title">{cardData.role || "Web Developer"}</div>
-          <div className="divider"></div>
-          <p className="id-label">ID No.</p>
-          <div className="id-number-badge">{cardData.idNumber || "ASKC2025001"}</div>
+          <h2 className="employee-name">{cardData.name || "SHUBHAM KUMAR"}</h2>
+          <div className="employee-title">{cardData.role || "FOUNDER"}</div>
           
-          <div className="signature-container">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/f/f6/Signature_of_John_Hancock.svg" className="signature" alt="Signature" />
-            <div className="signatory">Authorized Signatory</div>
+          <div className="id-section">
+            <p className="id-label">ID Number</p>
+            <div className="id-number-text">{cardData.idNumber || idNumber || "ASKCDW20267062"}</div>
           </div>
+        </div>
+
+        <div className="front-footer">
+          <span className="footer-text">OFFICIAL MEMBER</span>
         </div>
       </div>
     </div>
@@ -181,64 +175,39 @@ const AdminIDCard = () => {
   const CardBack = ({ cardData, reference }) => (
     <div className="id-card-wrapper" ref={reference}>
       <div className="id-back">
-        <div className="back-wave-top"></div>
-        <div className="back-wave-top-inner"></div>
-        <div className="back-wave-bottom"></div>
-        <div className="back-wave-bottom-inner"></div>
-        <div className="world-map"></div>
+        <div className="back-logo-section">
+          <div className="back-logo-text">ASKC <span>Digital Web</span></div>
+          <div className="back-logo-sub">Verified Institution</div>
+        </div>
         
-        <div className="back-content">
-          <div className="back-lanyard-hole"></div>
-          
-          <div className="back-logo">
-            <img src="/askclogonew.jpeg" alt="ASKC Digital Web" />
-          </div>
-          
-          <div className="dashed-divider"></div>
-          
-          <div className="section-title">ABOUT US</div>
-          <p className="about-text">
-            ASKC Digital Web is a creative digital solutions company providing innovative website development, design and digital marketing services to help businesses grow online.
+        <div className="info-box">
+          <span className="info-label">Office Location</span>
+          <p className="info-text">
+            Bihar IT Solution,<br/>
+            Main Road, Near City Center,<br/>
+            Patna, Bihar - 800001
           </p>
-          
-          <div className="dashed-divider"></div>
+        </div>
 
-          <div className="section-title">CONTACT US</div>
-          <div className="contact-info">
-            <div className="contact-item">
-              <div className="contact-icon">
-                <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
-              </div>
-              <div>Bihar IT Solution, Main Road,<br/>Patna, Bihar, 800001</div>
-            </div>
-            <div className="contact-item">
-              <div className="contact-icon">
-                <svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
-              </div>
-              <div>+91 62626 92632</div>
-            </div>
-            <div className="contact-item">
-              <div className="contact-icon">
-                <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
-              </div>
-              <div>support@askcweb.in</div>
-            </div>
+        <div className="info-box">
+          <span className="info-label">Digital Contact</span>
+          <div className="info-text">
+            support@askcweb.in<br/>
+            www.askcweb.in
           </div>
-          
-          <div className="dashed-divider" style={{ marginTop: '5px' }}></div>
-          
-          <div className="barcode-container" style={{ background: 'white', padding: '10px', borderRadius: '10px', marginTop: '10px' }}>
+        </div>
+
+        <div className="barcode-section">
+          <div className="barcode-wrapper">
             <Barcode 
-              value={cardData.idNumber || idNumber || "ASKCDW2025001"} 
+              value={cardData.idNumber || idNumber || "ASKCDW20267062"} 
               height={40} 
               width={1.2} 
-              fontSize={12}
+              displayValue={false}
+              background="transparent"
             />
           </div>
-          
-          <div style={{ textAlign: 'center', fontSize: '10px', color: '#94a3b8', fontWeight: '600', marginTop: '10px' }}>
-            Follow Us
-          </div>
+          <div className="barcode-number">{cardData.idNumber || idNumber || "ASKCDW20267062"}</div>
         </div>
       </div>
     </div>
@@ -327,16 +296,17 @@ const AdminIDCard = () => {
           cursor: not-allowed;
         }
 
+        /* CARD DESIGN STYLES - PRECISE MATCH TO IMAGE */
         .id-card-wrapper {
-          width: 340px;
-          height: 530px;
-          border-radius: 20px;
-          box-shadow: 0 15px 35px rgba(0,0,0,0.4);
+          width: 350px;
+          height: 520px;
+          border-radius: 40px;
+          box-shadow: 0 20px 50px rgba(0,0,0,0.15);
           position: relative;
           overflow: hidden;
-          background-color: #f8f9fa;
+          background-color: #ffffff;
           flex-shrink: 0;
-          color: #1e293b;
+          color: #0f172a;
         }
 
         /* FRONT DESIGN */
@@ -347,50 +317,16 @@ const AdminIDCard = () => {
           height: 100%;
         }
 
-        .front-bg-pattern {
+        .front-header-bg {
           position: absolute;
           top: 0;
           left: 0;
           width: 100%;
-          height: 300px;
-          background-image: radial-gradient(#d1d5db 1px, transparent 1px);
-          background-size: 15px 15px;
-          opacity: 0.6;
+          height: 180px;
+          background-color: #0f172a;
+          border-bottom-left-radius: 60px;
+          border-bottom-right-radius: 60px;
           z-index: 1;
-        }
-
-        .front-bottom-bg {
-          position: absolute;
-          bottom: 0;
-          left: 0;
-          width: 100%;
-          height: 300px;
-          background-color: #0d1b2a;
-          z-index: 1;
-        }
-        
-        .front-wave-1 {
-          position: absolute;
-          bottom: 240px;
-          left: -30%;
-          width: 160%;
-          height: 300px;
-          background-color: #3b82f6;
-          border-radius: 50%;
-          transform: rotate(-8deg);
-          z-index: 1;
-        }
-        
-        .front-wave-2 {
-          position: absolute;
-          bottom: 190px;
-          left: -30%;
-          width: 160%;
-          height: 300px;
-          background-color: #0d1b2a;
-          border-radius: 50%;
-          transform: rotate(2deg);
-          z-index: 2;
         }
 
         .front-content {
@@ -402,43 +338,48 @@ const AdminIDCard = () => {
           align-items: center;
         }
 
-        .lanyard-hole {
-          width: 50px;
-          height: 10px;
-          background-color: #0d1b2a;
-          border-radius: 10px;
-          margin-top: 15px;
-          opacity: 0.15;
+        .header-title {
+          color: white;
+          font-size: 20px;
+          font-weight: 900;
+          letter-spacing: 2px;
+          margin-top: 40px;
+          text-transform: uppercase;
         }
 
-        .logo-container {
-          margin-top: 20px;
-          text-align: center;
-          height: 70px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-        .logo-container img {
-          max-width: 160px;
-          max-height: 80px;
-          object-fit: contain;
-          mix-blend-mode: multiply;
+        .header-line {
+          width: 40px;
+          height: 3px;
+          background-color: #3b82f6;
+          margin-top: 8px;
+          border-radius: 2px;
+          opacity: 0.8;
         }
 
         .photo-container {
-          width: 150px;
-          height: 150px;
+          width: 160px;
+          height: 160px;
           border-radius: 50%;
-          border: 4px solid #3b82f6;
-          margin-top: 20px;
+          border: 6px solid #ffffff;
+          margin-top: 25px;
           overflow: hidden;
           background-color: #fff;
           display: flex;
           justify-content: center;
           align-items: center;
-          box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+          box-shadow: 0 10px 25px rgba(59, 130, 246, 0.25);
+          position: relative;
         }
+        
+        .photo-container::after {
+          content: "";
+          position: absolute;
+          inset: -4px;
+          border-radius: 50%;
+          border: 4px solid #3b82f6;
+          opacity: 0.3;
+        }
+
         .photo-container img {
           width: 100%;
           height: 100%;
@@ -446,219 +387,160 @@ const AdminIDCard = () => {
         }
 
         .details {
-          margin-top: 30px;
+          margin-top: 40px;
           text-align: center;
-          color: white;
           width: 100%;
+          padding: 0 20px;
         }
+        
         .employee-name {
-          font-size: 28px;
-          font-weight: 700;
+          font-size: 26px;
+          font-weight: 900;
           margin: 0;
-          color: #ffffff;
-          letter-spacing: 0.5px;
+          color: #0f172a;
+          letter-spacing: -0.5px;
+          text-transform: uppercase;
         }
+        
         .employee-title {
           font-size: 16px;
           color: #3b82f6;
-          margin: 5px 0 15px 0;
-          font-weight: 600;
-          letter-spacing: 0.5px;
-        }
-        .divider {
-          width: 60%;
-          height: 1px;
-          background-color: rgba(255,255,255,0.15);
-          margin: 0 auto 12px auto;
-        }
-        .id-label {
-          font-size: 12px;
-          color: #ffffff;
-          margin: 0 0 5px 0;
-          font-weight: 600;
-        }
-        .id-number-badge {
-          background-color: #3b82f6;
-          color: white;
-          padding: 8px 30px;
-          border-radius: 20px;
-          font-size: 16px;
+          margin: 6px 0 35px 0;
           font-weight: 700;
-          display: inline-block;
-          margin-bottom: 20px;
-          letter-spacing: 1px;
-        }
-
-        .signature-container {
-          text-align: center;
-          margin-top: 5px;
-        }
-        .signature {
-          width: 100px;
-          height: auto;
-          filter: invert(1);
-          opacity: 0.8;
-        }
-        .signatory {
-          font-size: 10px;
-          color: #b0b5be;
-          margin-top: 2px;
-        }
-
-        /* BACK DESIGN */
-        .id-back {
-          background-color: #0d1b2a;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          height: 100%;
-          color: white;
-          position: relative;
-        }
-
-        .back-wave-top {
-          position: absolute;
-          top: -40px;
-          right: -40px;
-          width: 180px;
-          height: 180px;
-          background-color: #3b82f6;
-          border-radius: 50%;
-          z-index: 1;
-        }
-        .back-wave-top-inner {
-          position: absolute;
-          top: -20px;
-          right: -10px;
-          width: 160px;
-          height: 160px;
-          background-color: #0d1b2a;
-          border-radius: 50%;
-          z-index: 2;
+          letter-spacing: 1.5px;
+          text-transform: uppercase;
         }
         
-        .back-wave-bottom {
-          position: absolute;
-          bottom: -40px;
-          left: -40px;
-          width: 140px;
-          height: 140px;
-          background-color: #3b82f6;
-          border-radius: 50%;
-          z-index: 1;
-        }
-        .back-wave-bottom-inner {
-          position: absolute;
-          bottom: -40px;
-          left: -20px;
-          width: 120px;
-          height: 120px;
-          background-color: #0d1b2a;
-          border-radius: 50%;
-          z-index: 2;
-        }
-
-        .back-content {
-          position: relative;
-          z-index: 10;
+        .id-section {
+          border-top: 1px solid #f1f5f9;
+          padding-top: 25px;
           width: 100%;
-          padding: 15px 30px;
-          box-sizing: border-box;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
         }
 
-        .back-lanyard-hole {
-          width: 60px;
-          height: 10px;
-          background-color: #000;
-          border-radius: 10px;
-          margin-top: 0;
-          opacity: 0.4;
-          margin-bottom: 15px;
-        }
-
-        .back-logo {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin-bottom: 15px;
-          height: 60px;
-        }
-        .back-logo img {
-          max-height: 60px;
-          max-width: 180px;
-          object-fit: contain;
-        }
-
-        .section-title {
-          color: #3b82f6;
-          font-size: 14px;
-          font-weight: 700;
-          margin-bottom: 8px;
+        .id-label {
+          font-size: 11px;
+          color: #94a3b8;
+          margin: 0 0 6px 0;
+          font-weight: 800;
           text-transform: uppercase;
           letter-spacing: 1px;
         }
         
-        .about-text {
-          font-size: 10px;
-          text-align: center;
-          color: #e2e8f0;
-          line-height: 1.5;
-          margin-bottom: 20px;
-          font-weight: 400;
+        .id-number-text {
+          color: #0f172a;
+          font-size: 22px;
+          font-weight: 900;
+          letter-spacing: 1.5px;
         }
 
-        .contact-info {
+        .front-footer {
+          position: absolute;
+          bottom: 0;
+          left: 0;
           width: 100%;
+          height: 45px;
+          background-color: #0f172a;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-top-left-radius: 15px;
+          border-top-right-radius: 15px;
+        }
+        
+        .footer-text {
+          color: white;
           font-size: 11px;
-          color: #ffffff;
-          font-weight: 500;
+          font-weight: 800;
+          letter-spacing: 2px;
+          text-transform: uppercase;
+          opacity: 0.9;
+        }
+
+        /* BACK DESIGN */
+        .id-back {
+          background-color: #ffffff;
           display: flex;
           flex-direction: column;
-          gap: 12px;
-          margin-bottom: 20px;
-        }
-        
-        .contact-item {
-          display: flex;
           align-items: center;
-          gap: 15px;
-        }
-        
-        .contact-icon {
-          width: 24px;
-          height: 24px;
-          background-color: #3b82f6;
-          border-radius: 6px;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          flex-shrink: 0;
-        }
-        .contact-icon svg {
-          width: 14px;
-          height: 14px;
-          fill: white;
+          height: 100%;
+          padding: 30px 25px;
+          box-sizing: border-box;
         }
 
-        .world-map {
-          position: absolute;
-          top: 25%;
-          left: 10%;
-          width: 80%;
-          height: 50%;
-          opacity: 0.03;
-          background-image: radial-gradient(#fff 1px, transparent 1px);
-          background-size: 5px 5px;
-          z-index: 1;
+        .back-logo-section {
+          text-align: center;
+          margin-bottom: 30px;
         }
         
-        .dashed-divider {
+        .back-logo-text {
+          font-size: 22px;
+          font-weight: 900;
+          color: #0f172a;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        }
+        
+        .back-logo-text span {
+          color: #3b82f6;
+        }
+        
+        .back-logo-sub {
+          font-size: 11px;
+          color: #94a3b8;
+          font-weight: 800;
+          letter-spacing: 1.5px;
+          text-transform: uppercase;
+          margin-top: 4px;
+        }
+
+        .info-box {
           width: 100%;
-          border-top: 1px dashed rgba(255,255,255,0.15);
+          background-color: #f8fafc;
+          border-radius: 20px;
+          padding: 20px;
           margin-bottom: 15px;
+        }
+        
+        .info-label {
+          font-size: 10px;
+          color: #94a3b8;
+          font-weight: 800;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          margin-bottom: 12px;
+          display: block;
+        }
+        
+        .info-text {
+          font-size: 13px;
+          color: #0f172a;
+          font-weight: 700;
+          line-height: 1.6;
+        }
+
+        .barcode-section {
+          margin-top: auto;
+          width: 100%;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          padding-bottom: 10px;
+        }
+        
+        .barcode-wrapper {
+          background: white;
+          padding: 5px;
+          border-radius: 8px;
+          margin-bottom: 5px;
+          transform: scale(1.1);
+        }
+        
+        .barcode-number {
+          font-size: 11px;
+          font-weight: 700;
+          color: #0f172a;
+          letter-spacing: 1px;
         }
 
         /* TABLE STYLES */

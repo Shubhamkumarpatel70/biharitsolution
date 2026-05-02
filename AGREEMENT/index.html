@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Website Development Agreement</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Merriweather:ital,wght@0,300;0,400;0,700;1,300&display=swap"
+    rel="stylesheet">
+  <!-- FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    :root {
+      --primary-blue: #165ebc;
+      --dark-blue: #061d4b;
+      --light-blue: #f4f8fc;
+      --text-dark: #334155;
+      /* Slate 700 - optimized for readability */
+      --text-gray: #475569;
+      --border-color: #cbd5e1;
+      --page-width: 210mm;
+      --page-height: 297mm;
+      --px-spacing: 50px;
+      /* Universal horizontal padding */
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #cbd5e1;
+      color: var(--text-dark);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 0;
+      gap: 40px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .page {
+      width: var(--page-width);
+      height: var(--page-height);
+      background: white;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Controls / Print Button */
+    .controls {
+      position: fixed;
+      top: 25px;
+      right: 30px;
+      z-index: 1000;
+    }
+
+    .btn-print {
+      background-color: var(--primary-blue);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      font-size: 15px;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(22, 94, 188, 0.3);
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-print:hover {
+      background-color: var(--dark-blue);
+      transform: translateY(-2px);
+    }
+
+    /* Form Inputs */
+    .doc-input {
+      border: none;
+      border-bottom: 1px solid #94a3b8;
+      background: transparent;
+      font-family: inherit;
+      font-size: inherit;
+      color: var(--primary-blue);
+      font-weight: 700;
+      outline: none;
+      padding: 4px 2px;
+      transition: border-color 0.2s;
+    }
+
+    .doc-input:focus {
+      border-bottom: 2px solid var(--primary-blue);
+    }
+
+    .doc-input::placeholder {
+      color: #cbd5e1;
+      font-weight: 400;
+    }
+
+    /* Headers Generic */
+    header {
+      position: relative;
+      height: 140px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 var(--px-spacing);
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .header-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      z-index: 10;
+    }
+
+    .logo-icon {
+      color: var(--primary-blue);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+    }
+
+    .logo-text h1 {
+      font-size: 21px;
+      color: var(--dark-blue);
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+
+    .logo-text p {
+      font-size: 10.5px;
+      color: var(--text-gray);
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+
+    /* Header text block */
+    .header-title-block {
+      position: relative;
+      z-index: 2;
+      text-align: right;
+      margin-top: -10px;
+    }
+
+    .header-title-block p {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      margin-bottom: 3px;
+      text-transform: uppercase;
+    }
+
+    .header-title-block h2 {
+      font-size: 28px;
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: -0.5px;
+    }
+
+    /* PAGE 1 HEADER */
+    .p1-header p {
+      color: var(--text-gray);
+    }
+
+    .p1-header h2 {
+      color: var(--primary-blue);
+    }
+
+    .p1-divider-svg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 160px;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .ref-no {
+      font-size: 10px;
+      color: var(--text-gray);
+      margin-top: 8px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 5px;
+    }
+
+    /* PAGE 2 & 3 HEADERS */
+    .p2-header p {
+      color: #cbd5e1;
+    }
+
+    .p2-header h2 {
+      color: #60a5fa;
+    }
+
+    .p2-slant-bg {
+      position: absolute;
+      right: -80px;
+      top: 0;
+      width: 62%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    .p2-slant-blue {
+      position: absolute;
+      left: -8px;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--primary-blue);
+      transform: skewX(-32deg);
+      transform-origin: top left;
+    }
+
+    .p2-slant-dark {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--dark-blue);
+      transform: skewX(-32deg);
+      transform-origin: top left;
+    }
+
+    /* INFO CONTAINER (Page 1) */
+    .info-container {
+      margin: 5px var(--px-spacing) 25px var(--px-spacing);
+      background: var(--light-blue);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      display: flex;
+      padding: 22px 0;
+    }
+
+    .info-col {
+      flex: 1;
+      text-align: center;
+      border-right: 1px dashed #cbd5e1;
+      padding: 0 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .info-col:last-child {
+      border-right: none;
+    }
+
+    .info-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: white;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--primary-blue);
+      font-size: 16px;
+    }
+
+    .info-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-gray);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .info-col .doc-input {
+      width: 100%;
+      text-align: center;
+      font-size: 12.5px;
+      margin-top: 2px;
+      color: var(--dark-blue);
+    }
+
+    /* BODY CONTENT & GENERAL PADDING */
+    .content-wrap {
+      padding: 0 var(--px-spacing);
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Overview Text Page 1 */
+    .greeting {
+      font-size: 12.5px;
+      color: var(--text-dark);
+      line-height: 1.6;
+      margin-bottom: 25px;
+      text-align: justify;
+    }
+
+    .greeting strong {
+      color: var(--dark-blue);
+      font-size: 14px;
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    .section-divider {
+      width: 100%;
+      height: 1px;
+      background: #e2e8f0;
+      margin-bottom: 25px;
+      position: relative;
+    }
+
+    .section-divider::after {
+      content: "";
+      position: absolute;
+      left: calc(var(--px-spacing) + 10px);
+      top: -1px;
+      width: 50px;
+      height: 3px;
+      background: var(--primary-blue);
+    }
+
+    /* SECTIONS LAYOUT */
+    .sections-list {
+      flex: 1;
+    }
+
+    .list-item {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 22px;
+      padding-bottom: 22px;
+      border-bottom: 1px solid #f1f5f9;
+    }
+
+    .list-item:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .list-num {
+      width: 28px;
+      height: 28px;
+      flex-shrink: 0;
+      background: var(--dark-blue);
+      color: white;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12.5px;
+      font-weight: 700;
+    }
+
+    .list-content h3 {
+      font-size: 13.5px;
+      font-weight: 800;
+      color: var(--primary-blue);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .list-content p,
+    .list-content ul li {
+      font-size: 12px;
+      color: var(--text-dark);
+      line-height: 1.6;
+      font-weight: 400;
+      text-align: justify;
+    }
+
+    .list-content ul {
+      padding-left: 20px;
+      margin-top: 8px;
+      list-style-type: square;
+    }
+
+    .list-content ul li {
+      margin-bottom: 6px;
+    }
+
+    .list-content ul li strong {
+      color: var(--dark-blue);
+      font-weight: 700;
+    }
+
+    /* LEGAL TERMS & CONDITIONS (PAGE 3) */
+    .terms-box {
+      padding: 0 var(--px-spacing);
+      margin-top: 20px;
+    }
+
+    .terms-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--dark-blue);
+      font-size: 14.5px;
+      font-weight: 800;
+      margin-bottom: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .terms-title i {
+      font-size: 18px;
+      color: var(--primary-blue);
+      opacity: 0.9;
+    }
+
+    .terms-box ul {
+      padding-left: 0;
+      list-style-type: none;
+      font-size: 12px;
+      line-height: 1.7;
+      font-weight: 400;
+      color: var(--text-dark);
+      margin-bottom: 25px;
+      text-align: justify;
+    }
+
+    .terms-box ul li {
+      margin-bottom: 14px;
+    }
+
+    .terms-box ul li strong {
+      color: var(--dark-blue);
+      font-weight: 700;
+    }
+
+    /* NOTES AREA */
+    .notes-box {
+      background: var(--light-blue);
+      margin: 0 var(--px-spacing);
+      padding: 20px 30px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+    }
+
+    .notes-box .terms-title {
+      margin-bottom: 15px;
+    }
+
+    .notes-area {
+      width: 100%;
+      background: transparent;
+      border: none;
+      border-bottom: 1.5px solid #cbd5e1;
+      font-family: inherit;
+      font-size: 12.5px;
+      line-height: 2.2;
+      outline: none;
+      resize: none;
+      overflow: hidden;
+      min-height: 70px;
+      color: var(--dark-blue);
+      font-weight: 500;
+      background-image: repeating-linear-gradient(transparent, transparent 27px, #cbd5e1 28px);
+    }
+
+    .notes-area:focus {
+      border-bottom-color: var(--primary-blue);
+    }
+
+    /* SHIELD & SIGNATURES */
+    .shield-divider {
+      display: flex;
+      align-items: center;
+      margin: 25px var(--px-spacing) 15px var(--px-spacing);
+      gap: 20px;
+    }
+
+    .shield-line {
+      flex: 1;
+      height: 1px;
+      background: #e2e8f0;
+    }
+
+    .shield-icon {
+      width: 32px;
+      height: 32px;
+      background: var(--dark-blue);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+
+    .agreement-text {
+      text-align: center;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-gray);
+      padding: 0 90px;
+      margin-bottom: 30px;
+      line-height: 1.6;
+    }
+
+    .signatures {
+      display: flex;
+      gap: 60px;
+      padding: 0 var(--px-spacing);
+      margin-bottom: 30px;
+    }
+
+    .sig-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .sig-header {
+      color: var(--primary-blue);
+      font-size: 13px;
+      font-weight: 800;
+      margin-bottom: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .sig-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 18px;
+      font-size: 12px;
+    }
+
+    .sig-row span {
+      width: 85px;
+      color: var(--text-gray);
+      font-weight: 600;
+    }
+
+    .sig-row .doc-input {
+      flex: 1;
+      font-size: 13px;
+    }
+
+    .stamp-box {
+      margin-top: 15px;
+      height: 90px;
+      border: 1.5px dashed #cbd5e1;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: #94a3b8;
+      background: #f8fafc;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    /* FOOTERS */
+    footer {
+      height: 65px;
+      width: 100%;
+      background: var(--dark-blue);
+      display: flex;
+      align-items: center;
+      position: relative;
+      margin-top: auto;
+      flex-shrink: 0;
+    }
+
+    .footer-p1 {
+      justify-content: center;
+      gap: 45px;
+      color: #e2e8f0;
+      font-size: 11.5px;
+      font-weight: 500;
+    }
+
+    .footer-p1::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      width: 250px;
+      background: var(--primary-blue);
+      clip-path: polygon(0 0, 100% 0, 85% 100%, 0 100%);
+    }
+
+    .footer-contact-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      z-index: 2;
+    }
+
+    .footer-contact-item i {
+      font-size: 13.5px;
+      opacity: 0.8;
+      color: #94a3b8;
+    }
+
+    /* Footer for Page 3 (or any footer needing left/right layout) */
+    .footer-p2 {
+      padding: 0 var(--px-spacing);
+      justify-content: space-between;
+      color: white;
+    }
+
+    .f2-text {
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      color: #e2e8f0;
+    }
+
+    .f2-text span.brand {
+      font-weight: 800;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      color: white;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .f2-text span.brand::after {
+      content: "";
+      width: 1px;
+      height: 14px;
+      background: rgba(255, 255, 255, 0.2);
+      display: inline-block;
+    }
+
+    .f2-contact {
+      display: flex;
+      gap: 20px;
+      font-weight: 500;
+      font-size: 11.5px;
+      color: #e2e8f0;
+    }
+
+    .f2-contact span {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .f2-contact i {
+      color: #94a3b8;
+    }
+
+    /* Media Print */
+    @media print {
+      body {
+        background: transparent;
+        padding: 0;
+        margin: 0;
+        gap: 0;
+      }
+
+      .controls {
+        display: none;
+      }
+
+      .page {
+        box-shadow: none;
+        margin: 0;
+        page-break-after: always;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      .notes-area {
+        border: none !important;
+        background-image: repeating-linear-gradient(transparent, transparent 24px, #cbd5e1 25px) !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Print Control -->
+  <div class="controls">
+    <button class="btn-print" onclick="window.print()">
+      <i class="fa-solid fa-print"></i> Print / Save PDF
+    </button>
+  </div>
+
+  <!-- ----- PAGE 1 ----- -->
+  <div class="page">
+
+    <!-- Header -->
+    <header class="p1-header">
+      <svg class="p1-divider-svg" viewBox="0 0 800 160" preserveAspectRatio="none">
+        <path d="M0,135 L280,135 L440,0" stroke="var(--primary-blue)" stroke-width="1.5" fill="none" />
+      </svg>
+
+      <div class="header-logo">
+        <img src="logo.jpeg" class="logo-icon" alt="ASKC Digital Web Logo"
+          style="width: 52px; height: 52px; object-fit: contain;">
+        <div class="logo-text">
+          <h1>ASKC DIGITAL WEB</h1>
+          <p>Digital Excellence</p>
+        </div>
+      </div>
+
+      <div class="header-title-block p1-title">
+        <p>Professional Services</p>
+        <h2>AGREEMENT</h2>
+        <div class="ref-no">
+          DOC CODE:
+          <input type="text" class="doc-input"
+            style="width: 80px; text-align: center; font-size: 11px; padding: 0; color: var(--dark-blue);"
+            placeholder="ADW-2026-XX">
+        </div>
+      </div>
+    </header>
+
+    <!-- Info Grid -->
+    <div class="info-container">
+      <div class="info-col">
+        <div class="info-icon"><i class="fa-regular fa-building"></i></div>
+        <div class="info-label">Organization</div>
+        <input type="text" class="doc-input" placeholder="Organization Legal Name">
+      </div>
+      <div class="info-col">
+        <div class="info-icon"><i class="fa-regular fa-user"></i></div>
+        <div class="info-label">Representative</div>
+        <input type="text" class="doc-input" placeholder="Primary Contact Person">
+      </div>
+      <div class="info-col">
+        <div class="info-icon"><i class="fa-solid fa-layer-group"></i></div>
+        <div class="info-label">Project Type</div>
+        <input type="text" class="doc-input" placeholder="e.g. Website Overhaul">
+      </div>
+      <div class="info-col">
+        <div class="info-icon"><i class="fa-regular fa-calendar-check"></i></div>
+        <div class="info-label">Effective Date</div>
+        <input type="date" class="doc-input" style="font-family: inherit; font-size: 13px; padding-bottom: 2px;">
+      </div>
+    </div>
+
+    <!-- Body content -->
+    <div class="content-wrap" style="padding-top: 10px;">
+      <div class="greeting">
+        <strong>Binding Agreement Overview</strong>
+        This document serves as a formal agreement between ASKC DIGITAL WEB ("Developer") and the aforementioned
+        Organization ("Client"). It establishes the comprehensive terms, technical scope, and mutual obligations
+        governing the digital project development lifecycle perfectly suited for modern architectures.
+      </div>
+
+      <div class="section-divider"></div>
+
+      <div class="sections-list">
+
+        <div class="list-item">
+          <div class="list-num">1</div>
+          <div class="list-content">
+            <h3>SCOPE OF SERVICES & DELIVERABLES</h3>
+            <p>The Developer explicitly agrees to engineer, design, and seamlessly deploy a fully functional, highly
+              responsive website precisely aligned with mutual discussions. Deliverables organically encompass core
+              public pages, integration of requested operational modules (e.g., scalable contact systems, data portals),
+              and strict adherence to modern UI/UX standards. Advanced external feature requests subsequent to this
+              initial signed agreement will require an authorized addendum and respective capital adjustment.</p>
+          </div>
+        </div>
+
+        <div class="list-item">
+          <div class="list-num">2</div>
+          <div class="list-content">
+            <h3>PROJECT TIMELINE & EXECUTION</h3>
+            <p>The estimated technical execution period rigidly spans <input type="number" class="doc-input"
+                style="width: 45px; text-align: center; font-weight: bold; padding: 0; color: var(--dark-blue);"
+                placeholder="X"> business days. Execution officially commences upon the successful receipt and clearance
+              of the initial advance payment. The Developer shall not be deemed liable for structural delays resulting
+              from the Client’s persistent failure to rapidly provide critical collateral, assets, or feedback necessary
+              for ongoing iterative milestones.</p>
+          </div>
+        </div>
+
+        <div class="list-item">
+          <div class="list-num">3</div>
+          <div class="list-content">
+            <h3>COMPENSATION & PAYMENT SCHEDULE</h3>
+            <p>The Client agrees to remit the full consulting and development fee strictly adhering to the following
+              phased-gate compensation schedule:</p>
+            <ul>
+              <li><strong>20% Advance Retainer:</strong> Non-refundable upfront payment legally required to formally
+                reserve operational bandwidth and initiate broad architecture.</li>
+              <li><strong>40% Milestone Disbursement:</strong> Triggered directly upon successful demonstration and
+                client approval of the primary core-interface mockup.</li>
+              <li><strong>40% Final Settlement:</strong> Due unconditionally upon finalized project approval, prior to
+                live server migration, domain mapping, and final data handover.</li>
+            </ul>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Footer P1 -->
+    <footer class="footer-p1">
+      <div class="footer-contact-item"
+        style="color: #fff; font-weight: 800; font-size: 13px; letter-spacing: 0.5px; z-index: 2;">
+        <span class="brand">ASKC DIGITAL WEB</span>
+      </div>
+      <div class="footer-contact-item">
+        <i class="fa-regular fa-envelope"></i> support@askcweb.in
+      </div>
+      <div class="footer-contact-item">
+        <i class="fa-solid fa-globe"></i> www.askcweb.in
+      </div>
+    </footer>
+  </div>
+
+
+  <!-- ----- PAGE 2 ----- -->
+  <div class="page">
+    <!-- Header -->
+    <header class="p2-header">
+      <div class="p2-slant-bg">
+        <div class="p2-slant-blue"></div>
+        <div class="p2-slant-dark"></div>
+      </div>
+
+      <div class="header-logo" style="margin-top: -10px;">
+        <img src="logo.jpeg" class="logo-icon" alt="ASKC Digital Web Logo"
+          style="width: 52px; height: 52px; object-fit: contain;">
+        <div class="logo-text">
+          <h1>ASKC DIGITAL WEB</h1>
+          <p>Digital Excellence</p>
+        </div>
+      </div>
+
+      <div class="header-title-block p2-title">
+        <p>Professional Services</p>
+        <h2>AGREEMENT</h2>
+      </div>
+    </header>
+
+    <!-- Sections Continued -->
+    <div class="content-wrap" style="padding-top: 40px;">
+      <div class="sections-list">
+
+        <div class="list-item">
+          <div class="list-num">4</div>
+          <div class="list-content">
+            <h3>CLIENT RESPONSIBILITIES & ASSET DELIVERY</h3>
+            <p>The Client intrinsically maintains legal responsibility for furnishing all imperative brand collateral.
+              This securely encompasses high-resolution vector logos, legally authorized contextual copy, compliance
+              data, and relevant multimedia assets. Failure to supply these fundamental items within seven (7)
+              operational days of a formal request may indefinitely pause technical development metrics without
+              arbitrarily penalizing the Developer.</p>
+          </div>
+        </div>
+
+        <div class="list-item">
+          <div class="list-num">5</div>
+          <div class="list-content">
+            <h3>REVISIONS, AMENDMENTS & APPROVALS</h3>
+            <p>The base structural agreement intelligently groups up to three (3) generous rounds of minor aesthetic,
+              typographic, or copy revisions firmly into the design phase. Critical structural manipulations or deep
+              architectural codebase changes requested after technical engineering has formally commenced will be
+              meticulously documented via version control and billed additionally at standard agency hourly rates.</p>
+          </div>
+        </div>
+
+        <div class="list-item">
+          <div class="list-num">6</div>
+          <div class="list-content">
+            <h3>POST-DEPLOYMENT WARRANTY & MITIGATION</h3>
+            <p>ASKC Digital Web consistently issues a complimentary 30-day technical warranty post-deployment. This
+              guarantees the remarkably swift mitigation of broken hyperlink paths, responsive rendering glitches across
+              stated browsers, and critical software bugs. This explicit warranty categorically excludes the subsequent
+              development of new features, severe content restructuring, or catastrophic third-party plugin
+              mismanagement executed by the Client.</p>
+          </div>
+        </div>
+
+        <div class="list-item">
+          <div class="list-num">7</div>
+          <div class="list-content">
+            <h3>THIRD-PARTY INTEGRATIONS & LICENSING</h3>
+            <p>Any premium operational plugins, stock photography licenses, specialized geographic fonts, or external
+              API data subscriptions necessary for the project lifecycle execution will be licensed directly underneath
+              the Client's corporate name. The Developer intrinsically holds no persistent responsibility for ongoing
+              subscription renewal fees or unilateral discontinuations of third-party ecosystem services
+              post-deployment.</p>
+          </div>
+        </div>
+
+        <div class="list-item">
+          <div class="list-num">8</div>
+          <div class="list-content">
+            <h3>BACKUP INCIDENTS & SECURITY PROTOCOLS</h3>
+            <p>The Developer will firmly implement robust foundational security metrics and comprehensively provide an
+              initial full-site deployment backup upon successful project handover. Ongoing daily/routine archival
+              backups, advanced brute-force threat monitoring, and server-side core vulnerability patches uniformly
+              remain the sole operational responsibility of the Client, barring circumstances where an active, distinct
+              monthly maintenance retainer is subsequently ratified by both parties.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Footer P2 (Using P1 style for consistency until final page) -->
+    <footer class="footer-p1">
+      <div class="footer-contact-item"
+        style="color: #fff; font-weight: 800; font-size: 13px; letter-spacing: 0.5px; z-index: 2;">
+        <span class="brand">ASKC DIGITAL WEB</span>
+      </div>
+      <div class="footer-contact-item">
+        <i class="fa-regular fa-envelope"></i> support@askcweb.in
+      </div>
+      <div class="footer-contact-item">
+        <i class="fa-solid fa-globe"></i> www.askcweb.in
+      </div>
+    </footer>
+  </div>
+
+
+  <!-- ----- PAGE 3 ----- -->
+  <div class="page">
+    <!-- Header -->
+    <header class="p2-header">
+      <div class="p2-slant-bg">
+        <div class="p2-slant-blue"></div>
+        <div class="p2-slant-dark"></div>
+      </div>
+
+      <div class="header-logo" style="margin-top: -10px;">
+        <img src="logo.jpeg" class="logo-icon" alt="ASKC Digital Web Logo"
+          style="width: 52px; height: 52px; object-fit: contain;">
+        <div class="logo-text">
+          <h1>ASKC DIGITAL WEB</h1>
+          <p>Digital Excellence</p>
+        </div>
+      </div>
+
+      <div class="header-title-block p2-title">
+        <p>Professional Services</p>
+        <h2>AGREEMENT</h2>
+      </div>
+    </header>
+
+    <!-- Terms -->
+    <div class="terms-box">
+      <div class="terms-title">
+        <i class="fa-solid fa-scale-balanced"></i>
+        LEGAL TERMS & CONDITIONS
+      </div>
+      <ul>
+        <li><strong>1. Intellectual Property & Ultimate Ownership:</strong> Upon realization of complete and cleared
+          final payment, the Client instantly assumes exclusive operational ownership rights to the finalized website
+          output. The Developer perpetually retains the intellectual and promotional right to prominently display the
+          executed project within their corporate design portfolio. Proprietary third-party assets utilized remain
+          governed strictly by their original commercial licensing.</li>
+        <li><strong>2. Corporate Confidentiality & Non-Disclosure:</strong> Both explicitly undersigned parties
+          unequivocally agree to hold any proprietary business modalities, internal client datasets, and strategic
+          operational methodologies disclosed during this project lifecycle in strict, unwavering legal confidence,
+          explicitly preventing their unauthorized distribution to any external third parties or adversarial entities.
+        </li>
+        <li><strong>3. Limitation of Liability:</strong> Under absolutely no legal circumstance shall the Developer be
+          held financially or legally liable for any indirect, incidental, or consequential revenue losses, critical
+          data breaches, or severe operational downtime resulting comprehensively from third-party hosting failures,
+          aggressive cyber-attacks, or external API deprecations lying outside of their direct, immediate technical
+          jurisdiction.</li>
+        <li><strong>4. Cancellation & Termination Directive:</strong> In the highly unlikely event the Client abruptly
+          terminates the active project arbitrarily post-commencement, the Developer systematically retains the initial
+          advance payment as unarguable compensation for heavily allocated physical resources, and will actively bill
+          proportionately for all structural hours technically executed up to the formal notification date of
+          termination.</li>
+        <li><strong>5. Force Majeure Clause:</strong> Neither party shall automatically be deemed liable for any
+          involuntary failure or prolonged delay in contractual performance under this Agreement due directly to
+          circumstances completely beyond their reasonable operational control. This explicitly encompasses unforeseen
+          natural disasters, systemic national labor strikes, acts of war, or catastrophic localized network failures.
+        </li>
+        <li><strong>6. Governing Law & Dispute Resolution:</strong> This comprehensive Agreement shall naturally be
+          governed unconditionally and construed strictly in harmony with local jurisdictional corporate laws. Any
+          severe operational disputes arising shall forcibly seek mandatory resolution through structured, mutual
+          good-faith out-of-court mediation distinctly prior to formal aggressive litigation escalation.</li>
+        <li><strong>7. Severability & Entire Agreement:</strong> Should any specific provision of this Agreement be held
+          invalid or entirely unenforceable by a competent court of law, the remaining provisions shall unequivocally
+          remain
+          in full force and effect. This document supersedes all prior electronic or verbal negotiations.</li>
+      </ul>
+    </div>
+
+    <!-- Footer P3 (Now identical to P1) -->
+    <footer class="footer-p1">
+      <div class="footer-contact-item"
+        style="color: #fff; font-weight: 800; font-size: 13px; letter-spacing: 0.5px; z-index: 2;">
+        <span class="brand">ASKC DIGITAL WEB</span>
+      </div>
+      <div class="footer-contact-item">
+        <i class="fa-regular fa-envelope"></i> support@askcweb.in
+      </div>
+      <div class="footer-contact-item">
+        <i class="fa-solid fa-globe"></i> www.askcweb.in
+      </div>
+    </footer>
+  </div>
+
+  <!-- ----- PAGE 4 ----- -->
+  <div class="page">
+    <!-- Header -->
+    <header class="p2-header">
+      <div class="p2-slant-bg">
+        <div class="p2-slant-blue"></div>
+        <div class="p2-slant-dark"></div>
+      </div>
+
+      <div class="header-logo" style="margin-top: -10px;">
+        <img src="logo.jpeg" class="logo-icon" alt="ASKC Digital Web Logo"
+          style="width: 52px; height: 52px; object-fit: contain;">
+        <div class="logo-text">
+          <h1>ASKC DIGITAL WEB</h1>
+          <p>Digital Excellence</p>
+        </div>
+      </div>
+
+      <div class="header-title-block p2-title">
+        <p>Professional Services</p>
+        <h2>AGREEMENT</h2>
+      </div>
+    </header>
+
+    <!-- Notes -->
+    <div class="notes-box" style="margin-top: 40px;">
+      <div class="terms-title">
+        <i class="fa-solid fa-pen-nib"></i>
+        ADDITIONAL STIPULATIONS & NOTES
+      </div>
+      <textarea class="notes-area" rows="2"
+        placeholder="Document any custom addendums, highly specific operational requests, or localized legal clauses seamlessly here..."></textarea>
+    </div>
+
+    <!-- Divider -->
+    <div class="shield-divider">
+      <div class="shield-line"></div>
+      <div class="shield-icon"><i class="fa-solid fa-shield-halved"></i></div>
+      <div class="shield-line"></div>
+    </div>
+
+    <div class="agreement-text">
+      By signing authoritatively below, you acknowledge comprehensive understanding and strict legal agreement <br>with
+      all operational stipulations intuitively defined throughout this four-page document.
+    </div>
+
+    <!-- Signatures -->
+    <div class="signatures">
+      <div class="sig-col">
+        <div class="sig-header">AUTHORIZED CLIENT ACCEPTANCE</div>
+        <div class="sig-row">
+          <span>Signature:</span>
+          <input type="text" class="doc-input">
+        </div>
+        <div class="sig-row">
+          <span>Full Name:</span>
+          <input type="text" class="doc-input">
+        </div>
+        <div class="sig-row">
+          <span>Designation:</span>
+          <input type="text" class="doc-input">
+        </div>
+        <div class="sig-row">
+          <span>Date:</span>
+          <input type="date" class="doc-input" style="font-family: Arial; padding-bottom: 2px;">
+        </div>
+        <div class="stamp-box">Official Company Stamp</div>
+      </div>
+
+      <div class="sig-col">
+        <div class="sig-header">LEAD DEVELOPER APPROVAL</div>
+        <div class="sig-row">
+          <span>Signature:</span>
+          <input type="text" class="doc-input">
+        </div>
+        <div class="sig-row">
+          <span>Full Name:</span>
+          <input type="text" class="doc-input" value="Shubham Kumar">
+        </div>
+        <div class="sig-row">
+          <span>Designation:</span>
+          <input type="text" class="doc-input" value="Senior Web Engineer">
+        </div>
+        <div class="sig-row">
+          <span>Date:</span>
+          <input type="date" class="doc-input" style="font-family: Arial; padding-bottom: 2px;">
+        </div>
+        <div class="stamp-box">Agency Authorization Stamp</div>
+      </div>
+    </div>
+
+    <!-- Footer P4 (Final Page Footer) -->
+    <footer class="footer-p2">
+      <div class="f2-text">
+        <span class="brand">ASKC DIGITAL WEB</span>
+        <span>Corporate Digital Infrastructure & Web Engineering</span>
+      </div>
+      <div class="f2-contact">
+        <span><i class="fa-solid fa-phone"></i> +91 9027880288</span>
+        <span><i class="fa-regular fa-envelope"></i> support@askcweb.in</span>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Script to handle text area height -->
+  <script>
+    const notesArea = document.querySelector('.notes-area');
+    notesArea.addEventListener('input', function () {
+      this.style.height = 'auto';
+      if (this.scrollHeight > 60) {
+        this.style.height = this.scrollHeight + 'px';
+      }
+    });
+  </script>
+</body>
+
+</html>

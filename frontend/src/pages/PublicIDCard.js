@@ -81,7 +81,7 @@ const PublicIDCard = () => {
             <div className="mt-8 px-6 text-center w-full">
               <h3 className="text-2xl font-black text-slate-900 tracking-tight mb-1 uppercase">{idCard.name}</h3>
               <p className="text-sky-600 font-bold text-sm tracking-widest uppercase mb-6">{idCard.role}</p>
-              
+
               <div className="space-y-4 pt-4 border-t border-slate-100">
                 <div>
                   <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest mb-0.5">ID Number</p>
@@ -98,7 +98,7 @@ const PublicIDCard = () => {
 
           {/* Back Side */}
           <div className="w-[320px] h-[500px] bg-white rounded-[2rem] shadow-2xl border border-slate-200 overflow-hidden relative flex flex-col p-8">
-             <div className="text-center mb-8">
+            <div className="text-center mb-8">
               <div className="text-xl font-black text-slate-900 tracking-tighter mb-1">
                 ASKC <span className="text-sky-600">Digital Web</span>
               </div>
@@ -118,7 +118,7 @@ const PublicIDCard = () => {
               <div className="space-y-1.5 p-4 bg-slate-50 rounded-2xl border border-slate-100">
                 <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest">Digital Contact</p>
                 <div className="space-y-1">
-                  <p className="text-xs font-bold text-slate-800">info@askcweb.in</p>
+                  <p className="text-xs font-bold text-slate-800">support@askcweb.in</p>
                   <p className="text-xs font-bold text-slate-800">www.askcweb.in</p>
                 </div>
               </div>
@@ -127,10 +127,10 @@ const PublicIDCard = () => {
             {/* Barcode Section */}
             <div className="mt-8 mb-8 flex flex-col items-center bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
               <div className="w-full flex justify-center scale-90 sm:scale-100">
-                <Barcode 
-                  value={idCard.idNumber} 
-                  height={40} 
-                  width={1.2} 
+                <Barcode
+                  value={idCard.idNumber}
+                  height={40}
+                  width={1.2}
                   fontSize={12}
                   background="transparent"
                 />

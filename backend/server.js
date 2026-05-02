@@ -371,6 +371,10 @@ mongoose.connection.on("reconnected", () => {
 const PORT = process.env.PORT || 5000;
 app.use("/api/auth", authRoutes);
 
+// Serve official agreements and documents
+const path = require("path");
+app.use("/agreements", express.static(path.join(__dirname, "../AGREEMENT")));
+
 // Protected user dashboard route with caching (must be before static file serving)
 app.get("/api/dashboard", authMiddleware, async (req, res) => {
   try {

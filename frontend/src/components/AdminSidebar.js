@@ -14,6 +14,7 @@ export const adminNavItems = [
   { id: 'stats', label: 'Site Stats', iconName: 'chart', category: 'analytics' },
   { id: 'notifications', label: 'Notifications', iconName: 'bell', category: 'management' },
   { id: 'id-card', label: 'ID Card', iconName: 'creditCard', category: 'management' },
+  { id: 'agreements', label: 'Agreements', iconName: 'document', category: 'management' },
   { id: 'plans', label: 'Plans', iconName: 'folder', category: 'content' },
   { id: 'team', label: 'Team', iconName: 'users', category: 'content' },
   { id: 'features', label: 'Features', iconName: 'sparkles', category: 'content' },
