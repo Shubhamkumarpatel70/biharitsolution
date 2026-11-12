@@ -29,4 +29,4 @@ Optional integrations:
 
 ## Current limitations
 
-The source branch still requires complete end-to-end QA, career-application email notifications, full per-page SEO rendering, a complete admin permission matrix and final production smoke tests. Do not treat a successful frontend build alone as production sign-off.
+The source branch still requires complete end-to-end QA, private Cloudinary resume storage, full per-page SEO rendering, a complete admin permission matrix and final production smoke tests. Do not treat a successful frontend build alone as production sign-off.
