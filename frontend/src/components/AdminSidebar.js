@@ -22,6 +22,8 @@ const categoryLabels = {
   access: 'Access',
   management: 'Management',
   analytics: 'Analytics',
+  leads: 'Leads',
+  access: 'Access',
   content: 'Content',
   communication: 'Communication',
   careers: 'Careers',
