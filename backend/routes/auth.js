@@ -513,7 +513,7 @@ router.post("/contact", async (req, res) => {
 
 router.get("/contacts", authMiddleware, coAdminMiddleware, async (req, res) => {
   try {
-    const contacts = await Contact.find().sort({ createdAt: -1 });
+    const contacts = await Contact.find().populate("assignedTo", "name email").sort({ createdAt: -1 });
     res.json({ contacts });
   } catch (err) {
     res.status(500).json({ message: "Could not fetch contacts." });
