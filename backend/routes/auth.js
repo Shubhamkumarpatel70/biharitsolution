@@ -519,6 +519,18 @@ router.get("/contacts", authMiddleware, coAdminMiddleware, async (req, res) => {
     res.status(500).json({ message: "Could not fetch contacts." });
   }
 });
+router.patch("/contacts/:id/manage", authMiddleware, coAdminMiddleware, async (req,res) => {
+  try {
+    const update = {};
+    if (["new","in-progress","closed"].includes(req.body.status)) update.status = req.body.status;
+    if (typeof req.body.internalNotes === "string") update.internalNotes = req.body.internalNotes.slice(0,5000);
+    if (req.body.assignedTo === null || req.body.assignedTo === "") update.assignedTo = null;
+    else if (req.body.assignedTo && /^[a-f\\d]{24}$/i.test(req.body.assignedTo)) update.assignedTo = req.body.assignedTo;
+    const contact = await Contact.findByIdAndUpdate(req.params.id,update,{new:true,runValidators:true}).populate("assignedTo","name email");
+    if (!contact) return res.status(404).json({message:"Enquiry not found."});
+    res.json({contact,message:"Enquiry updated."});
+  } catch(error) { res.status(400).json({message:"Could not update this enquiry."}); }
+});
 
 // Admin: Get all pending subscriptions
 router.get(
