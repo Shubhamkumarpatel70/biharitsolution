@@ -1,0 +1,95 @@
+/* ASKC Technologies — unified public website design system */
+:root {
+  --askc-brand: #315efb;
+  --askc-brand-dark: #2047cf;
+  --askc-ink: #111c35;
+  --askc-muted: #64748b;
+  --askc-border: #e5eaf3;
+  --askc-surface: #ffffff;
+  --askc-soft: #f5f7fc;
+  --askc-radius: 22px;
+  --askc-shadow: 0 18px 50px rgba(22, 42, 84, .08);
+}
+.askc-public-shell { background: #fff; color: var(--askc-ink); }
+.askc-public-shell > * { min-width: 0; }
+.askc-public-shell h1,.askc-public-shell h2,.askc-public-shell h3,.askc-public-shell h4 { color: var(--askc-ink); letter-spacing: -.035em; }
+.askc-public-shell p { color: var(--askc-muted); line-height: 1.8; }
+.askc-public-shell section { scroll-margin-top: 96px; }
+.askc-public-shell .container { width: min(1180px, calc(100% - 40px)); max-width: 1180px; margin-inline: auto; padding-inline: 0; }
+.askc-public-shell .askc-site { color: var(--askc-ink); background: #fff; }
+.askc-public-shell .askc-container { width: min(1180px, calc(100% - 40px)); }
+.askc-public-shell .askc-hero,
+.askc-public-shell .askc-page-hero,
+.askc-public-shell .bg-gradient-to-br.from-blue-50,
+.askc-public-shell .bg-gradient-to-b.from-white { background: radial-gradient(circle at 88% 12%, rgba(49,94,251,.10), transparent 30%), linear-gradient(135deg,#f7f9ff 0%,#fff 62%,#f8faff 100%); }
+.askc-public-shell .askc-hero { padding-top: 78px; padding-bottom: 78px; }
+.askc-public-shell .askc-page-hero { padding-top: 76px; padding-bottom: 62px; border-bottom: 1px solid var(--askc-border); }
+.askc-public-shell .askc-eyebrow,
+.askc-public-shell .text-blue-600,
+.askc-public-shell .text-primary-600 { color: var(--askc-brand) !important; }
+.askc-public-shell .askc-hero h1,
+.askc-public-shell .askc-page-hero h1 { color: var(--askc-ink); letter-spacing: -.055em; }
+.askc-public-shell .askc-btn-primary,
+.askc-public-shell .bg-blue-600,
+.askc-public-shell .bg-primary-600 { background: var(--askc-brand) !important; color: #fff !important; border-color: transparent !important; box-shadow: 0 10px 24px rgba(49,94,251,.18); }
+.askc-public-shell .askc-btn-primary:hover,
+.askc-public-shell .bg-blue-600:hover { background: var(--askc-brand-dark) !important; }
+.askc-public-shell .askc-btn-light,
+.askc-public-shell .btn-secondary { border: 1px solid var(--askc-border); background: #fff; color: var(--askc-ink) !important; }
+.askc-public-shell .askc-section { padding-block: 76px; }
+.askc-public-shell .askc-section-soft,
+.askc-public-shell .bg-gray-50,
+.askc-public-shell .bg-slate-50 { background: var(--askc-soft) !important; }
+.askc-public-shell .askc-service-card,
+.askc-public-shell .askc-content-card,
+.askc-public-shell article,
+.askc-public-shell form,
+.askc-public-shell aside,
+.askc-public-shell .rounded-xl.border,
+.askc-public-shell .rounded-2xl.border,
+.askc-public-shell .rounded-3xl.border { border-color: var(--askc-border); }
+.askc-public-shell .askc-service-card,
+.askc-public-shell .askc-content-card { border-radius: var(--askc-radius); box-shadow: 0 8px 28px rgba(22,42,84,.035); }
+.askc-public-shell .askc-service-card:hover,
+.askc-public-shell .askc-content-card:hover { border-color: #b8c8ff; box-shadow: var(--askc-shadow); }
+.askc-public-shell .askc-cta { background: linear-gradient(120deg,#101d3b,#172d58); }
+.askc-public-shell .askc-cta h2 { color: #fff; }
+.askc-public-shell .askc-cta p { color: #d1d9e8; }
+.askc-public-shell input:not([type=checkbox]):not([type=radio]),
+.askc-public-shell select,
+.askc-public-shell textarea { border-radius: 13px; border-color: #dce3ef; background-color: #fff; color: var(--askc-ink); }
+.askc-public-shell input:focus,
+.askc-public-shell select:focus,
+.askc-public-shell textarea:focus { outline: none; border-color: var(--askc-brand); box-shadow: 0 0 0 4px rgba(49,94,251,.10); }
+.askc-public-shell button { transition: transform .2s ease, box-shadow .2s ease, background-color .2s ease; }
+.askc-public-shell button:not(:disabled):hover { transform: translateY(-1px); }
+.askc-public-shell .askc-actions { gap: 14px; }
+.askc-public-shell .askc-btn { min-height: 48px; border-radius: 13px; padding-inline: 22px; }
+.askc-public-shell .section-title { color: var(--askc-ink) !important; letter-spacing: -.04em; }
+.askc-public-shell .section-subtitle { color: var(--askc-muted); }
+.askc-public-shell .shadow-sm { box-shadow: 0 8px 28px rgba(22,42,84,.045); }
+.askc-public-shell .rounded-xl { border-radius: 14px; }
+.askc-public-shell .rounded-2xl { border-radius: 20px; }
+.askc-public-shell .rounded-3xl { border-radius: 26px; }
+.askc-navbar { top: 12px !important; left: 0; right: 0; width: min(1240px,calc(100% - 32px)); margin-inline: auto !important; border: 1px solid rgba(220,228,242,.9) !important; border-radius: 18px !important; background: rgba(255,255,255,.94) !important; box-shadow: 0 12px 38px rgba(18,35,71,.09) !important; backdrop-filter: blur(18px); }
+.askc-navbar > .container { max-width: 1200px; }
+.askc-navbar a { text-decoration: none; }
+.askc-navbar button { border-radius: 12px; }
+.askc-navbar [role=menu] { border: 1px solid var(--askc-border); border-radius: 16px; box-shadow: 0 20px 55px rgba(15,32,67,.16); padding: 8px; }
+.askc-footer { background: #101d3b !important; color: #fff; }
+.askc-footer .container { max-width: 1180px; }
+.askc-footer a { text-decoration: none; }
+.askc-footer input[type=email] { border-radius: 13px; }
+.askc-footer button { border-radius: 13px; }
+@media (max-width: 768px) {
+  .askc-navbar { top: 7px !important; width: calc(100% - 20px); border-radius: 15px !important; }
+  .askc-public-shell .container,.askc-public-shell .askc-container { width: calc(100% - 32px); }
+  .askc-public-shell .askc-hero,.askc-public-shell .askc-page-hero { padding-top: 54px; padding-bottom: 48px; }
+  .askc-public-shell .askc-section { padding-block: 52px; }
+  .askc-public-shell .askc-hero-grid { gap: 26px; }
+  .askc-public-shell form { padding: 22px !important; }
+  .askc-public-shell .askc-cta { padding-block: 48px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .askc-public-shell *, .askc-navbar *, .askc-footer * { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
+}
