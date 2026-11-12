@@ -120,7 +120,7 @@ function Navbar() {
   return (
     <>
       <nav
-        className={`fixed top-0 left-0 right-0 z-[2000] transition-all duration-300 rounded-[20px] overflow-visible my-2 mx-3 ${
+        className={`askc-navbar fixed top-0 left-0 right-0 z-[2000] transition-all duration-300 rounded-[20px] overflow-visible my-2 mx-3 ${
           isScrolled
             ? 'bg-white/95 border-b border-gray-200 shadow-md backdrop-blur-xl'
             : 'bg-white/80 backdrop-blur-xl border border-gray-100 shadow-sm'
