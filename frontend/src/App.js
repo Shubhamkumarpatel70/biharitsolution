@@ -1,5 +1,5 @@
 import React, { useEffect, useContext } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import Home from './pages/Home';
@@ -74,6 +74,13 @@ function App() {
 }
 
 function AppContent() {
+  const location = useLocation();
+  useEffect(() => {
+    const privateRoute = /^\\/(admin-dashboard|dashboard|login|register|payment)(\\/|$)/.test(location.pathname);
+    let robots = document.querySelector('meta[name="robots"]');
+    if (!robots) { robots = document.createElement('meta'); robots.name = 'robots'; document.head.appendChild(robots); }
+    robots.setAttribute('content', privateRoute ? 'noindex,nofollow' : 'index,follow');
+  }, [location.pathname]);
   return (
     <>
       <main className="pt-20 min-h-[calc(100vh-5rem)] w-full max-w-full overflow-x-hidden">
