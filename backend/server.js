@@ -1,4 +1,13 @@
 require("dotenv").config();
+
+if (process.env.NODE_ENV === "production") {
+  const requiredEnv = ["MONGO_URI", "JWT_SECRET", "SESSION_SECRET"];
+  const missingEnv = requiredEnv.filter((key) => !process.env[key]);
+  if (missingEnv.length) {
+    console.error("Missing required production environment variables:", missingEnv.join(", "));
+    process.exit(1);
+  }
+}
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
@@ -145,7 +154,7 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 // Session middleware for Passport
 app.use(
   session({
-    secret: process.env.SESSION_SECRET || "your_session_secret",
+    secret: process.env.SESSION_SECRET || "local-development-session-secret-only",
     resave: false,
     saveUninitialized: false,
     cookie: {
