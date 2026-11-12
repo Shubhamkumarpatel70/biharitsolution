@@ -30,7 +30,6 @@ import AdminIDCard from './pages/AdminIDCard';
 import NotFound from './pages/NotFound';
 import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
-import Refund from './pages/Refund';
 import PublicIDCard from './pages/PublicIDCard';
 import UnsubscribeEmail from './pages/UnsubscribeEmail';
 import { UserProvider, UserContext } from './UserContext';
@@ -98,7 +97,6 @@ function AppContent() {
           <Route path='/careers' element={<Careers />} />
           <Route path='/privacy' element={<Privacy />} />
           <Route path='/terms' element={<Terms />} />
-          <Route path='/refund' element={<Refund />} />
           <Route path='/login' element={<Login />} />
           <Route path='/dashboard/*' element={<Dashboard />}>
             <Route index element={<DashboardHome />} />
