@@ -101,51 +101,24 @@ const authLimiter = rateLimit({
 // Apply rate limiting to auth routes
 app.use("/api/auth", authLimiter);
 
-// CORS configuration - Handle multiple frontend URLs
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      const allowedOrigins = [
-        "http://localhost:3000",
-        "https://custom-web-frontend.onrender.com",
-        "https://askctechnologies.in",
-        "https://capitalcove.me",
-        "https://www.capitalcove.me",
-      ];
-
-      console.log("CORS Origin Check:", origin);
-
-      // Allow requests with no origin (like mobile apps or curl requests)
-      if (!origin) {
-        console.log("No origin provided, allowing request");
-        return callback(null, true);
-      }
-
-      // Check if origin is in allowed list
-      if (allowedOrigins.includes(origin)) {
-        console.log("Origin allowed:", origin);
-        callback(null, true);
-      } else {
-        console.log("Origin not allowed:", origin);
-        // For debugging, allow all origins but log them
-        console.log("Allowing origin for debugging:", origin);
-        callback(null, true);
-      }
-    },
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-    allowedHeaders: [
-      "Content-Type",
-      "Authorization",
-      "X-Requested-With",
-      "Accept",
-      "Origin",
-    ],
-    exposedHeaders: ["Content-Length", "X-Requested-With"],
-    optionsSuccessStatus: 200,
-    preflightContinue: false,
-  }),
-);
+// Restrict browser API access to the configured corporate domains.
+const allowedOrigins = new Set([
+  "http://localhost:3000",
+  "https://askctechnologies.in",
+  "https://www.askctechnologies.in",
+  "https://biharitsolution.onrender.com",
+  process.env.CLIENT_URL
+].filter(Boolean));
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.has(origin)) return callback(null, true);
+    return callback(new Error("Origin is not allowed by CORS."));
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"],
+  optionsSuccessStatus: 204
+}));
 
 // Body parsing middleware with size limits
 app.use(express.json({ limit: "10mb" }));
@@ -179,46 +152,6 @@ app.use((req, res, next) => {
 
 // Handle preflight requests
 app.options("*", cors());
-
-// Manual CORS headers as backup - Handle multiple frontend URLs
-app.use((req, res, next) => {
-  const allowedOrigins = [
-    "http://localhost:3000",
-    "https://custom-web-frontend.onrender.com",
-    "https://custom-web-app.onrender.com",
-    "https://biharitsolution.onrender.com",
-    "https://askctechnologies.in",
-    "https://capitalcove.me",
-    "https://www.capitalcove.me",
-  ];
-
-  const origin = req.headers.origin;
-  console.log("Manual CORS - Request Origin:", origin);
-  console.log("Manual CORS - Request Method:", req.method);
-
-  // Set CORS headers for all origins during debugging
-  if (origin) {
-    res.header("Access-Control-Allow-Origin", origin);
-    console.log("Manual CORS - Origin allowed:", origin);
-  }
-
-  res.header(
-    "Access-Control-Allow-Methods",
-    "GET, POST, PUT, DELETE, OPTIONS, PATCH",
-  );
-  res.header(
-    "Access-Control-Allow-Headers",
-    "Content-Type, Authorization, X-Requested-With, Accept, Origin",
-  );
-  res.header("Access-Control-Allow-Credentials", "true");
-
-  if (req.method === "OPTIONS") {
-    console.log("Manual CORS - Handling OPTIONS request");
-    res.sendStatus(200);
-  } else {
-    next();
-  }
-});
 
 // CORS test route
 app.get("/api/cors-test", (req, res) => {
