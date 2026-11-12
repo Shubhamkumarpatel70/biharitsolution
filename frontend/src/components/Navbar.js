@@ -259,11 +259,8 @@ function Navbar() {
                 </div>
               ) : (
                 <div className="flex gap-2">
-                  <Link to="/login" className="btn btn-primary px-4 xl:px-5" aria-label="Login">
-                    Login
-                  </Link>
-                  <Link to="/register" className="btn btn-secondary px-4 xl:px-5" aria-label="Register">
-                    Register
+                  <Link to="/login" className="btn btn-primary px-4 xl:px-5" aria-label="Admin login">
+                    Admin Login
                   </Link>
                 </div>
               )}
@@ -442,15 +439,7 @@ function Navbar() {
                     onClick={toggleMobileMenu}
                     aria-label="Login"
                   >
-                    Login
-                  </Link>
-                  <Link
-                    to="/register"
-                    className="btn btn-secondary w-full justify-center py-3.5 px-6 text-base rounded-[10px]"
-                    onClick={toggleMobileMenu}
-                    aria-label="Register"
-                  >
-                    Register
+                    Admin Login
                   </Link>
                 </div>
               )}
