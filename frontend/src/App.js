@@ -7,7 +7,6 @@ import CorporatePage from './pages/CorporatePage';
 import Contact from './pages/Contact';
 import Careers from './pages/Careers';
 import Login from './pages/Login';
-import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import DashboardHome from './pages/DashboardHome';
 import HelpAndSupport from './pages/Help & Support';
@@ -101,7 +100,6 @@ function AppContent() {
           <Route path='/terms' element={<Terms />} />
           <Route path='/refund' element={<Refund />} />
           <Route path='/login' element={<Login />} />
-          <Route path='/register' element={<Register />} />
           <Route path='/dashboard/*' element={<Dashboard />}>
             <Route index element={<DashboardHome />} />
             <Route path='project-requirement' element={<ProjectRequirement />} />
