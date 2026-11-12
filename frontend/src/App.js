@@ -74,7 +74,7 @@ function App() {
 function AppContent() {
   const location = useLocation();
   useEffect(() => {
-    const privateRoute = /^\\/(admin-dashboard|dashboard|login|register|payment)(\\/|$)/.test(location.pathname);
+    const privateRoute = /^\/(admin-dashboard|dashboard|login|register|payment)(\/|$)/.test(location.pathname);
     let robots = document.querySelector('meta[name="robots"]');
     if (!robots) { robots = document.createElement('meta'); robots.name = 'robots'; document.head.appendChild(robots); }
     robots.setAttribute('content', privateRoute ? 'noindex,nofollow' : 'index,follow');
