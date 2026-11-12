@@ -76,7 +76,7 @@ See `.env.example`, `docs/API.md`, `docs/CMS-GUIDE.md` and `docs/DEPLOYMENT.md`.
 ## Known implementation work still required
 
 - Complete integration of every public section with CMS content and per-page SEO fields.
-- Career application email notifications and secure resume workflows.
+- Move career resumes from database base64 storage to a private Cloudinary workflow with controlled access.
 - SMTP notification delivery for contact and career submissions.
 - Full admin role/permission matrix and a dedicated audit-log viewer.
 - Blog article detail routes, pagination, search and scheduled publishing.
