@@ -1,10 +1,198 @@
-import React,{useEffect,useState} from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-const services=[['Website Design & Development','Fast, responsive websites built around your business goals.'],['Web Applications','Custom workflows and dashboards that simplify daily operations.'],['E-commerce Solutions','Practical online storefronts and commerce experiences.'],['UI/UX Design','Clear, accessible interfaces that help people get things done.'],['Business Management Systems','Purpose-built inventory, booking, library and management tools.'],['Deployment & Support','Launch, maintenance, performance and technical support.']];
-const steps=[['01','Understand','We learn about your goals, users and requirements.'],['02','Plan','We define scope, milestones and a practical solution.'],['03','Build','We develop, review and test the agreed work.'],['04','Launch','We deploy and provide the agreed handover and support.']];
-export default function Home(){
- const [homeContent,setHomeContent]=useState(null),[cmsServices,setCmsServices]=useState([]);
- useEffect(()=>{let active=true;Promise.all([fetch('/api/cms/public/page').then(r=>r.ok?r.json():{items:[]}),fetch('/api/cms/public/service').then(r=>r.ok?r.json():{items:[]})]).then(([pages,services])=>{if(!active)return;setHomeContent((pages.items||[]).find(item=>item.slug==='home')||null);setCmsServices(services.items||[]);}).catch(()=>{});return()=>{active=false;};},[]);
- useEffect(()=>{document.title=homeContent?.seo?.title||'ASKC TECHNOLOGIES | We Build. You Grow.';const meta=document.querySelector('meta[name="description"]');if(meta&&homeContent?.seo?.description)meta.setAttribute('content',homeContent.seo.description);const canonical=document.querySelector('link[rel="canonical"]');if(canonical)canonical.setAttribute('href','https://askctechnologies.in/');},[homeContent]);
- const visibleServices=cmsServices.length?cmsServices.map(item=>[item.title,item.summary||item.body||'Learn more about this service.']):services;
- return <div className="askc-site"><section className="askc-hero"><div className="askc-container askc-hero-grid"><div><span className="askc-eyebrow">TECHNOLOGY THAT MOVES BUSINESS FORWARD</span><h1>{homeContent?.title || <>We build digital experiences that help your business <em>grow.</em></>}</h1><p>{homeContent?.summary || 'ASKC TECHNOLOGIES designs and develops websites, web applications and practical software solutions for modern businesses.'}</p><div className="askc-actions"><Link className="askc-btn askc-btn-primary" to="/contact">Discuss your project ↗</Link><Link className="askc-btn askc-btn-light" to="/services">Explore services</Link></div><div className="askc-proof"><span>Strategy-led</span><span>Built for your workflow</span><span>Clear communication</span></div></div><div className="askc-hero-art" aria-label="Abstract digital systems illustration"><div className="askc-orbit orbit-one"></div><div className="askc-orbit orbit-two"></div><div className="askc-core">A<span>S</span></div><div className="askc-float-card card-top">Digital products <b>↗</b></div><div className="askc-float-card card-bottom"><i></i> Built around your goals</div></div></div></section><section className="askc-intro askc-container"><div><span className="askc-eyebrow">ABOUT ASKC</span><h2>Technology should make work simpler.</h2></div><div><p>We partner with businesses to understand their challenges and turn them into useful digital solutions. From a strong online presence to custom business systems, our focus is on clarity, usability and dependable engineering.</p><Link className="askc-text-link" to="/about">Get to know us →</Link></div></section><section className="askc-section askc-section-soft"><div className="askc-container"><div className="askc-section-head"><div><span className="askc-eyebrow">WHAT WE DO</span><h2>Solutions for the way you work.</h2></div><Link className="askc-text-link" to="/services">All services →</Link></div><div className="askc-service-grid">{visibleServices.map(([title,desc])=><Link to="/services" className="askc-service-card" key={title}><span className="askc-card-number">0{i+1}</span><h3>{title}</h3><p>{desc}</p><span className="askc-card-arrow">↗</span></Link>)}</div></div></section><section className="askc-section"><div className="askc-container"><div className="askc-section-head"><div><span className="askc-eyebrow">HOW WE WORK</span><h2>A clear path from idea to launch.</h2></div><p className="askc-head-note">A collaborative process with clear expectations at every stage.</p></div><div className="askc-process-grid">{steps.map(([n,t,d])=><div className="askc-process" key={n}><span>{n}</span><h3>{t}</h3><p>{d}</p></div>)}</div></div></section><section className="askc-cta"><div className="askc-container askc-cta-inner"><div><span className="askc-eyebrow">HAVE A PROJECT IN MIND?</span><h2>Let’s build something useful.</h2><p>Tell us what you are working on. We’ll help you explore the next step.</p></div><Link className="askc-btn askc-btn-white" to="/contact">Start a conversation ↗</Link></div></section></div>
+
+const services = [
+  ['Website Design & Development', 'Fast, responsive websites built around your business goals.'],
+  ['Web Applications', 'Custom workflows and dashboards that simplify daily operations.'],
+  ['E-commerce Solutions', 'Practical online storefronts and commerce experiences.'],
+  ['UI/UX Design', 'Clear, accessible interfaces that help people get things done.'],
+  ['Business Management Systems', 'Purpose-built inventory, booking, library and management tools.'],
+  ['Deployment & Support', 'Launch, maintenance, performance and technical support.'],
+];
+
+const steps = [
+  ['01', 'Understand', 'We learn about your goals, users and requirements.'],
+  ['02', 'Plan', 'We define scope, milestones and a practical solution.'],
+  ['03', 'Build', 'We develop, review and test the agreed work.'],
+  ['04', 'Launch', 'We deploy and provide the agreed handover and support.'],
+];
+
+export default function Home() {
+  const [homeContent, setHomeContent] = useState(null);
+  const [cmsServices, setCmsServices] = useState([]);
+
+  useEffect(() => {
+    let active = true;
+
+    Promise.all([
+      fetch('/api/cms/public/page').then((response) =>
+        response.ok ? response.json() : { items: [] }
+      ),
+      fetch('/api/cms/public/service').then((response) =>
+        response.ok ? response.json() : { items: [] }
+      ),
+    ])
+      .then(([pages, serviceResponse]) => {
+        if (!active) return;
+        setHomeContent((pages.items || []).find((item) => item.slug === 'home') || null);
+        setCmsServices(serviceResponse.items || []);
+      })
+      .catch(() => {});
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    document.title = homeContent?.seo?.title || 'ASKC TECHNOLOGIES | We Build. You Grow.';
+
+    const metaDescription = document.querySelector('meta[name="description"]');
+    if (metaDescription && homeContent?.seo?.description) {
+      metaDescription.setAttribute('content', homeContent.seo.description);
+    }
+
+    const canonical = document.querySelector('link[rel="canonical"]');
+    if (canonical) {
+      canonical.setAttribute('href', 'https://askctechnologies.in/');
+    }
+  }, [homeContent]);
+
+  const visibleServices = cmsServices.length
+    ? cmsServices.map((item) => [
+        item.title,
+        item.summary || item.body || 'Learn more about this service.',
+      ])
+    : services;
+
+  return (
+    <div className="askc-site">
+      <section className="askc-hero">
+        <div className="askc-container askc-hero-grid">
+          <div>
+            <span className="askc-eyebrow">TECHNOLOGY THAT MOVES BUSINESS FORWARD</span>
+            <h1>
+              {homeContent?.title || (
+                <>
+                  We build digital experiences that help your business <em>grow.</em>
+                </>
+              )}
+            </h1>
+            <p>
+              {homeContent?.summary ||
+                'ASKC TECHNOLOGIES designs and develops websites, web applications and practical software solutions for modern businesses.'}
+            </p>
+            <div className="askc-actions">
+              <Link className="askc-btn askc-btn-primary" to="/contact">
+                Discuss your project ↗
+              </Link>
+              <Link className="askc-btn askc-btn-light" to="/services">
+                Explore services
+              </Link>
+            </div>
+            <div className="askc-proof">
+              <span>Strategy-led</span>
+              <span>Built for your workflow</span>
+              <span>Clear communication</span>
+            </div>
+          </div>
+
+          <div className="askc-hero-art" aria-label="Abstract digital systems illustration">
+            <div className="askc-orbit orbit-one" />
+            <div className="askc-orbit orbit-two" />
+            <div className="askc-core">
+              A<span>S</span>
+            </div>
+            <div className="askc-float-card card-top">
+              Digital products <b>↗</b>
+            </div>
+            <div className="askc-float-card card-bottom">
+              <i /> Built around your goals
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="askc-intro askc-container">
+        <div>
+          <span className="askc-eyebrow">ABOUT ASKC</span>
+          <h2>Technology should make work simpler.</h2>
+        </div>
+        <div>
+          <p>
+            We partner with businesses to understand their challenges and turn them into useful
+            digital solutions. From a strong online presence to custom business systems, our focus
+            is on clarity, usability and dependable engineering.
+          </p>
+          <Link className="askc-text-link" to="/about">
+            Get to know us →
+          </Link>
+        </div>
+      </section>
+
+      <section className="askc-section askc-section-soft">
+        <div className="askc-container">
+          <div className="askc-section-head">
+            <div>
+              <span className="askc-eyebrow">WHAT WE DO</span>
+              <h2>Solutions for the way you work.</h2>
+            </div>
+            <Link className="askc-text-link" to="/services">
+              All services →
+            </Link>
+          </div>
+          <div className="askc-service-grid">
+            {visibleServices.map(([title, description], index) => (
+              <Link to="/services" className="askc-service-card" key={title}>
+                <span className="askc-card-number">
+                  {String(index + 1).padStart(2, '0')}
+                </span>
+                <h3>{title}</h3>
+                <p>{description}</p>
+                <span className="askc-card-arrow">↗</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="askc-section">
+        <div className="askc-container">
+          <div className="askc-section-head">
+            <div>
+              <span className="askc-eyebrow">HOW WE WORK</span>
+              <h2>A clear path from idea to launch.</h2>
+            </div>
+            <p className="askc-head-note">
+              A collaborative process with clear expectations at every stage.
+            </p>
+          </div>
+          <div className="askc-process-grid">
+            {steps.map(([number, title, description]) => (
+              <div className="askc-process" key={number}>
+                <span>{number}</span>
+                <h3>{title}</h3>
+                <p>{description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="askc-cta">
+        <div className="askc-container askc-cta-inner">
+          <div>
+            <span className="askc-eyebrow">HAVE A PROJECT IN MIND?</span>
+            <h2>Let’s build something useful.</h2>
+            <p>
+              Tell us what you are working on. We’ll help you explore the next step.
+            </p>
+          </div>
+          <Link className="askc-btn askc-btn-white" to="/contact">
+            Start a conversation ↗
+          </Link>
+        </div>
+      </section>
+    </div>
+  );
+}
