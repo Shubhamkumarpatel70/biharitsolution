@@ -10,6 +10,7 @@ const contactSchema = new mongoose.Schema({
   message: { type: String, required: true, trim: true, maxlength: 5000 },
   consent: { type: Boolean, default: false },
   status: { type: String, enum: ["new","in-progress","closed"], default: "new", index: true },
+  assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
   internalNotes: { type: String, default: "" },
   read: { type: Boolean, default: false }
 }, { timestamps: true });
