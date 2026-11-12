@@ -6,6 +6,7 @@ const compression = require("compression");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const authRoutes = require("./routes/auth");
+const cmsRoutes = require("./routes/cms");
 const jwt = require("jsonwebtoken");
 const User = require("./models/User");
 const http = require("http");
@@ -370,6 +371,7 @@ mongoose.connection.on("reconnected", () => {
 
 const PORT = process.env.PORT || 5000;
 app.use("/api/auth", authRoutes);
+app.use("/api/cms", authMiddleware, cmsRoutes);
 
 // Serve official agreements and documents
 const path = require("path");
