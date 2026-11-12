@@ -30,6 +30,7 @@ import AdminIDCard from './AdminIDCard';
 import AdminAgreements from './AdminAgreements';
 import AdminCMS from './AdminCMS';
 import AdminMedia from './AdminMedia';
+import AdminAuditLogs from './AdminAuditLogs';
 import { Icon } from '../components/icons';
 
 const AdminDashboard = () => {
@@ -125,6 +126,8 @@ const AdminDashboard = () => {
         return <AdminCMS />;
       case 'media':
         return <AdminMedia />;
+      case 'audit-logs':
+        return <AdminAuditLogs />;
       default:
         return <AdminHome />;
     }
