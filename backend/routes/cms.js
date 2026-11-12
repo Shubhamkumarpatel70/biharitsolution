@@ -17,9 +17,18 @@ function requireAdmin(req,res,next){
   next();
 }
 function cleanPayload(body){
+  const imageUrl=String(body.imageUrl||"").trim();
+  if(imageUrl){
+    let parsed;
+    try{parsed=new URL(imageUrl);}catch(error){throw new Error("Featured image URL is invalid.");}
+    if(parsed.protocol!=="https:" || parsed.hostname!=="res.cloudinary.com") throw new Error("Featured images must be selected from the ASKC Cloudinary media library.");
+  }
   return {
     type: body.type, title: String(body.title || "").trim(), slug: String(body.slug || "").trim().toLowerCase().replace(/[^a-z0-9-]+/g,"-").replace(/^-|-$/g,""),
     summary: String(body.summary || "").trim(), body: String(body.body || ""),
+    category: String(body.category||"").trim().slice(0,80),
+    tags: Array.isArray(body.tags)?[...new Set(body.tags.map(tag=>String(tag).trim().slice(0,40)).filter(Boolean))].slice(0,20):[],
+    imageUrl, imageAlt: String(body.imageAlt||"").trim().slice(0,250),
     status: ["draft","published","archived"].includes(body.status) ? body.status : "draft",
     sortOrder: Number.isFinite(Number(body.sortOrder)) ? Number(body.sortOrder) : 0,
     seo: { title: String(body.seo?.title || "").trim(), description: String(body.seo?.description || "").trim() }
@@ -28,8 +37,17 @@ function cleanPayload(body){
 router.get("/public/:type", async (req,res)=>{
   try {
     if (!TYPES.includes(req.params.type)) return res.status(400).json({message:"Invalid content type."});
-    const items = await SiteContent.find({type:req.params.type,status:"published"}).sort({sortOrder:1,updatedAt:-1}).select("-createdBy -updatedBy").lean();
-    res.json({items});
+    const filter={type:req.params.type,status:"published"};
+    if(req.query.category)filter.category=String(req.query.category).slice(0,80);
+    if(req.query.tag)filter.tags=String(req.query.tag).slice(0,40);
+    if(req.query.q){
+      const term=String(req.query.q).trim().slice(0,100);
+      if(term)filter.$or=[{title:{$regex:term.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"),$options:"i"}},{summary:{$regex:term.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"),$options:"i"}},{body:{$regex:term.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"),$options:"i"}}];
+    }
+    const page=Math.max(1,parseInt(req.query.page,10)||1);
+    const limit=Math.min(50,Math.max(1,parseInt(req.query.limit,10)||50));
+    const [items,total]=await Promise.all([SiteContent.find(filter).sort({sortOrder:1,updatedAt:-1}).skip((page-1)*limit).limit(limit).select("-createdBy -updatedBy").lean(),SiteContent.countDocuments(filter)]);
+    res.json({items,pagination:{page,limit,total,pages:Math.ceil(total/limit)}});
   } catch(error){res.status(500).json({message:"Unable to load content."});}
 });
 router.get("/audit-logs", requireAdmin, async (req,res)=>{
@@ -50,7 +68,7 @@ router.post("/", requireAdmin, async (req,res)=>{
     const item=await SiteContent.create({...data,createdBy:req.user.id,updatedBy:req.user.id});
     AuditLog.create({actor:req.user.id,action:"create",entityType:data.type,entityId:String(item._id),summary:"Created "+data.type+": "+data.title}).catch(error=>console.error("CMS audit log failed:",error.message));
     res.status(201).json({item,message:"Content created."});
-  } catch(error){res.status(error.code===11000?409:400).json({message:error.code===11000?"This slug already exists for the selected content type.":"Unable to create content. Check the fields and try again."});}
+  } catch(error){res.status(error.code===11000?409:400).json({message:error.code===11000?"This slug already exists for the selected content type.":error.message||"Unable to create content. Check the fields and try again."});}
 });
 router.put("/:id", requireAdmin, async (req,res)=>{
   try {
@@ -61,7 +79,7 @@ router.put("/:id", requireAdmin, async (req,res)=>{
     if(!item) return res.status(404).json({message:"Content not found."});
     AuditLog.create({actor:req.user.id,action:"update",entityType:data.type,entityId:String(item._id),summary:"Updated "+data.type+": "+data.title}).catch(error=>console.error("CMS audit log failed:",error.message));
     res.json({item,message:"Content updated."});
-  } catch(error){res.status(error.code===11000?409:400).json({message:error.code===11000?"This slug already exists for the selected content type.":"Unable to update content."});}
+  } catch(error){res.status(error.code===11000?409:400).json({message:error.code===11000?"This slug already exists for the selected content type.":error.message||"Unable to update content."});}
 });
 router.delete("/:id", requireAdmin, async (req,res)=>{
   try {
