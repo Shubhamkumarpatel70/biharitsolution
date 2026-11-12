@@ -272,9 +272,6 @@ const Footer = () => {
             <Link to="/terms" className="text-white/70 hover:text-white transition-colors">
               Terms & Conditions
             </Link>
-            <Link to="/refund" className="text-white/70 hover:text-white transition-colors">
-              Refund Policy
-            </Link>
             <Link to="/careers" className="text-accent-300 hover:text-accent-200 font-semibold transition-colors">
               Careers
             </Link>
