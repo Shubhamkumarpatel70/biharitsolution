@@ -371,7 +371,7 @@ mongoose.connection.on("reconnected", () => {
 
 const PORT = process.env.PORT || 5000;
 app.use("/api/auth", authRoutes);
-app.use("/api/cms", authMiddleware, cmsRoutes);
+app.use("/api/cms", cmsRoutes);
 
 // Serve official agreements and documents
 const path = require("path");
