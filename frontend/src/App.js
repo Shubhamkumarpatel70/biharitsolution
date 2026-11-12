@@ -34,6 +34,7 @@ import PublicIDCard from './pages/PublicIDCard';
 import UnsubscribeEmail from './pages/UnsubscribeEmail';
 import { UserProvider, UserContext } from './UserContext';
 import axios from 'axios';
+import './styles/askc-unified.css';
 
 function App() {
   const { setUser } = useContext(UserContext);
@@ -79,9 +80,11 @@ function AppContent() {
     if (!robots) { robots = document.createElement('meta'); robots.name = 'robots'; document.head.appendChild(robots); }
     robots.setAttribute('content', privateRoute ? 'noindex,nofollow' : 'index,follow');
   }, [location.pathname]);
+  const corporatePaths = ['/', '/about', '/services', '/products', '/portfolio', '/industries', '/blog', '/contact', '/careers', '/privacy', '/terms'];
+  const isCorporatePage = corporatePaths.some((path) => path === '/' ? location.pathname === '/' : location.pathname === path || location.pathname.startsWith(path + '/'));
   return (
     <>
-      <main className="pt-20 min-h-[calc(100vh-5rem)] w-full max-w-full overflow-x-hidden">
+      <main className={`pt-20 min-h-[calc(100vh-5rem)] w-full max-w-full overflow-x-hidden ${isCorporatePage ? 'askc-public-shell' : ''}`}>
         <Routes>
           <Route path='/' element={<Home />} />
           <Route path='/about' element={<CorporatePage />} />
