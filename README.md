@@ -12,6 +12,8 @@ ASKC TECHNOLOGIES is the parent technology company. ASKC Web is the digital-solu
 - MongoDB with Mongoose
 - Existing authentication retained for protected legacy account areas
 - New role-protected corporate CMS API and admin editor
+- Cloudinary-backed media library with file-size, MIME and file-signature checks
+- Lead management with search, status, assignee, internal notes and CSV export
 - Business enquiry form with server-side validation and persistent records
 - Public corporate routes for About, Services, Products, Portfolio, Industries and Insights
 - Responsive blue-and-white corporate design system
@@ -60,7 +62,7 @@ The contact form posts to `POST /api/auth/contact`. The server validates require
 
 ## Environment variables
 
-See `.env.example`. Never commit production credentials. Use separate development and production secrets. Configure SMTP and Cloudinary before enabling those integrations in production.
+See `.env.example`, `docs/API.md`, `docs/CMS-GUIDE.md` and `docs/DEPLOYMENT.md`. Never commit production credentials. Use separate development and production secrets. Configure SMTP and Cloudinary before enabling those integrations in production.
 
 ## Deployment notes
 
@@ -74,9 +76,9 @@ See `.env.example`. Never commit production credentials. Use separate developmen
 ## Known implementation work still required
 
 - Complete integration of every public section with CMS content and per-page SEO fields.
-- Cloudinary media library and secure upload workflows.
+- Career application email notifications and secure resume workflows.
 - SMTP notification delivery for contact and career submissions.
-- Full admin role/permission matrix and richer audit-log viewer.
+- Full admin role/permission matrix and a dedicated audit-log viewer.
 - Blog article detail routes, pagination, search and scheduled publishing.
 - Automated unit, API and end-to-end tests.
 - Final production build, mobile QA, accessibility audit and deployment smoke tests.
