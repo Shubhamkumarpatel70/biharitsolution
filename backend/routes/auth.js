@@ -1,4 +1,5 @@
 const express = require("express");
+const nodemailer = require("nodemailer");
 const router = express.Router();
 const {
   registerUser,
@@ -475,6 +476,34 @@ router.post("/contact", async (req, res) => {
       message: String(message).trim().slice(0, 5000),
       consent: true
     });
+    if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS && process.env.MAIL_FROM && process.env.CONTACT_NOTIFY_EMAIL) {
+      try {
+        const transporter = nodemailer.createTransport({
+          host: process.env.SMTP_HOST,
+          port: Number(process.env.SMTP_PORT || 587),
+          secure: String(process.env.SMTP_SECURE || "false") === "true",
+          auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+        });
+        await transporter.sendMail({
+          from: process.env.MAIL_FROM,
+          to: process.env.CONTACT_NOTIFY_EMAIL,
+          replyTo: contact.email,
+          subject: "New ASKC Technologies enquiry: " + contact.subject,
+          text: [
+            "New website enquiry",
+            "Name: " + contact.name,
+            "Email: " + contact.email,
+            "Phone: " + (contact.phone || "Not provided"),
+            "Company: " + (contact.company || "Not provided"),
+            "Service: " + (contact.serviceInterest || "Not specified"),
+            "Budget: " + (contact.budget || "Not specified"),
+            "Message: " + contact.message
+          ].join(String.fromCharCode(10))
+        });
+      } catch (mailError) {
+        console.error("Contact notification email failed:", mailError.message);
+      }
+    }
     res.status(201).json({ message: "Enquiry received.", contactId: contact._id });
   } catch (err) {
     console.error("Contact submission failed:", err.message);
