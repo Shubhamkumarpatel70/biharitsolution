@@ -47,7 +47,7 @@ router.post("/",(req,res,next)=>{try{configureCloudinary();next();}catch(error){
     if(!validSignature)return res.status(400).json({message:"The file content does not match its declared type."});
     const result=await new Promise((resolve,reject)=>{
       const stream=cloudinary.uploader.upload_stream({folder:"askc-technologies",resource_type:"auto",use_filename:false,unique_filename:true},(error,uploaded)=>error?reject(error):resolve(uploaded));
-      Readable.from(req.file.buffer).pipe(stream);
+      Readable.from([req.file.buffer]).pipe(stream);
     });
     const item=await Media.create({originalName:req.file.originalname,secureUrl:result.secure_url,publicId:result.public_id,resourceType:result.resource_type,mimeType:req.file.mimetype,size:req.file.size,altText:String(req.body.altText||"").slice(0,250),uploadedBy:req.user.id});
     AuditLog.create({actor:req.user.id,action:"upload",entityType:"media",entityId:String(item._id),summary:"Uploaded media: "+item.originalName}).catch(error=>console.error("Media audit log failed:",error.message));
