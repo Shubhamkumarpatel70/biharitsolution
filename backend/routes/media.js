@@ -36,6 +36,15 @@ router.get("/",async(req,res)=>{
 router.post("/",(req,res,next)=>{try{configureCloudinary();next();}catch(error){res.status(503).json({message:error.message});}},upload.single("file"),async(req,res)=>{
   try{
     if(!req.file)return res.status(400).json({message:"Choose a file to upload."});
+    const bytes=req.file.buffer;
+    const mime=req.file.mimetype;
+    const validSignature =
+      (mime==="image/jpeg" && bytes[0]===0xff && bytes[1]===0xd8 && bytes[2]===0xff) ||
+      (mime==="image/png" && bytes.subarray(0,8).equals(Buffer.from([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a]))) ||
+      (mime==="image/webp" && bytes.toString("ascii",0,4)==="RIFF" && bytes.toString("ascii",8,12)==="WEBP") ||
+      (mime==="image/gif" && ["GIF87a","GIF89a"].includes(bytes.toString("ascii",0,6))) ||
+      (mime==="application/pdf" && bytes.toString("ascii",0,5)==="%PDF-");
+    if(!validSignature)return res.status(400).json({message:"The file content does not match its declared type."});
     const result=await new Promise((resolve,reject)=>{
       const stream=cloudinary.uploader.upload_stream({folder:"askc-technologies",resource_type:"auto",use_filename:false,unique_filename:true},(error,uploaded)=>error?reject(error):resolve(uploaded));
       Readable.from(req.file.buffer).pipe(stream);
