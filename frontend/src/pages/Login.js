@@ -366,12 +366,7 @@ function Login() {
         )}
 
         <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 text-sm">
-          <span className="text-text-muted text-center sm:text-left">
-            No account?{' '}
-            <Link to="/register" className="font-semibold text-primary-600 hover:text-primary-700">
-              Create one
-            </Link>
-          </span>
+          <span className="text-text-muted text-center sm:text-left">Authorized admin access only</span>
           <button
             type="button"
             onClick={() => {
