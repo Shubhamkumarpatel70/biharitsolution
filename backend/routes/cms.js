@@ -58,10 +58,7 @@ router.get("/audit-logs", requireAdmin, async (req,res)=>{
     if(req.query.action) filter.action=String(req.query.action).slice(0,80);
     if(req.query.entityType) filter.entityType=String(req.query.entityType).slice(0,80);
     if(req.query.q){
-      const term=String(req.query.q).trim().slice(0,100).replace(/[.*+?^${}()|[\]\\]/g,"\\router.get("/audit-logs", requireAdmin, async (req,res)=>{
-  try { const logs=await AuditLog.find().sort({createdAt:-1}).limit(100).populate("actor","name email").lean(); res.json({logs}); }
-  catch(error){ res.status(500).json({message:"Unable to load audit logs."}); }
-});");
+      const term=String(req.query.q).trim().slice(0,100).replace(/[.*+?^\${}()|[\]\\]/g, character => "\\" + character);
       if(term) filter.$or=[{summary:{$regex:term,$options:"i"}},{entityId:{$regex:term,$options:"i"}}];
     }
     const [logs,total]=await Promise.all([
