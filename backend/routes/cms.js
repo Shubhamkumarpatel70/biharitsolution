@@ -41,7 +41,7 @@ router.get("/public/:type", async (req,res)=>{
     if(req.query.category)filter.category=String(req.query.category).slice(0,80);
     if(req.query.tag)filter.tags=String(req.query.tag).slice(0,40);
     if(req.query.q){
-      const term=String(req.query.q).trim().slice(0,100);
+      const term=String(req.query.q).trim().slice(0,100).replace(/[^a-zA-Z0-9 _-]/g,"");
       if(term)filter.$or=[{title:{$regex:term.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"),$options:"i"}},{summary:{$regex:term.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"),$options:"i"}},{body:{$regex:term.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"),$options:"i"}}];
     }
     const page=Math.max(1,parseInt(req.query.page,10)||1);
@@ -58,7 +58,7 @@ router.get("/audit-logs", requireAdmin, async (req,res)=>{
     if(req.query.action) filter.action=String(req.query.action).slice(0,80);
     if(req.query.entityType) filter.entityType=String(req.query.entityType).slice(0,80);
     if(req.query.q){
-      const term=String(req.query.q).trim().slice(0,100).replace(/[.*+?^\${}()|[\]\\]/g, character => "\\" + character);
+      const term=String(req.query.q).trim().slice(0,100).replace(/[^a-zA-Z0-9 _-]/g,"");
       if(term) filter.$or=[{summary:{$regex:term,$options:"i"}},{entityId:{$regex:term,$options:"i"}}];
     }
     const [logs,total]=await Promise.all([
