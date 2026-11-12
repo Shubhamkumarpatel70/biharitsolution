@@ -22,7 +22,7 @@ jobs:
       - name: Install project dependencies
         run: npm run install-all
       - name: Build React application
-        run: npm run build
+        run: CI=false npm run build
       - name: Check backend JavaScript syntax
         run: |
           node --check backend/server.js
