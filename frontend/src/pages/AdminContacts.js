@@ -1,9 +1,9 @@
-import React,{useEffect,useMemo,useState} from "react";
+import React,{useCallback,useEffect,useMemo,useState} from "react";
 import axios from "../axios";
 export default function AdminContacts(){
  const [contacts,setContacts]=useState([]),[users,setUsers]=useState([]),[search,setSearch]=useState(""),[status,setStatus]=useState("all"),[loading,setLoading]=useState(true),[error,setError]=useState(""),[saving,setSaving]=useState("");
  const isAdmin=(()=>{try{return JSON.parse(localStorage.getItem("user")||"{}").role==="admin";}catch{return false;}})();
- const load=async()=>{setLoading(true);setError("");try{const r=await axios.get("/api/auth/contacts");setContacts(r.data.contacts||[]);if(isAdmin){try{const u=await axios.get("/api/auth/admin/users");setUsers((u.data.users||[]).filter(x=>["admin","coadmin"].includes(x.role)));}catch{setUsers([]);}}}catch(e){setError(e.response?.data?.message||"Could not fetch enquiries.");}finally{setLoading(false);}};
+ const load=useCallback(async()=>{setLoading(true);setError("");try{const r=await axios.get("/api/auth/contacts");setContacts(r.data.contacts||[]);if(isAdmin){try{const u=await axios.get("/api/auth/admin/users");setUsers((u.data.users||[]).filter(x=>["admin","coadmin"].includes(x.role)));}catch{setUsers([]);}}}catch(e){setError(e.response?.data?.message||"Could not fetch enquiries.");}finally{setLoading(false);}};
  useEffect(()=>{load();},[]);
  const filtered=useMemo(()=>contacts.filter(c=>(status==="all"||c.status===status)&&[c.name,c.email,c.company,c.subject,c.message].join(" ").toLowerCase().includes(search.toLowerCase())),[contacts,status,search]);
  const updateLocal=(id,key,value)=>setContacts(old=>old.map(c=>c._id===id?{...c,[key]:value}:c));
