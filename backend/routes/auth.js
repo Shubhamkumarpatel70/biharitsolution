@@ -3985,6 +3985,25 @@ router.post(
         resumeMimeType,
         resumeFileName: req.file.originalname || "resume",
       });
+      if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS && process.env.MAIL_FROM && process.env.CONTACT_NOTIFY_EMAIL) {
+        try {
+          const transporter = nodemailer.createTransport({
+            host: process.env.SMTP_HOST,
+            port: Number(process.env.SMTP_PORT || 587),
+            secure: String(process.env.SMTP_SECURE || "false") === "true",
+            auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+          });
+          await transporter.sendMail({
+            from: process.env.MAIL_FROM,
+            to: process.env.CONTACT_NOTIFY_EMAIL,
+            replyTo: email.trim(),
+            subject: "New ASKC Technologies career application: " + career.title,
+            text: ["New career application","Role: " + career.title,"Applicant: " + name.trim(),"Email: " + email.trim(),"Phone: " + phone.trim(),"Location: " + city.trim() + ", " + state.trim(),"Resume is stored in the protected application record."].join(String.fromCharCode(10))
+          });
+        } catch (mailError) {
+          console.error("Career application notification failed:", mailError.message);
+        }
+      }
       res.status(201).json({ message: "Application submitted successfully." });
     } catch (err) {
       console.error("career apply:", err);
