@@ -31,3 +31,5 @@ jobs:
           node --check backend/models/SiteContent.js
           node --check backend/models/AuditLog.js
           node --check backend/models/Contact.js
+          node --check backend/routes/media.js
+          node --check backend/models/Media.js
