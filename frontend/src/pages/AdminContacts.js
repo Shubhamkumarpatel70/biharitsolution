@@ -1,94 +1,13 @@
-import React, { useEffect, useState } from 'react';
-import axios from '../axios';
-
-const AdminContacts = () => {
-  const [contacts, setContacts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    const fetchContacts = async () => {
-      setLoading(true);
-      setError('');
-      try {
-        const token = localStorage.getItem('token');
-        const res = await axios.get('/api/auth/contacts', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        setContacts(res.data.contacts);
-      } catch (err) {
-        setError('Could not fetch contacts.');
-      }
-      setLoading(false);
-    };
-    fetchContacts();
-  }, []);
-
-  const handleMarkRead = async (id) => {
-    try {
-      const token = localStorage.getItem('token');
-      await axios.patch(`/api/auth/contacts/${id}/read`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setContacts(contacts => contacts.map(c => c._id === id ? { ...c, read: true } : c));
-    } catch {}
-  };
-
-  const handleMarkUnread = async (id) => {
-    try {
-      const token = localStorage.getItem('token');
-      await axios.patch(`/api/auth/contacts/${id}/unread`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setContacts(contacts => contacts.map(c => c._id === id ? { ...c, read: false } : c));
-    } catch {}
-  };
-
-  return (
-    <div style={{ color: '#E5E7EB', maxWidth: '900px', margin: '0 auto' }}>
-      <h2 style={{ color: '#2ECC71', fontWeight: 700, fontSize: '1.7rem', marginBottom: '1.2rem' }}>User Contacts</h2>
-      <div style={{ background: '#23272F', borderRadius: '1rem', padding: '2rem', boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}>
-        {loading ? (
-          <div>Loading...</div>
-        ) : error ? (
-          <div style={{ color: '#FF6B35' }}>{error}</div>
-        ) : contacts.length === 0 ? (
-          <div>No contacts found.</div>
-        ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse', color: '#E5E7EB' }}>
-            <thead>
-              <tr style={{ background: '#181A20' }}>
-                <th style={{ padding: '0.7rem', borderBottom: '1px solid #333' }}>Name</th>
-                <th style={{ padding: '0.7rem', borderBottom: '1px solid #333' }}>Email</th>
-                <th style={{ padding: '0.7rem', borderBottom: '1px solid #333' }}>Message</th>
-                <th style={{ padding: '0.7rem', borderBottom: '1px solid #333' }}>Submitted</th>
-                <th style={{ padding: '0.7rem', borderBottom: '1px solid #333' }}>Status</th>
-                <th style={{ padding: '0.7rem', borderBottom: '1px solid #333' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {contacts.map(contact => (
-                <tr key={contact._id} style={{ background: contact.read ? '#1a3320' : '#331a1a', color: contact.read ? '#2ECC71' : '#FF6B35' }}>
-                  <td style={{ padding: '0.7rem', borderBottom: '1px solid #333' }}>{contact.name}</td>
-                  <td style={{ padding: '0.7rem', borderBottom: '1px solid #333' }}>{contact.email}</td>
-                  <td style={{ padding: '0.7rem', borderBottom: '1px solid #333' }}>{contact.message}</td>
-                  <td style={{ padding: '0.7rem', borderBottom: '1px solid #333' }}>{new Date(contact.createdAt).toLocaleString()}</td>
-                  <td style={{ padding: '0.7rem', borderBottom: '1px solid #333', fontWeight: 700 }}>{contact.read ? 'Read' : 'Unread'}</td>
-                  <td style={{ padding: '0.7rem', borderBottom: '1px solid #333' }}>
-                    {contact.read ? (
-                      <button onClick={() => handleMarkUnread(contact._id)} style={{ background: '#FF6B35', color: '#fff', border: 'none', borderRadius: '0.3rem', padding: '0.3rem 0.8rem', cursor: 'pointer' }}>Mark as Unread</button>
-                    ) : (
-                      <button onClick={() => handleMarkRead(contact._id)} style={{ background: '#2ECC71', color: '#181A20', border: 'none', borderRadius: '0.3rem', padding: '0.3rem 0.8rem', cursor: 'pointer' }}>Mark as Read</button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-    </div>
-  );
-};
-
-export default AdminContacts; 
+import React,{useEffect,useMemo,useState} from "react";
+import axios from "../axios";
+export default function AdminContacts(){
+ const [contacts,setContacts]=useState([]),[users,setUsers]=useState([]),[search,setSearch]=useState(""),[status,setStatus]=useState("all"),[loading,setLoading]=useState(true),[error,setError]=useState(""),[saving,setSaving]=useState("");
+ const isAdmin=(()=>{try{return JSON.parse(localStorage.getItem("user")||"{}").role==="admin";}catch{return false;}})();
+ const load=async()=>{setLoading(true);setError("");try{const r=await axios.get("/api/auth/contacts");setContacts(r.data.contacts||[]);if(isAdmin){try{const u=await axios.get("/api/auth/admin/users");setUsers((u.data.users||[]).filter(x=>["admin","coadmin"].includes(x.role)));}catch{setUsers([]);}}}catch(e){setError(e.response?.data?.message||"Could not fetch enquiries.");}finally{setLoading(false);}};
+ useEffect(()=>{load();},[]);
+ const filtered=useMemo(()=>contacts.filter(c=>(status==="all"||c.status===status)&&[c.name,c.email,c.company,c.subject,c.message].join(" ").toLowerCase().includes(search.toLowerCase())),[contacts,status,search]);
+ const updateLocal=(id,key,value)=>setContacts(old=>old.map(c=>c._id===id?{...c,[key]:value}:c));
+ const save=async c=>{setSaving(c._id);try{const r=await axios.patch("/api/auth/contacts/"+c._id+"/manage",{status:c.status||"new",internalNotes:c.internalNotes||"",assignedTo:c.assignedTo?._id||c.assignedTo||null});setContacts(old=>old.map(x=>x._id===c._id?{...x,...r.data.contact}:x));}catch(e){setError(e.response?.data?.message||"Could not update this enquiry.");}finally{setSaving("");}};
+ const exportCsv=()=>{const cols=["name","email","phone","company","serviceInterest","budget","status","message","createdAt"];const q=v=>'"'+String(v??"").replace(/"/g,'""')+'"';const csv=[cols.join(","),...filtered.map(c=>cols.map(k=>q(c[k])).join(","))].join("\n");const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));const a=document.createElement("a");a.href=url;a.download="askc-enquiries.csv";a.click();URL.revokeObjectURL(url);};
+ return <div className="p-4 md:p-7 max-w-7xl mx-auto w-full"><div className="flex flex-wrap items-start justify-between gap-4 mb-6"><div><p className="text-xs font-bold tracking-[.18em] text-blue-600 mb-2">ASKC TECHNOLOGIES / LEADS</p><h2 className="text-2xl md:text-3xl font-bold text-slate-900">Business enquiries</h2><p className="text-sm text-slate-500 mt-1">Review, assign and track incoming project enquiries.</p></div><button onClick={exportCsv} className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700">Export CSV</button></div><div className="grid sm:grid-cols-3 gap-3 mb-5"><div className="bg-white border border-slate-200 rounded-xl p-4"><p className="text-xs text-slate-500">Total enquiries</p><p className="text-2xl font-bold text-slate-900">{contacts.length}</p></div><div className="bg-white border border-slate-200 rounded-xl p-4"><p className="text-xs text-slate-500">New</p><p className="text-2xl font-bold text-blue-600">{contacts.filter(c=>(c.status||"new")==="new").length}</p></div><div className="bg-white border border-slate-200 rounded-xl p-4"><p className="text-xs text-slate-500">In progress</p><p className="text-2xl font-bold text-amber-600">{contacts.filter(c=>c.status==="in-progress").length}</p></div></div><div className="flex flex-col sm:flex-row gap-3 mb-5"><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search name, email, company or message…" className="flex-1 rounded-xl border border-slate-200 px-4 py-3 bg-white"/><select value={status} onChange={e=>setStatus(e.target.value)} className="rounded-xl border border-slate-200 px-4 py-3 bg-white"><option value="all">All statuses</option><option value="new">New</option><option value="in-progress">In progress</option><option value="closed">Closed</option></select></div>{error&&<div role="alert" className="rounded-xl bg-red-50 border border-red-100 p-3 text-sm text-red-700 mb-4">{error}</div>}{loading?<p className="py-12 text-center text-slate-500">Loading enquiries…</p>:filtered.length===0?<div className="bg-white border border-dashed border-slate-300 rounded-2xl p-12 text-center text-slate-500">No enquiries match this view.</div>:<div className="space-y-4">{filtered.map(c=><article key={c._id} className="bg-white border border-slate-200 rounded-2xl p-4 md:p-5 shadow-sm"><div className="flex flex-wrap justify-between gap-3"><div><h3 className="font-bold text-slate-900">{c.name}</h3><a className="text-sm text-blue-600" href={"mailto:"+c.email}>{c.email}</a><p className="text-xs text-slate-500 mt-1">{new Date(c.createdAt).toLocaleString()}</p></div><span className="text-xs font-bold rounded-full bg-slate-100 px-3 py-1.5 h-fit">{c.status||"new"}</span></div><div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-4 text-sm"><p><span className="text-slate-400">Company:</span> {c.company||"—"}</p><p><span className="text-slate-400">Phone:</span> {c.phone||"—"}</p><p><span className="text-slate-400">Service:</span> {c.serviceInterest||c.subject||"—"}</p><p><span className="text-slate-400">Budget:</span> {c.budget||"—"}</p></div><div className="mt-4 rounded-xl bg-slate-50 p-4"><p className="text-xs uppercase tracking-wider text-slate-500 font-bold mb-2">Project message</p><p className="text-sm text-slate-700 whitespace-pre-wrap">{c.message}</p></div><div className="grid md:grid-cols-3 gap-3 mt-4"><label className="text-xs font-semibold text-slate-600">Lead status<select value={c.status||"new"} onChange={e=>updateLocal(c._id,"status",e.target.value)} className="block w-full mt-1 rounded-lg border border-slate-200 px-3 py-2.5 bg-white"><option value="new">New</option><option value="in-progress">In progress</option><option value="closed">Closed</option></select></label>{isAdmin&&<label className="text-xs font-semibold text-slate-600">Assign to<select value={c.assignedTo?._id||c.assignedTo||""} onChange={e=>updateLocal(c._id,"assignedTo",e.target.value)} className="block w-full mt-1 rounded-lg border border-slate-200 px-3 py-2.5 bg-white"><option value="">Unassigned</option>{users.map(u=><option key={u._id} value={u._id}>{u.name||u.email}</option>)}</select></label>}<label className="text-xs font-semibold text-slate-600 md:col-span-1">Internal notes<textarea rows="2" value={c.internalNotes||""} onChange={e=>updateLocal(c._id,"internalNotes",e.target.value)} className="block w-full mt-1 rounded-lg border border-slate-200 px-3 py-2.5 bg-white" placeholder="Notes for your team only"/></label></div><div className="flex justify-end mt-3"><button onClick={()=>save(c)} disabled={saving===c._id} className="rounded-xl bg-blue-600 text-white font-bold text-sm px-5 py-2.5 disabled:opacity-50">{saving===c._id?"Saving…":"Save lead updates"}</button></div></article>)}</div>}</div>;
+}
