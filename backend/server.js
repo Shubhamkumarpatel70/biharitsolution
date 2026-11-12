@@ -373,6 +373,8 @@ const io = new Server(server, {
       "http://localhost:3000",
       "https://custom-web-frontend.onrender.com",
       "https://custom-web-app.onrender.com",
+      "https://askctechnologies.in",
+      "https://www.askctechnologies.in",
       "https://biharitsolution.onrender.com",
       "https://capitalcove.me",
       "https://www.capitalcove.me",
