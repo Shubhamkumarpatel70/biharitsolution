@@ -4,7 +4,14 @@ const jwt = require("jsonwebtoken");
 const SiteContent = require("../models/SiteContent");
 const router = express.Router();
 const TYPES = ["page","service","product","portfolio","industry","article","career","testimonial","site-setting"];
-router.use((req,res,next)=>{\n  if(req.path.startsWith("/public/")) return next();\n  const header=req.headers.authorization;\n  if(!header || !header.startsWith("Bearer ")) return res.status(401).json({message:"Authentication required."});\n  try { req.user=jwt.verify(header.split(" ")[1],process.env.JWT_SECRET || "changeme"); next(); }\n  catch(error){ return res.status(401).json({message:"Session expired. Please sign in again."}); }\n});\nfunction requireAdmin(req,res,next){
+router.use((req,res,next)=>{
+  if(req.path.startsWith("/public/")) return next();
+  const header=req.headers.authorization;
+  if(!header || !header.startsWith("Bearer ")) return res.status(401).json({message:"Authentication required."});
+  try { req.user=jwt.verify(header.split(" ")[1],process.env.JWT_SECRET || "changeme"); next(); }
+  catch(error){ return res.status(401).json({message:"Session expired. Please sign in again."}); }
+});
+function requireAdmin(req,res,next){
   if (!req.user || !["admin","coadmin"].includes(req.user.role)) return res.status(403).json({message:"Admin access required."});
   next();
 }
