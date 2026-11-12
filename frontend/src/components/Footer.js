@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 import Logo from './Logo';
 import { Icon } from './icons';
@@ -26,6 +27,8 @@ const serviceLinks = [
 ];
 
 const Footer = () => {
+  const location = useLocation();
+  const hideFooter = /^\/(admin-dashboard|dashboard|login|register|payment|support-chat)(\/|$)/.test(location.pathname);
   const [email, setEmail] = useState('');
   const [subscribeOption, setSubscribeOption] = useState('subscribe');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -60,12 +63,13 @@ const Footer = () => {
   };
 
   const currentYear = new Date().getFullYear();
+  if (hideFooter) return null;
 
   const colTitleClass =
     'text-sm font-bold uppercase tracking-widest text-accent-400 mb-5 flex items-center gap-2';
 
   return (
-    <footer className="relative bg-primary-700 text-white overflow-hidden">
+    <footer className="askc-footer relative bg-primary-700 text-white overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-b from-primary-600/40 via-transparent to-primary-900/30 pointer-events-none" />
       <div
         className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent-400/60 to-transparent"
