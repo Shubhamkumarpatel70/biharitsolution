@@ -2,6 +2,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const jwt = require("jsonwebtoken");
 const SiteContent = require("../models/SiteContent");
+const AuditLog = require("../models/AuditLog");
 const router = express.Router();
 const TYPES = ["page","service","product","portfolio","industry","article","career","testimonial","site-setting"];
 router.use((req,res,next)=>{
@@ -31,6 +32,10 @@ router.get("/public/:type", async (req,res)=>{
     res.json({items});
   } catch(error){res.status(500).json({message:"Unable to load content."});}
 });
+router.get("/audit-logs", requireAdmin, async (req,res)=>{
+  try { const logs=await AuditLog.find().sort({createdAt:-1}).limit(100).populate("actor","name email").lean(); res.json({logs}); }
+  catch(error){ res.status(500).json({message:"Unable to load audit logs."}); }
+});
 router.get("/:type", requireAdmin, async (req,res)=>{
   try {
     if (!TYPES.includes(req.params.type)) return res.status(400).json({message:"Invalid content type."});
@@ -43,6 +48,7 @@ router.post("/", requireAdmin, async (req,res)=>{
     const data=cleanPayload(req.body);
     if(!TYPES.includes(data.type) || !data.title || !data.slug) return res.status(400).json({message:"Type, title and slug are required."});
     const item=await SiteContent.create({...data,createdBy:req.user.id,updatedBy:req.user.id});
+    AuditLog.create({actor:req.user.id,action:"create",entityType:data.type,entityId:String(item._id),summary:"Created "+data.type+": "+data.title}).catch(error=>console.error("CMS audit log failed:",error.message));
     res.status(201).json({item,message:"Content created."});
   } catch(error){res.status(error.code===11000?409:400).json({message:error.code===11000?"This slug already exists for the selected content type.":"Unable to create content. Check the fields and try again."});}
 });
@@ -53,6 +59,7 @@ router.put("/:id", requireAdmin, async (req,res)=>{
     if(!TYPES.includes(data.type) || !data.title || !data.slug) return res.status(400).json({message:"Type, title and slug are required."});
     const item=await SiteContent.findByIdAndUpdate(req.params.id,{...data,updatedBy:req.user.id},{new:true,runValidators:true});
     if(!item) return res.status(404).json({message:"Content not found."});
+    AuditLog.create({actor:req.user.id,action:"update",entityType:data.type,entityId:String(item._id),summary:"Updated "+data.type+": "+data.title}).catch(error=>console.error("CMS audit log failed:",error.message));
     res.json({item,message:"Content updated."});
   } catch(error){res.status(error.code===11000?409:400).json({message:error.code===11000?"This slug already exists for the selected content type.":"Unable to update content."});}
 });
@@ -61,6 +68,7 @@ router.delete("/:id", requireAdmin, async (req,res)=>{
     if(!mongoose.isValidObjectId(req.params.id)) return res.status(400).json({message:"Invalid content ID."});
     const item=await SiteContent.findByIdAndUpdate(req.params.id,{status:"archived",updatedBy:req.user.id},{new:true});
     if(!item) return res.status(404).json({message:"Content not found."});
+    AuditLog.create({actor:req.user.id,action:"archive",entityType:item.type,entityId:String(item._id),summary:"Archived "+item.type+": "+item.title}).catch(error=>console.error("CMS audit log failed:",error.message));
     res.json({message:"Content archived. The record is retained."});
   } catch(error){res.status(500).json({message:"Unable to archive content."});}
 });
