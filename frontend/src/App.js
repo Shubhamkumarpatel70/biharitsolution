@@ -90,9 +90,6 @@ function AppContent() {
           <Route path='/portfolio' element={<CorporatePage />} />
           <Route path='/industries' element={<CorporatePage />} />
           <Route path='/blog' element={<CorporatePage />} />
-          <Route path='/plans' element={<CorporatePage />} />
-          <Route path='/features' element={<CorporatePage />} />
-          <Route path='/team' element={<CorporatePage />} />
           <Route path='/contact' element={<Contact />} />
           <Route path='/careers' element={<Careers />} />
           <Route path='/privacy' element={<Privacy />} />
