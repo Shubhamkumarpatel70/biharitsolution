@@ -1,4 +1,5 @@
 const express = require("express");
+const nodemailer = require("nodemailer");
 const router = express.Router();
 const {
   registerUser,
@@ -29,6 +30,7 @@ const Subscription = require("../models/Subscription");
 const jwt = require("jsonwebtoken");
 const Plan = require("../models/Plan");
 const Contact = require("../models/Contact");
+const AuditLog = require("../models/AuditLog");
 const Notification = require("../models/Notification");
 const User = require("../models/User");
 const cookieParser = require("cookie-parser");
@@ -454,20 +456,86 @@ router.put(
 // Contact endpoints
 router.post("/contact", async (req, res) => {
   try {
-    const contact = await Contact.create(req.body);
-    res.status(201).json({ contact });
+    const { name, email, phone, company, serviceInterest, budget, subject, message, consent, website } = req.body || {};
+    // Quietly accept honeypot submissions without storing them.
+    if (website) return res.status(201).json({ message: "Enquiry received." });
+    if (!String(name || "").trim() || !String(email || "").trim() || !String(message || "").trim()) {
+      return res.status(400).json({ message: "Name, email and project message are required." });
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email).trim())) {
+      return res.status(400).json({ message: "Enter a valid email address." });
+    }
+    if (consent !== true) return res.status(400).json({ message: "Please provide consent before submitting." });
+    const contact = await Contact.create({
+      name: String(name).trim().slice(0, 120),
+      email: String(email).trim().toLowerCase().slice(0, 254),
+      phone: String(phone || "").trim().slice(0, 30),
+      company: String(company || "").trim().slice(0, 160),
+      serviceInterest: String(serviceInterest || "").trim().slice(0, 100),
+      budget: String(budget || "").trim().slice(0, 80),
+      subject: String(subject || serviceInterest || "Website enquiry").trim().slice(0, 180),
+      message: String(message).trim().slice(0, 5000),
+      consent: true
+    });
+    if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS && process.env.MAIL_FROM && process.env.CONTACT_NOTIFY_EMAIL) {
+      try {
+        const transporter = nodemailer.createTransport({
+          host: process.env.SMTP_HOST,
+          port: Number(process.env.SMTP_PORT || 587),
+          secure: String(process.env.SMTP_SECURE || "false") === "true",
+          auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+        });
+        await transporter.sendMail({
+          from: process.env.MAIL_FROM,
+          to: process.env.CONTACT_NOTIFY_EMAIL,
+          replyTo: contact.email,
+          subject: "New ASKC Technologies enquiry: " + contact.subject,
+          text: [
+            "New website enquiry",
+            "Name: " + contact.name,
+            "Email: " + contact.email,
+            "Phone: " + (contact.phone || "Not provided"),
+            "Company: " + (contact.company || "Not provided"),
+            "Service: " + (contact.serviceInterest || "Not specified"),
+            "Budget: " + (contact.budget || "Not specified"),
+            "Message: " + contact.message
+          ].join(String.fromCharCode(10))
+        });
+      } catch (mailError) {
+        console.error("Contact notification email failed:", mailError.message);
+      }
+    }
+    res.status(201).json({ message: "Enquiry received.", contactId: contact._id });
   } catch (err) {
+    console.error("Contact submission failed:", err.message);
     res.status(500).json({ message: "Could not submit contact." });
   }
 });
 
 router.get("/contacts", authMiddleware, coAdminMiddleware, async (req, res) => {
   try {
-    const contacts = await Contact.find().sort({ createdAt: -1 });
+    const contacts = await Contact.find().populate("assignedTo", "name email").sort({ createdAt: -1 });
     res.json({ contacts });
   } catch (err) {
     res.status(500).json({ message: "Could not fetch contacts." });
   }
+});
+router.patch("/contacts/:id/manage", authMiddleware, coAdminMiddleware, async (req,res) => {
+  try {
+    const update = {};
+    if (["new","in-progress","closed"].includes(req.body.status)) update.status = req.body.status;
+    if (typeof req.body.internalNotes === "string") update.internalNotes = req.body.internalNotes.slice(0,5000);
+    if (req.body.assignedTo === null || req.body.assignedTo === "") update.assignedTo = null;
+    else if (req.body.assignedTo && /^[a-f\\d]{24}$/i.test(req.body.assignedTo)) {
+      const assignee = await User.findOne({ _id: req.body.assignedTo, role: { $in: ["admin", "coadmin"] } }).select("_id");
+      if (!assignee) return res.status(400).json({ message: "Choose a valid admin or co-admin assignee." });
+      update.assignedTo = assignee._id;
+    }
+    const contact = await Contact.findByIdAndUpdate(req.params.id,update,{new:true,runValidators:true}).populate("assignedTo","name email");
+    if (!contact) return res.status(404).json({message:"Enquiry not found."});
+    AuditLog.create({actor:req.user.id,action:"update",entityType:"contact-enquiry",entityId:String(contact._id),summary:"Updated enquiry from "+contact.name}).catch(error=>console.error("Enquiry audit log failed:",error.message));
+    res.json({contact,message:"Enquiry updated."});
+  } catch(error) { res.status(400).json({message:"Could not update this enquiry."}); }
 });
 
 // Admin: Get all pending subscriptions
@@ -3917,6 +3985,25 @@ router.post(
         resumeMimeType,
         resumeFileName: req.file.originalname || "resume",
       });
+      if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS && process.env.MAIL_FROM && process.env.CONTACT_NOTIFY_EMAIL) {
+        try {
+          const transporter = nodemailer.createTransport({
+            host: process.env.SMTP_HOST,
+            port: Number(process.env.SMTP_PORT || 587),
+            secure: String(process.env.SMTP_SECURE || "false") === "true",
+            auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+          });
+          await transporter.sendMail({
+            from: process.env.MAIL_FROM,
+            to: process.env.CONTACT_NOTIFY_EMAIL,
+            replyTo: email.trim(),
+            subject: "New ASKC Technologies career application: " + career.title,
+            text: ["New career application","Role: " + career.title,"Applicant: " + name.trim(),"Email: " + email.trim(),"Phone: " + phone.trim(),"Location: " + city.trim() + ", " + state.trim(),"Resume is stored in the protected application record."].join(String.fromCharCode(10))
+          });
+        } catch (mailError) {
+          console.error("Career application notification failed:", mailError.message);
+        }
+      }
       res.status(201).json({ message: "Application submitted successfully." });
     } catch (err) {
       console.error("career apply:", err);

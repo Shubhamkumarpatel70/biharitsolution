@@ -3,30 +3,14 @@ import { Icon } from './icons';
 
 export const adminNavItems = [
   { id: 'home', label: 'Dashboard', iconName: 'home', category: 'main' },
-  { id: 'funds', label: 'Funds', iconName: 'currency', category: 'main' },
-  { id: 'approve', label: 'Approve Subs', iconName: 'check', category: 'subscriptions' },
-  { id: 'approved-plans', label: 'Approved Plans', iconName: 'clipboard', category: 'subscriptions' },
-  { id: 'cancellations', label: 'Cancellations', iconName: 'close', category: 'subscriptions' },
-  { id: 'renewal-requests', label: 'Renewal Requests', iconName: 'refresh', category: 'subscriptions' },
-  { id: 'user-plans', label: 'User Plans', iconName: 'users', category: 'subscriptions' },
-  { id: 'project-requests', label: 'Project Requests', iconName: 'document', category: 'projects' },
-  { id: 'users', label: 'Manage Users', iconName: 'user', category: 'management' },
-  { id: 'stats', label: 'Site Stats', iconName: 'chart', category: 'analytics' },
-  { id: 'notifications', label: 'Notifications', iconName: 'bell', category: 'management' },
-  { id: 'id-card', label: 'ID Card', iconName: 'creditCard', category: 'management' },
-  { id: 'agreements', label: 'Agreements', iconName: 'document', category: 'management' },
-  { id: 'plans', label: 'Plans', iconName: 'folder', category: 'content' },
-  { id: 'team', label: 'Team', iconName: 'users', category: 'content' },
-  { id: 'features', label: 'Features', iconName: 'sparkles', category: 'content' },
-  { id: 'services', label: 'Services', iconName: 'wrench', category: 'content' },
-  { id: 'contacts', label: 'Contacts', iconName: 'mail', category: 'communication' },
+  { id: 'stats', label: 'Site Overview', iconName: 'chart', category: 'analytics' },
+  { id: 'cms', label: 'Website CMS', iconName: 'globe', category: 'content' },
+  { id: 'media', label: 'Media Library', iconName: 'folder', category: 'content' },
+  { id: 'contacts', label: 'Business Enquiries', iconName: 'mail', category: 'leads' },
   { id: 'careers', label: 'Careers', iconName: 'briefcase', category: 'careers' },
-  { id: 'career-applications', label: 'Career Applications', iconName: 'document', category: 'careers' },
-  { id: 'promotional-email', label: 'Promotional Email', iconName: 'mail', category: 'communication' },
-  { id: 'promotional-unsubscribed', label: 'Promotional Unsubscribed', iconName: 'close', category: 'communication' },
-  { id: 'newsletter', label: 'Newsletter Subs', iconName: 'clipboard', category: 'communication' },
-  { id: 'payment-options', label: 'Payment Options', iconName: 'creditCard', category: 'settings' },
-  { id: 'coupons', label: 'Coupons', iconName: 'currency', category: 'settings' },
+  { id: 'career-applications', label: 'Job Applications', iconName: 'document', category: 'careers' },
+  { id: 'users', label: 'Admin Users', iconName: 'users', category: 'access' },
+  { id: 'notifications', label: 'Notifications', iconName: 'bell', category: 'settings' },
   { id: 'help', label: 'Help', iconName: 'help', category: 'support' },
 ];
 
@@ -34,8 +18,12 @@ const categoryLabels = {
   main: 'Main',
   subscriptions: 'Subscriptions',
   projects: 'Projects',
+  leads: 'Leads',
+  access: 'Access',
   management: 'Management',
   analytics: 'Analytics',
+  leads: 'Leads',
+  access: 'Access',
   content: 'Content',
   communication: 'Communication',
   careers: 'Careers',
@@ -80,8 +68,8 @@ const AdminSidebar = ({ onLogout, activeTab, setActiveTab, onClose, userRole = '
             <Icon name="shield" className="w-6 h-6 text-slate-950" strokeWidth={2.2} />
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="text-sm font-semibold text-white leading-tight">Control Console</h2>
-            <p className="text-xs text-slate-400">{isCoAdmin ? 'Co-Admin workspace' : 'Admin workspace'}</p>
+            <h2 className="text-sm font-semibold text-white leading-tight">ASKC TECHNOLOGIES</h2>
+            <p className="text-xs text-slate-400">{isCoAdmin ? 'Co-Website management workspace' : 'Admin workspace'}</p>
           </div>
           <button
             type="button"

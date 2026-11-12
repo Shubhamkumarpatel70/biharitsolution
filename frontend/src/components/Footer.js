@@ -9,9 +9,10 @@ const quickLinks = [
   { to: '/careers', label: 'Careers', highlight: true },
   { to: '/about', label: 'About Us' },
   { to: '/services', label: 'Our Services' },
-  { to: '/features', label: 'Features' },
-  { to: '/team', label: 'Our Team' },
-  { to: '/plans', label: 'Pricing Plans' },
+  { to: '/products', label: 'Products' },
+  { to: '/portfolio', label: 'Portfolio' },
+  { to: '/industries', label: 'Industries' },
+  { to: '/blog', label: 'Insights' },
   { to: '/contact', label: 'Contact Us' },
 ];
 
@@ -76,7 +77,7 @@ const Footer = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 lg:gap-10 mb-14 lg:mb-16">
           {/* Column 1 — Company */}
           <div className="lg:pr-8 xl:pr-10">
-            <div title="ASKC Digital Web">
+            <div title="ASKC TECHNOLOGIES">
               <Logo showText={true} size="large" theme="dark" />
             </div>
             <p className="text-white/85 text-sm leading-relaxed mt-5 max-w-md">
@@ -100,19 +101,6 @@ const Footer = () => {
                 strokeWidth={2}
               />
             </Link>
-            <div className="mt-6">
-              <p className="text-xs font-semibold uppercase tracking-wider text-white/50 mb-2">Follow us</p>
-              <a
-                href="https://www.instagram.com/askc_digitalweb/?hl=en"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-white/10 hover:bg-accent-500 text-white border border-white/10 hover:border-accent-400 transition-all duration-300 hover:scale-105"
-                aria-label="ASKC Digital Web on Instagram"
-                title="Instagram @askc_digitalweb"
-              >
-                <Icon name="instagram" className="w-5 h-5" />
-              </a>
-            </div>
           </div>
 
           {/* Column 2 — Explore & services */}
@@ -176,10 +164,7 @@ const Footer = () => {
             </h3>
             <div className="space-y-4 max-w-md">
               {[
-                { icon: 'mapPin', label: 'Address', value: 'Bihar, Patna, India' },
-                { icon: 'mail', label: 'Email', value: 'contact@askcweb.in', link: 'mailto:contact@askcweb.in' },
-                { icon: 'phone', label: 'Phone', value: '+91 9027880288', link: 'tel:+919027880288' },
-                { icon: 'clock', label: 'Hours', value: 'Mon–Fri: 11AM – 4PM' },
+                { icon: 'mail', label: 'Email', value: 'askctechnologies@gmail.com', link: 'mailto:askctechnologies@gmail.com' },
               ].map((item, idx) => (
                 <div key={idx} className="flex gap-3">
                   <span className="flex-shrink-0 w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-accent-400 border border-white/10">
@@ -278,7 +263,7 @@ const Footer = () => {
 
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2 border-t border-white/10">
           <p className="text-white/55 text-sm text-center sm:text-left">
-            © {currentYear} ASKC Digital Web. All rights reserved.
+            © {currentYear} ASKC TECHNOLOGIES. All rights reserved.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm">
             <Link to="/privacy" className="text-white/70 hover:text-white transition-colors">
@@ -286,9 +271,6 @@ const Footer = () => {
             </Link>
             <Link to="/terms" className="text-white/70 hover:text-white transition-colors">
               Terms & Conditions
-            </Link>
-            <Link to="/refund" className="text-white/70 hover:text-white transition-colors">
-              Refund Policy
             </Link>
             <Link to="/careers" className="text-accent-300 hover:text-accent-200 font-semibold transition-colors">
               Careers

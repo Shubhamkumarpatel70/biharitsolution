@@ -1,17 +1,12 @@
 import React, { useEffect, useContext } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import Home from './pages/Home';
-import About from './pages/About';
-import Plans from './pages/Plans';
-import Services from './pages/Services';
-import Features from './pages/Features';
-import Team from './pages/Team';
+import CorporatePage from './pages/CorporatePage';
 import Contact from './pages/Contact';
 import Careers from './pages/Careers';
 import Login from './pages/Login';
-import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import DashboardHome from './pages/DashboardHome';
 import HelpAndSupport from './pages/Help & Support';
@@ -35,7 +30,6 @@ import AdminIDCard from './pages/AdminIDCard';
 import NotFound from './pages/NotFound';
 import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
-import Refund from './pages/Refund';
 import PublicIDCard from './pages/PublicIDCard';
 import UnsubscribeEmail from './pages/UnsubscribeEmail';
 import { UserProvider, UserContext } from './UserContext';
@@ -78,23 +72,33 @@ function App() {
 }
 
 function AppContent() {
+  const location = useLocation();
+  useEffect(() => {
+    const privateRoute = /^\/(admin-dashboard|dashboard|login|register|payment)(\/|$)/.test(location.pathname);
+    let robots = document.querySelector('meta[name="robots"]');
+    if (!robots) { robots = document.createElement('meta'); robots.name = 'robots'; document.head.appendChild(robots); }
+    robots.setAttribute('content', privateRoute ? 'noindex,nofollow' : 'index,follow');
+  }, [location.pathname]);
   return (
     <>
       <main className="pt-20 min-h-[calc(100vh-5rem)] w-full max-w-full overflow-x-hidden">
         <Routes>
           <Route path='/' element={<Home />} />
-          <Route path='/about' element={<About />} />
-          <Route path='/plans' element={<Plans />} />
-          <Route path='/services' element={<Services />} />
-          <Route path='/features' element={<Features />} />
-          <Route path='/team' element={<Team />} />
+          <Route path='/about' element={<CorporatePage />} />
+          <Route path='/services' element={<CorporatePage />} />
+          <Route path='/services/:slug' element={<CorporatePage />} />
+          <Route path='/products' element={<CorporatePage />} />
+          <Route path='/products/:slug' element={<CorporatePage />} />
+          <Route path='/portfolio' element={<CorporatePage />} />
+          <Route path='/portfolio/:slug' element={<CorporatePage />} />
+          <Route path='/industries' element={<CorporatePage />} />
+          <Route path='/blog' element={<CorporatePage />} />
+          <Route path='/blog/:slug' element={<CorporatePage />} />
           <Route path='/contact' element={<Contact />} />
           <Route path='/careers' element={<Careers />} />
           <Route path='/privacy' element={<Privacy />} />
           <Route path='/terms' element={<Terms />} />
-          <Route path='/refund' element={<Refund />} />
           <Route path='/login' element={<Login />} />
-          <Route path='/register' element={<Register />} />
           <Route path='/dashboard/*' element={<Dashboard />}>
             <Route index element={<DashboardHome />} />
             <Route path='project-requirement' element={<ProjectRequirement />} />

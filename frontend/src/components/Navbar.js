@@ -7,13 +7,14 @@ import { Icon } from './icons';
 const primaryNavLinks = [
   { to: '/', label: 'Home' },
   { to: '/about', label: 'About' },
-  { to: '/plans', label: 'Plans' },
-  { to: '/features', label: 'Features' },
+  { to: '/products', label: 'Products' },
+  { to: '/portfolio', label: 'Portfolio' },
 ];
 
 const moreNavLinks = [
   { to: '/services', label: 'Services' },
-  { to: '/team', label: 'Our Team' },
+  { to: '/industries', label: 'Industries' },
+  { to: '/blog', label: 'Insights' },
   { to: '/careers', label: 'Careers' },
   { to: '/contact', label: 'Contact' },
 ];
@@ -132,7 +133,7 @@ function Navbar() {
               to="/"
               className="flex items-center no-underline z-[1100] min-w-0 shrink"
               aria-label="Home"
-              title="ASKC Digital Web"
+              title="ASKC TECHNOLOGIES"
             >
               <Logo showText={!isMobileMenuOpen} size="default" />
             </Link>
@@ -258,11 +259,8 @@ function Navbar() {
                 </div>
               ) : (
                 <div className="flex gap-2">
-                  <Link to="/login" className="btn btn-primary px-4 xl:px-5" aria-label="Login">
-                    Login
-                  </Link>
-                  <Link to="/register" className="btn btn-secondary px-4 xl:px-5" aria-label="Register">
-                    Register
+                  <Link to="/login" className="btn btn-primary px-4 xl:px-5" aria-label="Admin login">
+                    Admin Login
                   </Link>
                 </div>
               )}
@@ -441,15 +439,7 @@ function Navbar() {
                     onClick={toggleMobileMenu}
                     aria-label="Login"
                   >
-                    Login
-                  </Link>
-                  <Link
-                    to="/register"
-                    className="btn btn-secondary w-full justify-center py-3.5 px-6 text-base rounded-[10px]"
-                    onClick={toggleMobileMenu}
-                    aria-label="Register"
-                  >
-                    Register
+                    Admin Login
                   </Link>
                 </div>
               )}

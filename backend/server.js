@@ -1,4 +1,13 @@
 require("dotenv").config();
+
+if (process.env.NODE_ENV === "production") {
+  const requiredEnv = ["MONGO_URI", "JWT_SECRET", "SESSION_SECRET"];
+  const missingEnv = requiredEnv.filter((key) => !process.env[key]);
+  if (missingEnv.length) {
+    console.error("Missing required production environment variables:", missingEnv.join(", "));
+    process.exit(1);
+  }
+}
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
@@ -6,6 +15,8 @@ const compression = require("compression");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const authRoutes = require("./routes/auth");
+const cmsRoutes = require("./routes/cms");
+const mediaRoutes = require("./routes/media");
 const jwt = require("jsonwebtoken");
 const User = require("./models/User");
 const http = require("http");
@@ -59,8 +70,8 @@ app.use(
         ],
         connectSrc: [
           "'self'",
-          "https://askcweb.in",
-          "https://www.askcweb.in",
+          "https://askctechnologies.in",
+          "https://www.askctechnologies.in",
           "https://custom-web-frontend.onrender.com",
           "https://custom-web-app.onrender.com",
           "https://biharitsolution.onrender.com",
@@ -68,8 +79,8 @@ app.use(
           "https://www.google-analytics.com",
           "https://region1.google-analytics.com",
           "https://region1.analytics.google.com",
-          "wss://askcweb.in",
-          "wss://www.askcweb.in",
+          "wss://askctechnologies.in",
+          "wss://www.askctechnologies.in",
         ],
         frameSrc: ["'self'", "https://www.googletagmanager.com"],
       },
@@ -91,51 +102,24 @@ const authLimiter = rateLimit({
 // Apply rate limiting to auth routes
 app.use("/api/auth", authLimiter);
 
-// CORS configuration - Handle multiple frontend URLs
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      const allowedOrigins = [
-        "http://localhost:3000",
-        "https://custom-web-frontend.onrender.com",
-        "https://askcweb.in",
-        "https://capitalcove.me",
-        "https://www.capitalcove.me",
-      ];
-
-      console.log("CORS Origin Check:", origin);
-
-      // Allow requests with no origin (like mobile apps or curl requests)
-      if (!origin) {
-        console.log("No origin provided, allowing request");
-        return callback(null, true);
-      }
-
-      // Check if origin is in allowed list
-      if (allowedOrigins.includes(origin)) {
-        console.log("Origin allowed:", origin);
-        callback(null, true);
-      } else {
-        console.log("Origin not allowed:", origin);
-        // For debugging, allow all origins but log them
-        console.log("Allowing origin for debugging:", origin);
-        callback(null, true);
-      }
-    },
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-    allowedHeaders: [
-      "Content-Type",
-      "Authorization",
-      "X-Requested-With",
-      "Accept",
-      "Origin",
-    ],
-    exposedHeaders: ["Content-Length", "X-Requested-With"],
-    optionsSuccessStatus: 200,
-    preflightContinue: false,
-  }),
-);
+// Restrict browser API access to the configured corporate domains.
+const allowedOrigins = new Set([
+  "http://localhost:3000",
+  "https://askctechnologies.in",
+  "https://www.askctechnologies.in",
+  "https://biharitsolution.onrender.com",
+  process.env.CLIENT_URL
+].filter(Boolean));
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.has(origin)) return callback(null, true);
+    return callback(new Error("Origin is not allowed by CORS."));
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"],
+  optionsSuccessStatus: 204
+}));
 
 // Body parsing middleware with size limits
 app.use(express.json({ limit: "10mb" }));
@@ -144,7 +128,7 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 // Session middleware for Passport
 app.use(
   session({
-    secret: process.env.SESSION_SECRET || "your_session_secret",
+    secret: process.env.SESSION_SECRET || "local-development-session-secret-only",
     resave: false,
     saveUninitialized: false,
     cookie: {
@@ -169,46 +153,6 @@ app.use((req, res, next) => {
 
 // Handle preflight requests
 app.options("*", cors());
-
-// Manual CORS headers as backup - Handle multiple frontend URLs
-app.use((req, res, next) => {
-  const allowedOrigins = [
-    "http://localhost:3000",
-    "https://custom-web-frontend.onrender.com",
-    "https://custom-web-app.onrender.com",
-    "https://biharitsolution.onrender.com",
-    "https://askcweb.in",
-    "https://capitalcove.me",
-    "https://www.capitalcove.me",
-  ];
-
-  const origin = req.headers.origin;
-  console.log("Manual CORS - Request Origin:", origin);
-  console.log("Manual CORS - Request Method:", req.method);
-
-  // Set CORS headers for all origins during debugging
-  if (origin) {
-    res.header("Access-Control-Allow-Origin", origin);
-    console.log("Manual CORS - Origin allowed:", origin);
-  }
-
-  res.header(
-    "Access-Control-Allow-Methods",
-    "GET, POST, PUT, DELETE, OPTIONS, PATCH",
-  );
-  res.header(
-    "Access-Control-Allow-Headers",
-    "Content-Type, Authorization, X-Requested-With, Accept, Origin",
-  );
-  res.header("Access-Control-Allow-Credentials", "true");
-
-  if (req.method === "OPTIONS") {
-    console.log("Manual CORS - Handling OPTIONS request");
-    res.sendStatus(200);
-  } else {
-    next();
-  }
-});
 
 // CORS test route
 app.get("/api/cors-test", (req, res) => {
@@ -370,6 +314,8 @@ mongoose.connection.on("reconnected", () => {
 
 const PORT = process.env.PORT || 5000;
 app.use("/api/auth", authRoutes);
+app.use("/api/cms", cmsRoutes);
+app.use("/api/media", mediaRoutes);
 
 // Serve official agreements and documents
 const path = require("path");
@@ -429,6 +375,8 @@ const io = new Server(server, {
       "http://localhost:3000",
       "https://custom-web-frontend.onrender.com",
       "https://custom-web-app.onrender.com",
+      "https://askctechnologies.in",
+      "https://www.askctechnologies.in",
       "https://biharitsolution.onrender.com",
       "https://capitalcove.me",
       "https://www.capitalcove.me",
