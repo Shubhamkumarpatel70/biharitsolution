@@ -51,8 +51,25 @@ router.get("/public/:type", async (req,res)=>{
   } catch(error){res.status(500).json({message:"Unable to load content."});}
 });
 router.get("/audit-logs", requireAdmin, async (req,res)=>{
+  try {
+    const page=Math.max(1,parseInt(req.query.page,10)||1);
+    const limit=Math.min(100,Math.max(1,parseInt(req.query.limit,10)||25));
+    const filter={};
+    if(req.query.action) filter.action=String(req.query.action).slice(0,80);
+    if(req.query.entityType) filter.entityType=String(req.query.entityType).slice(0,80);
+    if(req.query.q){
+      const term=String(req.query.q).trim().slice(0,100).replace(/[.*+?^${}()|[\]\\]/g,"\\router.get("/audit-logs", requireAdmin, async (req,res)=>{
   try { const logs=await AuditLog.find().sort({createdAt:-1}).limit(100).populate("actor","name email").lean(); res.json({logs}); }
   catch(error){ res.status(500).json({message:"Unable to load audit logs."}); }
+});");
+      if(term) filter.$or=[{summary:{$regex:term,$options:"i"}},{entityId:{$regex:term,$options:"i"}}];
+    }
+    const [logs,total]=await Promise.all([
+      AuditLog.find(filter).sort({createdAt:-1}).skip((page-1)*limit).limit(limit).populate("actor","name email").lean(),
+      AuditLog.countDocuments(filter)
+    ]);
+    res.json({logs,pagination:{page,limit,total,pages:Math.max(1,Math.ceil(total/limit))}});
+  } catch(error){ res.status(500).json({message:"Unable to load audit logs."}); }
 });
 router.get("/:type", requireAdmin, async (req,res)=>{
   try {
