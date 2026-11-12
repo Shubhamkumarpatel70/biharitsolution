@@ -7,13 +7,14 @@ import { Icon } from './icons';
 const primaryNavLinks = [
   { to: '/', label: 'Home' },
   { to: '/about', label: 'About' },
-  { to: '/plans', label: 'Plans' },
-  { to: '/features', label: 'Features' },
+  { to: '/products', label: 'Products' },
+  { to: '/portfolio', label: 'Portfolio' },
 ];
 
 const moreNavLinks = [
   { to: '/services', label: 'Services' },
-  { to: '/team', label: 'Our Team' },
+  { to: '/industries', label: 'Industries' },
+  { to: '/blog', label: 'Insights' },
   { to: '/careers', label: 'Careers' },
   { to: '/contact', label: 'Contact' },
 ];
@@ -132,7 +133,7 @@ function Navbar() {
               to="/"
               className="flex items-center no-underline z-[1100] min-w-0 shrink"
               aria-label="Home"
-              title="ASKC Digital Web"
+              title="ASKC TECHNOLOGIES"
             >
               <Logo showText={!isMobileMenuOpen} size="default" />
             </Link>
