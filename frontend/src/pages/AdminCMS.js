@@ -1,10 +1,10 @@
-import React,{useCallback,useEffect,useState} from "react";
+import React,{useCallback,useEffect,useMemo,useState} from "react";
 import axios from "axios";
 const TYPES=[["page","Pages"],["service","Services"],["product","Products"],["portfolio","Portfolio"],["industry","Industries"],["article","Blog / Insights"],["career","Careers"],["testimonial","Testimonials"],["site-setting","Site settings"]];
 const empty={title:"",slug:"",summary:"",body:"",status:"draft",sortOrder:0,seo:{title:"",description:""}};
 export default function AdminCMS(){
  const [type,setType]=useState("page"),[items,setItems]=useState([]),[logs,setLogs]=useState([]),[form,setForm]=useState(empty),[editing,setEditing]=useState(null),[loading,setLoading]=useState(false),[saving,setSaving]=useState(false),[notice,setNotice]=useState("");
- const headers={Authorization:"Bearer "+(localStorage.getItem("token")||"")};
+ const headers=useMemo(()=>({Authorization:"Bearer "+(localStorage.getItem("token")||"")}),[]);
  const load=useCallback(async()=>{setLoading(true);setNotice("");try{const [r,audit]=await Promise.all([axios.get("/api/cms/"+type,{headers}),axios.get("/api/cms/audit-logs",{headers})]);setItems(r.data.items||[]);setLogs(audit.data.logs||[]);}catch(e){setNotice(e.response?.data?.message||"Could not load CMS records.");}finally{setLoading(false);}},[type]);
  useEffect(()=>{load();},[load]);
  const change=(key,value)=>setForm(old=>({...old,[key]:value}));
