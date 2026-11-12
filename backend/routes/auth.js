@@ -454,9 +454,30 @@ router.put(
 // Contact endpoints
 router.post("/contact", async (req, res) => {
   try {
-    const contact = await Contact.create(req.body);
-    res.status(201).json({ contact });
+    const { name, email, phone, company, serviceInterest, budget, subject, message, consent, website } = req.body || {};
+    // Quietly accept honeypot submissions without storing them.
+    if (website) return res.status(201).json({ message: "Enquiry received." });
+    if (!String(name || "").trim() || !String(email || "").trim() || !String(message || "").trim()) {
+      return res.status(400).json({ message: "Name, email and project message are required." });
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email).trim())) {
+      return res.status(400).json({ message: "Enter a valid email address." });
+    }
+    if (consent !== true) return res.status(400).json({ message: "Please provide consent before submitting." });
+    const contact = await Contact.create({
+      name: String(name).trim().slice(0, 120),
+      email: String(email).trim().toLowerCase().slice(0, 254),
+      phone: String(phone || "").trim().slice(0, 30),
+      company: String(company || "").trim().slice(0, 160),
+      serviceInterest: String(serviceInterest || "").trim().slice(0, 100),
+      budget: String(budget || "").trim().slice(0, 80),
+      subject: String(subject || serviceInterest || "Website enquiry").trim().slice(0, 180),
+      message: String(message).trim().slice(0, 5000),
+      consent: true
+    });
+    res.status(201).json({ message: "Enquiry received.", contactId: contact._id });
   } catch (err) {
+    console.error("Contact submission failed:", err.message);
     res.status(500).json({ message: "Could not submit contact." });
   }
 });
