@@ -6,6 +6,7 @@ export const adminNavItems = [
   { id: 'stats', label: 'Site Overview', iconName: 'chart', category: 'analytics' },
   { id: 'cms', label: 'Website CMS', iconName: 'globe', category: 'content' },
   { id: 'media', label: 'Media Library', iconName: 'folder', category: 'content' },
+  { id: 'audit-logs', label: 'Audit Log', iconName: 'clipboard', category: 'access' },
   { id: 'contacts', label: 'Business Enquiries', iconName: 'mail', category: 'leads' },
   { id: 'careers', label: 'Careers', iconName: 'briefcase', category: 'careers' },
   { id: 'career-applications', label: 'Job Applications', iconName: 'document', category: 'careers' },
