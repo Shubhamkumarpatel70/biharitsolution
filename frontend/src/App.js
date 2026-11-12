@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import Home from './pages/Home';
+import CorporatePage from './pages/CorporatePage';
 import About from './pages/About';
 import Plans from './pages/Plans';
 import Services from './pages/Services';
@@ -83,11 +84,15 @@ function AppContent() {
       <main className="pt-20 min-h-[calc(100vh-5rem)] w-full max-w-full overflow-x-hidden">
         <Routes>
           <Route path='/' element={<Home />} />
-          <Route path='/about' element={<About />} />
-          <Route path='/plans' element={<Plans />} />
-          <Route path='/services' element={<Services />} />
-          <Route path='/features' element={<Features />} />
-          <Route path='/team' element={<Team />} />
+          <Route path='/about' element={<CorporatePage />} />
+          <Route path='/services' element={<CorporatePage />} />
+          <Route path='/products' element={<CorporatePage />} />
+          <Route path='/portfolio' element={<CorporatePage />} />
+          <Route path='/industries' element={<CorporatePage />} />
+          <Route path='/blog' element={<CorporatePage />} />
+          <Route path='/plans' element={<CorporatePage />} />
+          <Route path='/features' element={<CorporatePage />} />
+          <Route path='/team' element={<CorporatePage />} />
           <Route path='/contact' element={<Contact />} />
           <Route path='/careers' element={<Careers />} />
           <Route path='/privacy' element={<Privacy />} />
