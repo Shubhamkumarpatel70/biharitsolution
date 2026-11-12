@@ -60,8 +60,8 @@ app.use(
         ],
         connectSrc: [
           "'self'",
-          "https://askcweb.in",
-          "https://www.askcweb.in",
+          "https://askctechnologies.in",
+          "https://www.askctechnologies.in",
           "https://custom-web-frontend.onrender.com",
           "https://custom-web-app.onrender.com",
           "https://biharitsolution.onrender.com",
@@ -69,8 +69,8 @@ app.use(
           "https://www.google-analytics.com",
           "https://region1.google-analytics.com",
           "https://region1.analytics.google.com",
-          "wss://askcweb.in",
-          "wss://www.askcweb.in",
+          "wss://askctechnologies.in",
+          "wss://www.askctechnologies.in",
         ],
         frameSrc: ["'self'", "https://www.googletagmanager.com"],
       },
@@ -99,7 +99,7 @@ app.use(
       const allowedOrigins = [
         "http://localhost:3000",
         "https://custom-web-frontend.onrender.com",
-        "https://askcweb.in",
+        "https://askctechnologies.in",
         "https://capitalcove.me",
         "https://www.capitalcove.me",
       ];
@@ -178,7 +178,7 @@ app.use((req, res, next) => {
     "https://custom-web-frontend.onrender.com",
     "https://custom-web-app.onrender.com",
     "https://biharitsolution.onrender.com",
-    "https://askcweb.in",
+    "https://askctechnologies.in",
     "https://capitalcove.me",
     "https://www.capitalcove.me",
   ];
