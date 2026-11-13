@@ -46,13 +46,24 @@ const agreementSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["draft", "sent", "signed", "archived"],
+      enum: ["draft", "sent", "accepted", "declined", "signed", "archived"],
       default: "draft",
     },
     notes: {
       type: String,
       default: "",
     },
+    responseStatus: { type: String, enum: ["pending", "accepted", "declined"], default: "pending" },
+    acceptedByName: { type: String, default: "" },
+    acceptedAt: { type: Date, default: null },
+    acceptedAtIST: { type: String, default: "" },
+    acceptedPlace: { type: String, default: "" },
+    acceptedLatitude: { type: Number, default: null },
+    acceptedLongitude: { type: Number, default: null },
+    acceptedTimezone: { type: String, default: "Asia/Kolkata" },
+    declinedByName: { type: String, default: "" },
+    declinedAt: { type: Date, default: null },
+    declineReason: { type: String, default: "" },
   },
   { timestamps: true }
 );
