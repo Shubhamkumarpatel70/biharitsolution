@@ -12,6 +12,8 @@ const AdminUsers = () => {
   const [filters, setFilters] = useState({});
   const [billingBusy, setBillingBusy] = useState(null);
   const [planModalUser, setPlanModalUser] = useState(null);
+  const [existingPlans, setExistingPlans] = useState([]);
+  const [planChoice, setPlanChoice] = useState('');
   const [planForm, setPlanForm] = useState({ planName: 'Custom Plan', totalAmount: '5000', durationDays: '30', note: '' });
 
   // Filter users based on search and filters
@@ -68,6 +70,7 @@ const AdminUsers = () => {
       setLoading(false);
     };
     fetchUsers();
+    axios.get('/api/auth/plans').then(r => setExistingPlans(r.data.plans || [])).catch(() => setExistingPlans([]));
   }, []);
 
   const handleRoleChange = async (userId, newRole) => {
@@ -100,6 +103,7 @@ const AdminUsers = () => {
 
   const openAssignPlan = (user) => {
     setPlanModalUser(user);
+    setPlanChoice(user.latestSubscription?.sourcePlan || 'others');
     setPlanForm({
       planName: user.latestSubscription?.planName || 'Custom Plan',
       totalAmount: String(user.latestSubscription?.totalAmount ?? '5000'),
@@ -122,6 +126,7 @@ const AdminUsers = () => {
     try {
       const token = localStorage.getItem('token');
       await axios.post('/api/auth/admin/users/' + planModalUser._id + '/assign-plan', {
+        planId: planChoice !== 'others' ? planChoice : null,
         planName: planForm.planName.trim(), totalAmount, durationDays, note: planForm.note.trim()
       }, { headers: { Authorization: 'Bearer ' + token } });
       const r = await axios.get('/api/auth/admin/users', { headers: { Authorization: 'Bearer ' + token } });
@@ -341,6 +346,26 @@ const AdminUsers = () => {
             <div className="flex items-start justify-between gap-3">
               <div><p className="text-xs font-bold uppercase tracking-wider text-blue-600">ASKC Technologies · Subscription</p><h3 className="mt-1 text-xl font-extrabold">{planModalUser.latestSubscription ? 'Assign / Change Plan' : 'Assign New Plan'}</h3><p className="mt-1 text-sm text-slate-500">{planModalUser.name} · {planModalUser.email}</p></div>
               <button type="button" onClick={() => setPlanModalUser(null)} className="rounded-lg px-3 py-1 text-2xl text-slate-500 hover:bg-slate-100" aria-label="Close">×</button>
+            </div>
+            <div className="space-y-4">
+              <label className="block text-sm font-bold">Select from Existing Plans
+                <select value={planChoice} onChange={e => {
+                  const value = e.target.value;
+                  setPlanChoice(value);
+                  if (value === 'others') { setPlanForm(v => ({...v, planName: 'Custom Plan'})); return; }
+                  const selected = existingPlans.find(p => p._id === value);
+                  if (selected) {
+                    const price = Number(String(selected.price || '').replace(/[^0-9.]/g, ''));
+                    const duration = Number(String(selected.duration || '').match(/\d+/)?.[0] || 30);
+                    setPlanForm(v => ({...v, planName: selected.name, totalAmount: Number.isFinite(price) ? String(price) : '0', durationDays: String(duration)}));
+                  }
+                }} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 font-normal">
+                  <option value="">Choose a plan…</option>
+                  {existingPlans.map(plan => <option key={plan._id} value={plan._id}>{plan.name} — {plan.price} · {plan.duration} days</option>)}
+                  <option value="others">Others — Create a custom plan</option>
+                </select>
+              </label>
+              {planChoice === 'others' && <p className="rounded-lg bg-blue-50 p-3 text-xs text-blue-800">Custom plan selected. Enter the plan name, amount and validity below.</p>}
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <label className="text-sm font-bold sm:col-span-2">Plan name
