@@ -17,11 +17,9 @@ const navItems = [
 const mobileNavItems = [
   { to: '/dashboard', label: 'Home', iconName: 'home', end: true },
   { to: '/dashboard/project-requirement', label: 'Project', iconName: 'briefcase', end: false },
-  { to: '/dashboard/support', label: 'Help', iconName: 'chat', end: false },
-  { to: '/dashboard/subscription', label: 'Plan', iconName: 'creditCard', end: false },
   { to: '/dashboard/agreements', label: 'Agreements', iconName: 'fileText', end: false },
-  { to: '/dashboard/purchases', label: 'Shop', iconName: 'cart', end: false },
-  { to: '/dashboard/privacy', label: 'Privacy', iconName: 'shield', end: false },
+  { to: '/dashboard/subscription', label: 'Plan', iconName: 'creditCard', end: false },
+  { to: '/dashboard/notifications', label: 'Alerts', iconName: 'bell', end: false },
 ];
 
 const MobileBottomNav = ({ user, onLogout }) => {
