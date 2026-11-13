@@ -4,7 +4,7 @@ import PageHero from '../components/PageHero';
 import { Icon } from '../components/icons';
 
 const highlights = [
-  { year: '2022', text: 'Founded ASKC Digital Web', icon: 'rocket', description: 'Started our journey with a vision to create amazing digital experiences' },
+  { year: '2022', text: 'Founded ASKC Technologies', icon: 'rocket', description: 'Started our journey with a vision to create amazing digital experiences' },
   { year: '2023', text: '10+ Satisfied Clients', icon: 'users', description: 'Built trust and delivered exceptional results for our growing client base' },
   { year: '2024', text: '12+ Projects Completed', icon: 'trophy', description: 'Successfully launched diverse projects across different industries' },
 ];
@@ -38,7 +38,7 @@ function About() {
             <div className="space-y-6">
               <h2 className="section-title text-left">Who We Are</h2>
               <p className="text-text-main leading-relaxed text-lg">
-                At <span className="font-bold text-primary-600">ASKC Digital Web</span>, we believe in delivering excellence in every project. Our team is passionate about building creative, innovative, and reliable digital solutions that help our clients grow online.
+                At <span className="font-bold text-primary-600">ASKC Technologies</span>, we believe in delivering excellence in every project. Our team is passionate about building creative, innovative, and reliable digital solutions that help our clients grow online.
               </p>
               <p className="text-text-muted leading-relaxed">
                 We specialize in creating modern, responsive websites that not only look great but also perform exceptionally well. Our commitment to quality, innovation, and customer satisfaction sets us apart in the competitive web development industry.
