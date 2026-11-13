@@ -99,7 +99,10 @@ export default function AdminAgreements() {
     setSaving(true);
     try {
       const docCode = generateDocCode(form.clientName);
-      const html = generateTemplate(form.documentType, { ...form, docCode });
+      // Fetch current active payment instructions so new invoices/quotations use admin-managed details.
+      const paymentResponse = await axios.get('/api/auth/payment-options');
+      const paymentOptions = paymentResponse.data.paymentOptions || [];
+      const html = generateTemplate(form.documentType, { ...form, docCode, paymentOptions });
       const docLabel = DOCUMENT_TYPES.find(d => d.id === form.documentType)?.label || form.documentType;
       await axios.post('/api/auth/admin/agreements', {
         clientName: form.clientName.trim(),
