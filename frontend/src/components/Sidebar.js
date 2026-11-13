@@ -8,6 +8,7 @@ const navItems = [
   { to: '/dashboard/project-requirement', label: 'Project', iconName: 'briefcase', end: false },
   { to: '/dashboard/support', label: 'Help', iconName: 'chat', end: false },
   { to: '/dashboard/subscription', label: 'Subscription', iconName: 'creditCard', end: false },
+  { to: '/dashboard/agreements', label: 'Agreements', iconName: 'fileText', end: false },
   { to: '/dashboard/purchases', label: 'Purchases', iconName: 'cart', end: false },
   { to: '/dashboard/notifications', label: 'Notifications', iconName: 'bell', end: false },
   { to: '/dashboard/privacy', label: 'Privacy Centre', iconName: 'shield', end: false },
@@ -18,6 +19,7 @@ const mobileNavItems = [
   { to: '/dashboard/project-requirement', label: 'Project', iconName: 'briefcase', end: false },
   { to: '/dashboard/support', label: 'Help', iconName: 'chat', end: false },
   { to: '/dashboard/subscription', label: 'Plan', iconName: 'creditCard', end: false },
+  { to: '/dashboard/agreements', label: 'Agreements', iconName: 'fileText', end: false },
   { to: '/dashboard/purchases', label: 'Shop', iconName: 'cart', end: false },
   { to: '/dashboard/privacy', label: 'Privacy', iconName: 'shield', end: false },
 ];
@@ -65,14 +67,12 @@ const MobileBottomNav = ({ user, onLogout }) => {
 const Sidebar = ({ onLogout, isPlanExpired, user, onClose }) => (
   <>
     <div className="h-full min-h-0 w-[15.5rem] max-w-[100vw] bg-slate-900 border-r border-slate-800 flex flex-col shadow-xl overflow-hidden">
-      <div className="shrink-0 px-3 py-3 border-b border-slate-800">
+      <div className="shrink-0 px-3 py-4 border-b border-slate-800 bg-slate-950/50">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-lg bg-accent-500 flex items-center justify-center text-xs font-bold text-slate-900 shadow-md shrink-0">
-            {user?.name ? user.name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() : 'U'}
-          </div>
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-blue-300 bg-white text-[11px] font-black tracking-tight text-blue-800 shadow-sm">ASKC</div>
           <div className="flex-1 min-w-0">
-            <h2 className="text-xs font-bold text-slate-100 leading-tight truncate uppercase tracking-wide">Workspace</h2>
-            <p className="text-[11px] text-slate-400 truncate leading-tight">{user?.name || 'Member'}</p>
+            <h2 className="truncate text-xs font-extrabold uppercase tracking-wider text-white">ASKC Technologies</h2>
+            <p className="mt-0.5 truncate text-[11px] leading-tight text-slate-400">{user?.name || 'Member workspace'}</p>
           </div>
           <button
             type="button"
@@ -85,17 +85,17 @@ const Sidebar = ({ onLogout, isPlanExpired, user, onClose }) => (
         </div>
       </div>
 
-      <nav className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-y-contain lg:flex-none lg:overflow-y-visible px-2 py-2 space-y-0.5">
+      <nav className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-y-contain px-2.5 py-4 space-y-1">
         {navItems.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
             end={item.end}
             className={({ isActive }) =>
-              `group flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all duration-200 min-w-0 ${
+              `group flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 min-w-0 border border-transparent ${
                 isActive
-                  ? 'bg-white text-slate-900 shadow-sm font-semibold ring-1 ring-white/15'
-                  : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                  ? 'bg-white text-slate-950 shadow-md font-bold ring-1 ring-white/30 translate-x-0.5'
+                  : 'text-slate-300 hover:bg-slate-800/90 hover:text-white hover:translate-x-0.5'
               }`
             }
             tabIndex={0}
