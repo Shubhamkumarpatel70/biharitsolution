@@ -146,8 +146,6 @@ export function generateTemplate(type, data) {
     case "questionnaire": html = tQuestionnaire({...data,today}); break;
     default: return "<p>Unknown template</p>";
   }
-  // Every generated document carries a simple text-only physical-stamp label.
-  if (type !== "nda") html = html.replace('</div><footer>', '</div><div class="official-stamp-footer">ASKC TECHNOLOGIES OFFICIAL STAMP</div><footer>');
   return html;
 }
 
