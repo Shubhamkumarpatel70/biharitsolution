@@ -48,7 +48,24 @@
     .footer-contact-item { display: flex; align-items: center; gap: 8px; z-index: 2; }
     
     @media print { body { background: transparent; padding: 0; margin: 0; } .controls { display: none; } .page { box-shadow: none; margin: 0; } .doc-input { border-bottom: 1px solid var(--border-color)!important; } }
-  </style>
+  
+/* ASKC standard execution block */
+.askc-execution{margin:28px 5%;padding:20px;border:1px solid #cbd5e1;border-radius:10px;background:#fff;color:#1e293b;break-inside:avoid}
+.askc-execution h3{font-size:15px;color:#061d4b;margin:0 0 14px;text-transform:uppercase;letter-spacing:.4px}
+.askc-sign-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.askc-sign-party{border:1px solid #dbe3ee;border-radius:8px;padding:14px;min-width:0}
+.askc-sign-party h4{font-size:12px;color:#165ebc;margin:0 0 12px}
+.askc-field{display:flex;flex-direction:column;gap:4px;margin:9px 0;font-size:11px;font-weight:600;color:#475569}
+.askc-field input{width:100%;min-width:0;border:0;border-bottom:1px solid #94a3b8;padding:6px 2px;font:inherit;color:#0f172a;background:transparent}
+.askc-upload{display:block;margin-top:8px;font-size:10px;color:#475569}
+.askc-preview{display:block;max-width:170px;max-height:65px;object-fit:contain;margin:8px 0 4px}
+.askc-stamp{height:82px;border:1px dashed #94a3b8;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#64748b;font-size:10px;margin-top:8px;overflow:hidden}
+.askc-stamp img{max-width:100%;max-height:100%;object-fit:contain}
+.askc-note{font-size:10px;color:#64748b;margin-top:10px;line-height:1.5}
+@media(max-width:640px){.askc-sign-grid{grid-template-columns:1fr}.askc-execution{margin:18px 12px;padding:14px}}
+@media print{.askc-execution{margin:18px 35px;break-inside:avoid}.askc-upload input{display:none}}
+
+</style>
 </head>
 <body>
   <div class="controls"><button class="btn-print" onclick="window.print()"><i class="fa-solid fa-print"></i> Print Handover</button></div>
@@ -105,7 +122,48 @@
       </div>
     </div>
 
-    <footer>
+    
+<section class="askc-execution" aria-label="Agreement execution and signatures">
+ <h3>Agreement Execution &amp; Signatures</h3>
+ <div class="askc-sign-grid">
+  <div class="askc-sign-party">
+   <h4>For the Client</h4>
+   <label class="askc-field">Authorized Signatory Full Name<input type="text" name="clientSignatoryName" placeholder="Client full legal name"></label>
+   <label class="askc-field">Designation / Title<input type="text" name="clientDesignation" placeholder="Owner / Director / Authorized Representative"></label>
+   <label class="askc-field">Signature Date<input type="date" name="clientSignatureDate"></label>
+   <label class="askc-field">Place (below date)<input type="text" name="clientSignaturePlace" placeholder="City, State"></label>
+   <label class="askc-upload">Upload Client Signature (PNG/JPG)<input type="file" accept="image/png,image/jpeg" data-preview="client-sign-preview"></label>
+   <img class="askc-preview" id="client-sign-preview" alt="Client signature preview" hidden>
+  </div>
+  <div class="askc-sign-party">
+   <h4>For ASKC TECHNOLOGIES</h4>
+   <label class="askc-field">Authorized Signatory Full Name<input type="text" name="askcSignatoryName" value="Shubham Kumar"></label>
+   <label class="askc-field">Designation<input type="text" name="askcDesignation" value="Proprietor / Authorized Signatory"></label>
+   <label class="askc-field">Signature Date<input type="date" name="askcSignatureDate"></label>
+   <label class="askc-field">Place (below date)<input type="text" name="askcSignaturePlace" placeholder="City, State"></label>
+   <label class="askc-upload">Upload ASKC Authorized Signature (PNG/JPG)<input type="file" accept="image/png,image/jpeg" data-preview="askc-sign-preview"></label>
+   <img class="askc-preview" id="askc-sign-preview" alt="ASKC signature preview" hidden>
+   <label class="askc-upload">Upload Official ASKC Stamp / Seal (PNG/JPG)<input type="file" accept="image/png,image/jpeg" data-preview="askc-stamp-preview"></label>
+   <div class="askc-stamp"><span id="askc-stamp-placeholder">Official stamp / seal area</span><img id="askc-stamp-preview" alt="ASKC official stamp preview" hidden></div>
+  </div>
+ </div>
+ <p class="askc-note">Both parties should sign and date this document. Place is recorded directly below each signature date. The ASKC stamp is an additional business seal and does not replace the authorized signature. Upload only genuine authorized signatures and the official stamp; no signature or seal is pre-created.</p>
+</section>
+<script>
+document.querySelectorAll('.askc-execution input[type="file"][data-preview]').forEach(function(input){
+ input.addEventListener('change',function(){
+  const file=this.files && this.files[0]; const target=document.getElementById(this.dataset.preview);
+  if(!target)return;
+  if(!file){target.removeAttribute('src');target.hidden=true;return;}
+  if(!/^image\/(png|jpeg)$/.test(file.type)){this.value='';return;}
+  const reader=new FileReader();reader.onload=function(){target.src=reader.result;target.hidden=false;};
+  reader.readAsDataURL(file);
+  const placeholder=document.getElementById('askc-stamp-placeholder');if(placeholder && target.id==='askc-stamp-preview')placeholder.hidden=true;
+ });
+});
+</script>
+
+<footer>
       <div class="footer-contact-item" style="color: #fff; font-weight: 800; font-size: 13px; z-index: 2;"><span class="brand">ASKC TECHNOLOGIES</span></div>
       <div class="footer-contact-item"><i class="fa-regular fa-envelope"></i> askctechnologies@gmail.com</div>
       <div class="footer-contact-item"><i class="fa-solid fa-globe"></i> askctechnologies.in</div>
