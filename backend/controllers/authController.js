@@ -55,8 +55,9 @@ exports.sendRegisterOtp = async (req, res) => {
   const email = String(req.body?.email || "").trim().toLowerCase();
   let generatedOtp = "";
   try {
-    if (!email || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) {
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    const emailPattern = new RegExp("^[^\\\\s@]+@[^\\\\s@]+\\\\.[^\\\\s@]+$");
+    if (!email || !emailPattern.test(email)) {
+      return res.status(400).json({ message: "Please enter a valid email address." });
     }
     const existingUser = await User.findOne({ $expr: { $eq: [{ $toLower: "$email" }, email] } }).select("_id");
     if (existingUser) return res.status(400).json({ message: "User already exists." });
@@ -65,7 +66,6 @@ exports.sendRegisterOtp = async (req, res) => {
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
     await Otp.deleteMany({ email, purpose: "register" });
     await Otp.create({ email, otp: generatedOtp, purpose: "register", expiresAt });
-
     const html = generateOtpEmailHtml(
       generatedOtp,
       "Verify your Email",
