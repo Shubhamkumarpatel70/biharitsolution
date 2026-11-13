@@ -276,6 +276,15 @@ const AdminUsers = () => {
                       {user.role === 'coadmin' ? 'Co-Admin' : user.role.charAt(0).toUpperCase() + user.role.slice(1)}
                     </span>
                   </div>
+                  <div className="mb-3 rounded-lg border border-slate-700 bg-slate-950/40 p-3">
+                    <p className="text-xs font-bold text-slate-300">Plan & payment</p>
+                    <p className="mt-1 text-sm font-semibold text-white">{user.latestSubscription?.planName || 'No plan assigned'}</p>
+                    {user.latestSubscription && <p className="text-xs text-slate-400">Paid ₹{Number(user.latestSubscription.amountPaid || 0).toLocaleString('en-IN')} · Due ₹{Math.max(0,Number(user.latestSubscription.totalAmount || 0)-Number(user.latestSubscription.amountPaid || 0)).toLocaleString('en-IN')}</p>}
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <button onClick={() => assignPlan(user)} className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-white">{user.latestSubscription ? 'Change plan' : 'Assign plan'}</button>
+                      {user.latestSubscription && <button onClick={() => recordPayment(user)} className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white">Add payment</button>}
+                    </div>
+                  </div>
                   <div className="space-y-2">
                     <div>
                       <label className="text-xs text-gray-400 block mb-1">Change Role</label>
