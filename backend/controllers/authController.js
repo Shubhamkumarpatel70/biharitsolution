@@ -88,7 +88,7 @@ const generateOtpEmailHtml = (otp, title, description) => `
 <body>
   <div class="container">
     <div style="margin-bottom: 30px;">
-      <a href="https://askcweb.in" class="logo">ASKC Digital Web</a>
+      <a href="https://askcweb.in" class="logo">ASKC Technologies</a>
     </div>
     
     <h1 class="title">${title}</h1>
@@ -104,14 +104,14 @@ const generateOtpEmailHtml = (otp, title, description) => `
     
     <div class="footer">
       <p style="margin-bottom: 20px;">
-        You have received this email because you initiated a request at ASKC Digital Web, to ensure the security of your account.
+        You have received this email because you initiated a request at ASKC Technologies, to ensure the security of your account.
       </p>
       <p>
         <a href="https://askcweb.in/privacy">Privacy policy</a> | <a href="https://askcweb.in/contact">Help center</a><br/>
-        Contact Us: <a href="mailto:support@askcweb.in">support@askcweb.in</a>
+        Contact Us: <a href="mailto:askctechnologies@gmail.com">askctechnologies@gmail.com</a>
       </p>
       <p style="margin-top: 20px;">
-        &copy; ${new Date().getFullYear()} ASKC Digital Web. All rights reserved.
+        &copy; ${new Date().getFullYear()} ASKC Technologies. All rights reserved.
       </p>
     </div>
   </div>
