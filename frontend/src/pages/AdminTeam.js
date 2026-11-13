@@ -10,6 +10,7 @@ const AdminTeam = () => {
   const [founderPreview, setFounderPreview] = useState('');
   const [founderLoading, setFounderLoading] = useState(false);
   const [founderSaving, setFounderSaving] = useState(false);
+  const [imageMigrationRunning, setImageMigrationRunning] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingMember, setEditingMember] = useState(null);
   const [formData, setFormData] = useState({
@@ -55,6 +56,24 @@ const AdminTeam = () => {
       setSuccess('Founder image updated. The About page now uses this image.');
     } catch (err) { setError(err.response?.data?.message || 'Could not upload founder image.'); }
     finally { setFounderSaving(false); }
+  };
+
+  const migrateLegacyImages = async () => {
+    const confirmed = window.confirm('Migrate existing Base64 images from MongoDB to Cloudinary? This may take a few minutes.');
+    if (!confirmed) return;
+    try {
+      setImageMigrationRunning(true); setError(''); setSuccess('');
+      const token = localStorage.getItem('token');
+      const response = await axios.post('/api/auth/admin/cloudinary/migrate-images', {}, { headers: { Authorization: `Bearer ${token}` } });
+      const summary = response.data.summary || {};
+      const moved = Object.entries(summary).filter(([key]) => key !== 'failed').reduce((total, [, value]) => total + Number(value || 0), 0);
+      setSuccess(`Cloudinary migration completed: ${moved} image(s) moved. ${(summary.failed || []).length} failed.`);
+      if (summary.failed?.length) setError(summary.failed.map(item => `${item.type} (${item.id}): ${item.message}`).join(' | '));
+      await fetchFounderProfile();
+      await fetchTeamMembers();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Could not migrate existing images to Cloudinary.');
+    } finally { setImageMigrationRunning(false); }
   };
 
   const fetchTeamMembers = async () => {
@@ -269,7 +288,19 @@ const AdminTeam = () => {
             </div>
           </form>
           <div className="mt-4 rounded-xl bg-slate-50 p-3 text-xs leading-5 text-slate-600">
-            <strong>Storage:</strong> The uploaded image is converted to a Base64 data URL and saved in the MongoDB database (FounderProfile collection). It is not saved in the GitHub repository or Render filesystem, so it remains available after redeploys.
+            <strong>Storage:</strong> The image is uploaded securely to Cloudinary. MongoDB stores only the Cloudinary secure URL; the image remains available after redeploys.
+          </div>
+        </section>
+
+        <section className="mb-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-lg font-bold text-slate-900">Cloudinary Image Migration</h2>
+              <p className="mt-1 text-sm text-slate-600">Move older Base64 images already stored in MongoDB to Cloudinary. New uploads are stored on Cloudinary automatically.</p>
+            </div>
+            <button type="button" onClick={migrateLegacyImages} disabled={imageMigrationRunning} className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-800 hover:bg-slate-50 disabled:opacity-50">
+              {imageMigrationRunning ? 'Migrating images…' : 'Migrate existing images'}
+            </button>
           </div>
         </section>
 
