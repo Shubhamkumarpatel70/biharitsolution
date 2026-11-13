@@ -33,7 +33,7 @@ import AdminContacts from './pages/AdminContacts';
 import AdminCancellations from './pages/AdminCancellations';
 import AdminIDCard from './pages/AdminIDCard';
 import NotFound from './pages/NotFound';
-import Privacy from './pages/Privacy';
+import Privacy from './pages/PrivacyPolicy';
 import Terms from './pages/Terms';
 import Refund from './pages/Refund';
 import PublicIDCard from './pages/PublicIDCard';
