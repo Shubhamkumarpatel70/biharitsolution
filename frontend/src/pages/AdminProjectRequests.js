@@ -141,7 +141,7 @@ const AdminProjectRequests = () => {
   const pageItems = projects.slice(start, start + itemsPerPage);
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 pb-20 lg:pb-6">
+    <div className="admin-redesign-page max-w-7xl mx-auto space-y-6 pb-20 lg:pb-6">
       <h2 className="text-2xl md:text-3xl font-bold text-success-500 mb-6">Project Requests</h2>
       
       {/* Filters */}
