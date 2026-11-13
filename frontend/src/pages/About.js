@@ -98,6 +98,24 @@ function About() {
         </div>
       </section>
 
+      {/* Meet Our Founder */}
+      <section className="py-14 md:py-20 bg-gray-50 border-y border-gray-100">
+        <div className="container">
+          <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-[260px_1fr] gap-8 md:gap-12 items-center rounded-3xl border border-gray-200 bg-white p-7 md:p-10 shadow-sm">
+            <div className="mx-auto flex h-52 w-52 items-center justify-center rounded-3xl bg-gradient-to-br from-slate-100 to-blue-100 border border-slate-200">
+              <Icon name="user" className="h-24 w-24 text-primary-700" strokeWidth={1.4} />
+            </div>
+            <div>
+              <p className="text-sm font-bold uppercase tracking-[0.18em] text-primary-600 mb-3">Meet Our Founder</p>
+              <h2 className="text-3xl md:text-4xl font-black text-primary-950">Shubham Patel</h2>
+              <p className="mt-2 text-base font-semibold text-primary-700">Founder &amp; CEO, ASKC TECHNOLOGIES</p>
+              <p className="mt-5 leading-relaxed text-text-muted">ASKC TECHNOLOGIES was founded by Shubham Patel with a vision to help businesses grow through thoughtful, reliable, and affordable technology. With a passion for web development and modern digital solutions, he is focused on building useful digital experiences that help businesses strengthen their online presence and work smarter.</p>
+              <p className="mt-4 leading-relaxed text-text-main font-medium">Our vision is to make modern technology accessible to businesses of every size.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Certifications & Recognition */}
       <section className="py-12 md:py-20 bg-white border-t border-gray-100">
         <div className="container">
