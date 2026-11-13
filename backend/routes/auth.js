@@ -4268,6 +4268,21 @@ router.get(
 
 // ==================== AGREEMENTS ====================
 
+// Minimal registered-user directory for linking agreements to accounts.
+router.get(
+  "/admin/agreement-users",
+  authMiddleware,
+  coAdminMiddleware,
+  async (req, res) => {
+    try {
+      const users = await User.find({ role: "user" }).select("name email").sort({ name: 1 }).lean();
+      res.json({ users });
+    } catch (err) {
+      res.status(500).json({ message: "Could not load registered client accounts." });
+    }
+  }
+);
+
 // Save a new agreement document for a client
 router.post(
   "/admin/agreements",
