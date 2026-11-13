@@ -47,7 +47,7 @@ td{padding:9px 10px;border-bottom:1px solid #e2e8f0;}
 .tr.grand{font-size:16px;font-weight:800;color:#165ebc;border-top:1px solid #e2e8f0;padding-top:8px;margin-top:6px;}
 .sig-block{display:flex;justify-content:space-between;margin-top:auto;padding-top:28px;}
 .sig-col{width:38%;}
-.sig-stamp-text{width:20%;align-self:center;text-align:center;font-size:9px;line-height:1.5;font-weight:800;letter-spacing:.7px;color:#334155;text-transform:uppercase;}
+.sig-stamp-text{width:auto;max-width:100%;align-self:center;text-align:center;white-space:nowrap;font-size:8px;line-height:1.2;font-weight:800;letter-spacing:.35px;color:#334155;text-transform:uppercase;}
 .official-stamp-footer{text-align:center;padding:12px 20px 5px;font-size:9px;font-weight:800;letter-spacing:1px;color:#334155;text-transform:uppercase;}
 .payment-panel{margin-top:22px;border:1px solid #cbd5e1;border-radius:8px;padding:14px 16px;page-break-inside:avoid;}
 .payment-panel h3{font-size:12px;color:#061d4b;font-weight:800;margin-bottom:9px;text-transform:uppercase;letter-spacing:.5px;}
@@ -86,7 +86,7 @@ const ftr = (docCode) => `<footer>
 const ctrl = (label) => `<div class="controls" style="position:fixed;top:18px;right:20px;z-index:1000;">
 <button onclick="window.print()" style="background:#061d4b;color:#fff;border:none;padding:10px 22px;font-weight:700;border-radius:8px;cursor:pointer;font-size:13px;">🖨 ${label}</button></div>`;
 
-const officialStampText = () => `<div class="sig-stamp-text">ASKC TECHNOLOGIES<br>OFFICIAL STAMP</div>`;
+const officialStampText = () => `<div class="sig-stamp-text">ASKC TECHNOLOGIES OFFICIAL STAMP</div>`;
 
 const paymentBlock = (options = []) => {
   const methods = (options || []).filter(option => option && (option.upiId || option.accountNumber || option.qrCode));
