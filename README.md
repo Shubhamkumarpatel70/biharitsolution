@@ -181,6 +181,14 @@ baseURL: process.env.REACT_APP_API_URL || 'https://your-app-name.onrender.com'
 - `GOOGLE_CLIENT_ID` - Google OAuth client ID
 - `GOOGLE_CLIENT_SECRET` - Google OAuth client secret
 - `NODE_ENV` - Environment (development/production)
+- `SMTP_HOST` - SMTP server host (defaults to `smtp.gmail.com`)
+- `SMTP_PORT` - SMTP server port (defaults to `465`)
+- `SMTP_USER` - Authenticated sender mailbox
+- `SMTP_PASS` - SMTP/app password (or legacy Resend API key beginning with `re_`)
+- `SMTP_FROM` - Optional approved sender address/display name
+- `RESEND_API_KEY` - Optional Resend API key; takes priority over SMTP
+- `RESEND_FROM` - Optional verified Resend sender address
+- `PUBLIC_SITE_URL` or `FRONTEND_URL` - Public website origin used in unsubscribe links
 
 ### Frontend (.env)
 - `REACT_APP_API_URL` - Backend API URL
