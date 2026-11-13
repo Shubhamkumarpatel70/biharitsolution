@@ -53,7 +53,7 @@ const AdminUserPlans = () => {
     : status === 'pending' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600';
 
   return (
-    <div className="admin-redesign-page max-w-7xl mx-auto px-3 sm:px-5 lg:px-8 py-4 sm:py-6 text-slate-800">
+    <div className="user-plans-page w-full max-w-7xl mx-auto px-3 sm:px-5 lg:px-8 py-4 sm:py-6 text-slate-900">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-6">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Subscriptions</p>

@@ -199,20 +199,20 @@ const AdminTeam = () => {
 
   if (loading) {
     return (
-    <div className="admin-redesign-page flex items-center justify-center min-h-screen">
-        <div className="text-white text-xl">Loading team members...</div>
+    <div className="admin-team-page flex items-center justify-center min-h-screen bg-slate-50">
+        <div className="text-slate-700 text-xl font-semibold">Loading team members...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-4 sm:p-6">
+    <div className="admin-team-page min-h-screen bg-slate-50 text-slate-900 p-4 sm:p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-emerald-400">Team Management</h1>
-            <p className="text-gray-400 mt-2 text-sm sm:text-base">Manage your team members, their profiles, and social links</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-emerald-700">Team Management</h1>
+            <p className="text-slate-600 mt-2 text-sm sm:text-base">Manage your team members, their profiles, and social links</p>
           </div>
           <button
             onClick={() => setShowAddForm(true)}
@@ -228,7 +228,7 @@ const AdminTeam = () => {
             {error}
             <button
               onClick={() => setError('')}
-              className="float-right text-white hover:text-gray-200"
+              className="float-right text-white hover:text-slate-700"
             >
               ✕
             </button>
@@ -241,7 +241,7 @@ const AdminTeam = () => {
             {success}
             <button
               onClick={() => setSuccess('')}
-              className="float-right text-white hover:text-gray-200"
+              className="float-right text-white hover:text-slate-700"
             >
               ✕
             </button>
@@ -250,8 +250,8 @@ const AdminTeam = () => {
 
         {/* Add/Edit Form */}
         {showAddForm && (
-          <div className="bg-gray-800 rounded-lg p-6 mb-8">
-            <h2 className="text-2xl font-semibold mb-6 text-emerald-400">
+          <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-5 sm:p-6 mb-8">
+            <h2 className="text-2xl font-semibold mb-6 text-emerald-700">
               {editingMember ? 'Edit Team Member' : 'Add New Team Member'}
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
@@ -264,7 +264,7 @@ const AdminTeam = () => {
                     value={formData.name}
                     onChange={handleInputChange}
                     required
-                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="w-full bg-white border border-slate-300 rounded-lg px-4 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
                 <div>
@@ -275,7 +275,7 @@ const AdminTeam = () => {
                     value={formData.position}
                     onChange={handleInputChange}
                     required
-                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="w-full bg-white border border-slate-300 rounded-lg px-4 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
                 <div>
@@ -285,7 +285,7 @@ const AdminTeam = () => {
                     name="email"
                     value={formData.email}
                     onChange={handleInputChange}
-                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="w-full bg-white border border-slate-300 rounded-lg px-4 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
                 <div>
@@ -295,7 +295,7 @@ const AdminTeam = () => {
                     name="phone"
                     value={formData.phone}
                     onChange={handleInputChange}
-                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="w-full bg-white border border-slate-300 rounded-lg px-4 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
                 <div>
@@ -306,7 +306,7 @@ const AdminTeam = () => {
                     value={formData.order}
                     onChange={handleInputChange}
                     min="0"
-                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="w-full bg-white border border-slate-300 rounded-lg px-4 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     placeholder="0"
                   />
                 </div>
@@ -319,7 +319,7 @@ const AdminTeam = () => {
                   value={formData.bio}
                   onChange={handleInputChange}
                   rows="4"
-                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="w-full bg-white border border-slate-300 rounded-lg px-4 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   placeholder="Tell us about this team member..."
                 />
               </div>
@@ -330,12 +330,12 @@ const AdminTeam = () => {
                   type="file"
                   accept="image/*"
                   onChange={handleImageChange}
-                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="w-full bg-white border border-slate-300 rounded-lg px-4 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
 
               <div>
-                <h3 className="text-lg font-semibold mb-4 text-emerald-300">Social Links</h3>
+                <h3 className="text-lg font-semibold mb-4 text-emerald-700">Social Links</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium mb-2">LinkedIn</label>
@@ -344,7 +344,7 @@ const AdminTeam = () => {
                       name="social.linkedin"
                       value={formData.socialLinks.linkedin}
                       onChange={handleInputChange}
-                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="w-full bg-white border border-slate-300 rounded-lg px-4 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                       placeholder="https://linkedin.com/in/username"
                     />
                   </div>
@@ -355,7 +355,7 @@ const AdminTeam = () => {
                       name="social.twitter"
                       value={formData.socialLinks.twitter}
                       onChange={handleInputChange}
-                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="w-full bg-white border border-slate-300 rounded-lg px-4 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                       placeholder="https://twitter.com/username"
                     />
                   </div>
@@ -366,7 +366,7 @@ const AdminTeam = () => {
                       name="social.github"
                       value={formData.socialLinks.github}
                       onChange={handleInputChange}
-                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="w-full bg-white border border-slate-300 rounded-lg px-4 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                       placeholder="https://github.com/username"
                     />
                   </div>
@@ -377,7 +377,7 @@ const AdminTeam = () => {
                       name="social.instagram"
                       value={formData.socialLinks.instagram}
                       onChange={handleInputChange}
-                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="w-full bg-white border border-slate-300 rounded-lg px-4 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                       placeholder="https://instagram.com/username"
                     />
                   </div>
@@ -406,7 +406,7 @@ const AdminTeam = () => {
         {/* Team Members Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {teamMembers.map((member) => (
-            <div key={member._id} className="bg-gray-800 rounded-lg p-4 sm:p-6 hover:bg-gray-750 transition-colors">
+            <div key={member._id} className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 sm:p-6 hover:shadow-md transition-shadow">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3">
                 <div className="flex items-center space-x-3 sm:space-x-4">
                   <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-emerald-600 flex items-center justify-center text-lg sm:text-2xl font-bold overflow-hidden">
@@ -422,7 +422,7 @@ const AdminTeam = () => {
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="text-lg sm:text-xl font-semibold text-white truncate">{member.name}</h3>
-                    <p className="text-emerald-400 text-sm sm:text-base truncate">{member.position}</p>
+                    <p className="text-emerald-700 text-sm sm:text-base truncate">{member.position}</p>
                     <p className="text-gray-500 text-xs sm:text-sm">Order: {member.order || 0}</p>
                   </div>
                 </div>
@@ -445,22 +445,22 @@ const AdminTeam = () => {
               </div>
 
               {member.bio && (
-                <p className="text-gray-300 text-sm mb-4">{member.bio}</p>
+                <p className="text-slate-600 text-sm mb-4">{member.bio}</p>
               )}
 
               <div className="space-y-2 mb-4">
                 {member.email && (
-                  <div className="flex items-center text-sm text-gray-400">
+                  <div className="flex items-center text-sm text-slate-600">
                     <span className="mr-2">📧</span>
-                    <a href={`mailto:${member.email}`} className="hover:text-emerald-400">
+                    <a href={`mailto:${member.email}`} className="hover:text-emerald-700">
                       {member.email}
                     </a>
                   </div>
                 )}
                 {member.phone && (
-                  <div className="flex items-center text-sm text-gray-400">
+                  <div className="flex items-center text-sm text-slate-600">
                     <span className="mr-2">📞</span>
-                    <a href={`tel:${member.phone}`} className="hover:text-emerald-400">
+                    <a href={`tel:${member.phone}`} className="hover:text-emerald-700">
                       {member.phone}
                     </a>
                   </div>
@@ -497,7 +497,7 @@ const AdminTeam = () => {
                       href={member.socialLinks.github}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-gray-400 hover:text-gray-300 text-xl"
+                      className="text-slate-600 hover:text-slate-600 text-xl"
                       title="GitHub"
                     >
                       📚
@@ -523,7 +523,7 @@ const AdminTeam = () => {
         {teamMembers.length === 0 && !loading && (
           <div className="text-center py-12">
             <div className="text-6xl mb-4">👥</div>
-            <h3 className="text-xl font-semibold text-gray-400 mb-2">No Team Members Yet</h3>
+            <h3 className="text-xl font-semibold text-slate-600 mb-2">No Team Members Yet</h3>
             <p className="text-gray-500">Add your first team member to get started!</p>
           </div>
         )}

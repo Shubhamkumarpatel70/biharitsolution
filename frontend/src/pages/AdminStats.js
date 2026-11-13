@@ -35,7 +35,7 @@ const AdminStats = () => {
     : [];
 
   return (
-    <div className="admin-redesign-page max-w-6xl mx-auto space-y-5">
+    <div className="site-stats-page w-full max-w-6xl mx-auto space-y-5 text-slate-900">
       <div className="rounded-2xl border border-slate-200 bg-white p-5 md:p-6 shadow-sm">
         <h2 className="text-xl md:text-2xl font-bold text-slate-900">Site Statistics</h2>
         <p className="text-sm text-slate-500 mt-1">Professional analytics snapshot for admin and co-admin operations.</p>
