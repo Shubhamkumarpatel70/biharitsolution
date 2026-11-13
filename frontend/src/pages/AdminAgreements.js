@@ -110,7 +110,7 @@ export default function AdminAgreements() {
   const handleGenerate = async (e) => {
     e.preventDefault();
     if (!form.clientName.trim()) return showToast('Client name is required', 'error');
-    if (form.clientEmail && !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(form.clientEmail.trim())) return showToast('Enter a valid client email address', 'error');
+    if (form.clientEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.clientEmail.trim())) return showToast('Enter a valid client email address', 'error');
     if (['quotation','invoice'].includes(form.documentType) && form.amount !== '' && (!Number.isFinite(Number(form.amount)) || Number(form.amount) < 0)) return showToast('Enter a valid non-negative amount', 'error');
     setSaving(true);
     try {
