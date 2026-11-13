@@ -39,6 +39,10 @@ app.use(
           "'self'",
           "data:",
           "https://api.qrserver.com",
+          "https://api.cashfree.com",
+          "https://sandbox.cashfree.com",
+          "https://api.cashfree.com",
+          "https://sandbox.cashfree.com",
           "https://www.google-analytics.com",
           "https://ssl.gstatic.com",
           "https://www.googletagmanager.com",
@@ -50,12 +54,14 @@ app.use(
           "'unsafe-eval'",
           "https://www.googletagmanager.com",
           "https://www.google-analytics.com",
+          "https://sdk.cashfree.com",
         ],
         scriptSrcElem: [
           "'self'",
           "'unsafe-inline'",
           "https://www.googletagmanager.com",
           "https://www.google-analytics.com",
+          "https://sdk.cashfree.com",
         ],
         connectSrc: [
           "'self'",
@@ -71,7 +77,7 @@ app.use(
           "wss://askcweb.in",
           "wss://www.askcweb.in",
         ],
-        frameSrc: ["'self'", "https://www.googletagmanager.com"],
+        frameSrc: ["'self'", "https://www.googletagmanager.com", "https://payments.cashfree.com", "https://sandbox.cashfree.com"],
       },
     },
   }),
@@ -136,6 +142,9 @@ app.use(
     preflightContinue: false,
   }),
 );
+
+// Preserve the exact Cashfree webhook payload for signature verification.
+app.use("/api/auth/cashfree/webhook", express.raw({ type: "application/json" }));
 
 // Body parsing middleware with size limits
 app.use(express.json({ limit: "10mb" }));

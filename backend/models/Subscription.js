@@ -15,8 +15,12 @@ const subscriptionSchema = new mongoose.Schema({
   cancellationApprovedDate: { type: Date },
   // Payment fields
   transactionId: { type: String },
-  paymentMethod: { type: String, enum: ['upi', 'card', 'netbanking'], default: 'upi' },
+  paymentMethod: { type: String, enum: ['upi', 'card', 'netbanking', 'cashfree'], default: 'upi' },
   paymentImage: { type: String }, // Base64 encoded image
+  cashfreeOrderId: { type: String, unique: true, sparse: true },
+  paymentStatus: { type: String, default: 'pending' },
+  amountPaid: { type: Number },
+  durationDays: { type: Number },
   // Renewal request fields
   renewalRequested: { type: Boolean, default: false },
   renewalRequestDate: { type: Date },

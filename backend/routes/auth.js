@@ -256,6 +256,217 @@ function getPublicSiteOrigin() {
   return null;
 }
 
+// Cashfree Checkout: create a server-priced order and a pending subscription.
+// Cashfree server-to-server webhook. Signature is verified against the untouched raw request body.
+router.post("/cashfree/webhook", async (req, res) => {
+  try {
+    const secret = process.env.CASHFREE_SECRET_KEY;
+    const signature = req.headers["x-webhook-signature"];
+    const timestamp = req.headers["x-webhook-timestamp"];
+    if (!secret || !signature || !timestamp || !Buffer.isBuffer(req.body)) {
+      return res.status(400).json({ message: "Invalid webhook request." });
+    }
+    const expected = require("crypto")
+      .createHmac("sha256", secret)
+      .update(String(timestamp) + req.body.toString("utf8"))
+      .digest("base64");
+    const suppliedBuffer = Buffer.from(String(signature));
+    const expectedBuffer = Buffer.from(expected);
+    if (suppliedBuffer.length !== expectedBuffer.length ||
+        !require("crypto").timingSafeEqual(suppliedBuffer, expectedBuffer)) {
+      return res.status(401).json({ message: "Invalid webhook signature." });
+    }
+    const event = JSON.parse(req.body.toString("utf8"));
+    const orderId = event?.data?.order?.order_id;
+    const payment = event?.data?.payment;
+    if (event.type !== "PAYMENT_SUCCESS_WEBHOOK" ||
+        payment?.payment_status !== "SUCCESS" || !orderId) {
+      return res.status(200).json({ received: true });
+    }
+    const subscription = await Subscription.findOne({ cashfreeOrderId: orderId });
+    if (!subscription) return res.status(200).json({ received: true });
+    if (subscription.status === "active") return res.status(200).json({ received: true });
+    const paidAmount = Number(event?.data?.order?.order_amount);
+    if (!Number.isFinite(paidAmount) || paidAmount !== Number(subscription.amountPaid)) {
+      console.error("Cashfree webhook amount mismatch:", orderId);
+      return res.status(200).json({ received: true });
+    }
+    const duration = Number(subscription.durationDays);
+    const safeDuration = Number.isFinite(duration) && duration > 0 ? duration : 30;
+    await Subscription.findOneAndUpdate(
+      { _id: subscription._id, status: "pending" },
+      {
+        $set: {
+          status: "active",
+          paymentStatus: "paid",
+          transactionId: String(payment.cf_payment_id || orderId),
+          expiresAt: new Date(Date.now() + safeDuration * 86400000)
+        }
+      },
+      { new: true }
+    );
+    return res.status(200).json({ received: true });
+  } catch (err) {
+    console.error("Cashfree webhook error:", err);
+    return res.status(500).json({ message: "Webhook processing failed." });
+  }
+});
+
+router.post("/cashfree/create-order", authMiddleware, async (req, res) => {
+  try {
+    const { plan, phone } = req.body || {};
+    const cleanPhone = String(phone || "").replace(/\D/g, "").slice(-10);
+    if (!plan || !/^\d{10}$/.test(cleanPhone)) {
+      return res.status(400).json({ message: "Select a plan and enter a valid 10-digit mobile number." });
+    }
+    const appId = process.env.CASHFREE_APP_ID;
+    const secret = process.env.CASHFREE_SECRET_KEY;
+    if (!appId || !secret) {
+      return res.status(503).json({ message: "Online payments are temporarily unavailable. Please use manual payment." });
+    }
+    const planDoc = await Plan.findOne({ name: String(plan).trim() });
+    if (!planDoc || !Number.isFinite(Number(planDoc.price)) || Number(planDoc.price) <= 0) {
+      return res.status(400).json({ message: "Selected plan is unavailable." });
+    }
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: "User not found." });
+    const planName = planDoc.name.toLowerCase();
+    const planEnum = planName.includes("premium") ? "premium" : planName.includes("pro") ? "pro" : "starter";
+    const orderId = "ASKC_" + Date.now() + "_" + require("crypto").randomBytes(4).toString("hex");
+    const amount = Number(Number(planDoc.price).toFixed(2));
+    const baseUrl = process.env.CASHFREE_ENVIRONMENT === "production"
+      ? "https://api.cashfree.com/pg"
+      : "https://sandbox.cashfree.com/pg";
+    const response = await fetch(baseUrl + "/orders", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-version": "2023-08-01",
+        "x-client-id": appId,
+        "x-client-secret": secret,
+        "x-idempotency-key": require("crypto").randomUUID()
+      },
+      body: JSON.stringify({
+        order_id: orderId,
+        order_amount: amount,
+        order_currency: "INR",
+        customer_details: {
+          customer_id: String(user._id),
+          customer_name: user.name || "ASKC Customer",
+          customer_email: user.email,
+          customer_phone: cleanPhone
+        },
+        order_meta: {
+          return_url: (process.env.FRONTEND_URL || process.env.CLIENT_URL || "https://askctechnologies.in") + "/payment/" + encodeURIComponent(planDoc.name) + "?cashfree_order_id=" + orderId
+        },
+        order_note: "ASKC TECHNOLOGIES " + planDoc.name + " subscription"
+      })
+    });
+    const data = await response.json();
+    if (!response.ok || !data.payment_session_id) {
+      console.error("Cashfree order creation failed:", data);
+      return res.status(502).json({ message: data.message || "Could not start Cashfree checkout." });
+    }
+    const durationDays = parsePlanDurationDays(planDoc.duration);
+    const subscription = await Subscription.create({
+      user: user._id,
+      plan: planEnum,
+      uniqueId: orderId,
+      status: "pending",
+      expiresAt: new Date(Date.now() + durationDays * 86400000),
+      paymentMethod: "cashfree",
+      durationDays,
+      cashfreeOrderId: orderId,
+      paymentStatus: "created",
+      amountPaid: amount
+    });
+    return res.status(201).json({
+      orderId,
+      paymentSessionId: data.payment_session_id,
+      amount,
+      currency: "INR",
+      environment: process.env.CASHFREE_ENVIRONMENT === "production" ? "production" : "sandbox",
+      subscriptionId: subscription._id
+    });
+  } catch (err) {
+    console.error("Cashfree create-order error:", err);
+    return res.status(500).json({ message: "Unable to create payment order." });
+  }
+});
+
+// Verify payment with Cashfree directly; never trust the browser redirect as proof.
+router.post("/cashfree/verify-order", authMiddleware, async (req, res) => {
+  try {
+    const { orderId } = req.body || {};
+    if (!orderId || !/^ASKC_[A-Za-z0-9_]+$/.test(orderId)) {
+      return res.status(400).json({ message: "Invalid payment order." });
+    }
+    const subscription = await Subscription.findOne({ cashfreeOrderId: orderId, user: req.user.id });
+    if (!subscription) return res.status(404).json({ message: "Payment order not found." });
+    if (subscription.status === "active") {
+      return res.json({ status: "active", subscription, message: "Subscription is already active." });
+    }
+    const appId = process.env.CASHFREE_APP_ID;
+    const secret = process.env.CASHFREE_SECRET_KEY;
+    if (!appId || !secret) return res.status(503).json({ message: "Payment verification is unavailable." });
+    const baseUrl = process.env.CASHFREE_ENVIRONMENT === "production"
+      ? "https://api.cashfree.com/pg"
+      : "https://sandbox.cashfree.com/pg";
+    const response = await fetch(baseUrl + "/orders/" + encodeURIComponent(orderId), {
+      headers: { "x-api-version": "2023-08-01", "x-client-id": appId, "x-client-secret": secret }
+    });
+    const order = await response.json();
+    if (!response.ok) {
+      console.error("Cashfree order verification failed:", order);
+      return res.status(502).json({ message: "Could not verify payment with Cashfree." });
+    }
+    if (order.order_status !== "PAID") {
+      await Subscription.updateOne(
+        { _id: subscription._id, status: "pending" },
+        { $set: { paymentStatus: String(order.order_status || "pending").toLowerCase() } }
+      );
+      return res.status(202).json({
+        status: "pending",
+        paymentStatus: order.order_status || "PENDING",
+        message: "Payment is not confirmed yet. Please wait and check again."
+      });
+    }
+    const paidAmount = Number(order.order_amount);
+    if (!Number.isFinite(paidAmount) || paidAmount !== Number(subscription.amountPaid)) {
+      console.error("Cashfree amount mismatch", { orderId, expected: subscription.amountPaid, received: order.order_amount });
+      return res.status(409).json({ message: "Payment amount mismatch. Please contact support." });
+    }
+    const paymentsResponse = await fetch(baseUrl + "/orders/" + encodeURIComponent(orderId) + "/payments", {
+      headers: { "x-api-version": "2023-08-01", "x-client-id": appId, "x-client-secret": secret }
+    });
+    const payments = paymentsResponse.ok ? await paymentsResponse.json() : [];
+    const successfulPayment = Array.isArray(payments)
+      ? payments.find(payment => payment.payment_status === "SUCCESS")
+      : null;
+    const safeDuration = Number.isFinite(Number(subscription.durationDays)) && Number(subscription.durationDays) > 0 ? Number(subscription.durationDays) : 30;
+    const updated = await Subscription.findOneAndUpdate(
+      { _id: subscription._id, user: req.user.id, status: "pending" },
+      {
+        $set: {
+          status: "active",
+          paymentStatus: "paid",
+          transactionId: successfulPayment?.cf_payment_id ? String(successfulPayment.cf_payment_id) : orderId,
+          expiresAt: new Date(Date.now() + safeDuration * 86400000)
+        }
+      },
+      { new: true }
+    );
+    const finalSubscription = updated || await Subscription.findById(subscription._id);
+    if (!finalSubscription || finalSubscription.status !== "active") {
+      return res.status(409).json({ message: "Subscription could not be activated. Please contact support." });
+    }
+    return res.json({ status: "active", subscription: finalSubscription, message: "Payment verified. Your subscription is now active." });
+  } catch (err) {
+    console.error("Cashfree verify-order error:", err);
+    return res.status(500).json({ message: "Unable to verify payment right now." });
+  }
+});
+
 // Create a new subscription (after payment)
 router.post(
   "/subscribe",
