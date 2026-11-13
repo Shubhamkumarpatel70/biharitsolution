@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import axios from '../axios';
-import { Icon } from '../components/icons';
 
 function ClientWork() {
   const [items, setItems] = useState([]);
@@ -56,8 +55,7 @@ function ClientWork() {
                   {item.websiteUrl ? (
                     <a href={item.websiteUrl} target="_blank" rel="noopener noreferrer" aria-label={`Visit ${item.name} website`} className="block rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500 focus-visible:ring-offset-2">
                       {logo}
-                      <span className="sr-only"><Icon name="externalLink" /></span>
-                    </a>
+                        </a>
                   ) : logo}
                 </div>
               );
