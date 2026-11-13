@@ -334,3 +334,46 @@ button:focus-visible {
     width: 100%;
   }
 }
+
+
+/* Dashboard tab polish for compact screens */
+.admin-dashboard-content {
+  box-sizing: border-box;
+}
+.admin-dashboard-content :where(.rounded-2xl, .rounded-xl, .rounded-lg) {
+  min-width: 0;
+}
+.admin-dashboard-content :where(.flex, .inline-flex) > :where(input, select, textarea) {
+  min-width: 0;
+}
+.admin-dashboard-content :where(button, a, [role="button"]) {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 640px) {
+  .admin-dashboard-content {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .admin-dashboard-content :where(table) {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .admin-dashboard-content :where(thead, tbody, tfoot) {
+    white-space: nowrap;
+  }
+  .admin-dashboard-content :where(th, td) {
+    white-space: nowrap;
+  }
+  .admin-dashboard-content :where(.overflow-x-auto) {
+    overscroll-behavior-x: contain;
+  }
+  .admin-dashboard-content :where(.id-card-generator) {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+  .admin-dashboard-content :where(.form-container) {
+    width: min(100%, 320px);
+  }
+}
