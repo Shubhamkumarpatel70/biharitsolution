@@ -320,6 +320,7 @@ router.post("/cashfree/create-order", authMiddleware, async (req, res) => {
       status: "pending",
       expiresAt: new Date(Date.now() + durationInDays * 86400000),
       paymentMethod: "cashfree",
+      durationDays,
       cashfreeOrderId: orderId,
       paymentStatus: "created",
       amountPaid: amount
@@ -387,10 +388,7 @@ router.post("/cashfree/verify-order", authMiddleware, async (req, res) => {
     const successfulPayment = Array.isArray(payments)
       ? payments.find(payment => payment.payment_status === "SUCCESS")
       : null;
-    const durationInDays = parsePlanDurationDays(
-      (await Plan.findOne({ name: { $regex: new RegExp("^" + String(order.order_note || "").replace(/^ASKC TECHNOLOGIES /, "").replace(/[.*+?^${}()|[\]\\]/g, "\\// Create a new subscription (after payment)") + "$", "i") } }))?.duration
-    );
-    const safeDuration = Number.isFinite(durationInDays) && durationInDays > 0 ? durationInDays : 30;
+    const safeDuration = Number.isFinite(Number(subscription.durationDays)) && Number(subscription.durationDays) > 0 ? Number(subscription.durationDays) : 30;
     const updated = await Subscription.findOneAndUpdate(
       { _id: subscription._id, user: req.user.id, status: "pending" },
       {
