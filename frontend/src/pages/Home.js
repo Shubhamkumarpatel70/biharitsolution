@@ -3,6 +3,7 @@ import Hero from './Hero.js';
 import Stats from './Stats.js';
 import WhyChooseUs from './WhyChooseUs.js';
 import ClientWork from './ClientWork.js';
+import Projects from './Projects.js';
 import CTA from './CTA.js';
 
 function Home() {
@@ -12,6 +13,7 @@ function Home() {
       <Stats />
       <WhyChooseUs />
       <ClientWork />
+      <Projects />
       <CTA />
     </div>
   );
