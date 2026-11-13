@@ -33,6 +33,8 @@ const initForm = {
 export default function AdminAgreements() {
   const [view, setView]               = useState('clients'); // 'clients' | 'folder'
   const [clients, setClients]         = useState([]);
+  const [registeredUsers, setRegisteredUsers] = useState([]);
+  const [selectedClientUserId, setSelectedClientUserId] = useState('');
   const [folderDocs, setFolderDocs]   = useState([]);
   const [activeClient, setActiveClient] = useState(null);
   const [loading, setLoading]         = useState(true);
@@ -81,6 +83,16 @@ export default function AdminAgreements() {
 
   useEffect(() => { loadClients(); }, [loadClients]);
 
+  useEffect(() => {
+    const loadRegisteredUsers = async () => {
+      try {
+        const response = await axios.get('/api/auth/admin/users', { headers });
+        setRegisteredUsers(response.data.users || []);
+      } catch { setRegisteredUsers([]); }
+    };
+    loadRegisteredUsers();
+  }, []);
+
   const openFolder = (client) => {
     setActiveClient(client);
     setView('folder');
@@ -109,6 +121,7 @@ export default function AdminAgreements() {
       const html = generateTemplate(form.documentType, { ...form, docCode, paymentOptions });
       const docLabel = DOCUMENT_TYPES.find(d => d.id === form.documentType)?.label || form.documentType;
       await axios.post('/api/auth/admin/agreements', {
+        clientUserId: selectedClientUserId || null,
         clientName: form.clientName.trim(),
         clientEmail: form.clientEmail.trim(),
         clientCompany: form.clientCompany.trim(),
@@ -255,7 +268,9 @@ export default function AdminAgreements() {
           </div>
           <button
             onClick={() => {
-              setForm(view === 'folder' ? { ...initForm, clientName: activeClient?.clientName || '' } : initForm);
+              const folderUser = view === 'folder' ? registeredUsers.find(user => user.email?.toLowerCase() === activeClient?.clientEmail?.toLowerCase()) : null;
+              setSelectedClientUserId(folderUser?._id || '');
+              setForm(view === 'folder' ? { ...initForm, clientName: activeClient?.clientName || '', clientEmail: activeClient?.clientEmail || '' } : initForm);
               setShowGen(true); setShowPreview(false);
             }}
             className="flex items-center gap-2 px-5 py-2.5 bg-white text-indigo-900 rounded-xl font-bold text-sm hover:bg-indigo-50 transition-colors shadow"
@@ -401,6 +416,20 @@ export default function AdminAgreements() {
                 >
                   {DOCUMENT_TYPES.map(d => <option key={d.id} value={d.id}>{d.label}</option>)}
                 </select>
+              </div>
+              <div className="rounded-xl border border-indigo-100 bg-indigo-50/70 p-4 space-y-2">
+                <label className="block text-xs font-bold uppercase tracking-wider text-indigo-900">Select Registered User (recommended)</label>
+                <select value={selectedClientUserId} onChange={e => {
+                  const id = e.target.value;
+                  setSelectedClientUserId(id);
+                  const selected = registeredUsers.find(user => user._id === id);
+                  if (selected) setForm(current => ({...current, clientName: selected.name || '', clientEmail: selected.email || ''}));
+                  else setForm(current => ({...current, clientName: '', clientEmail: ''}));
+                }} className="w-full rounded-xl border border-indigo-200 bg-white px-4 py-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                  <option value="">Choose a registered user by name / email…</option>
+                  {registeredUsers.map(user => <option key={user._id} value={user._id}>{user.name} — {user.email}</option>)}
+                </select>
+                <p className="text-xs text-indigo-800">Selecting a user automatically fills their registered name and email and links the saved agreement to their account. You can still enter a non-registered client manually below.</p>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
