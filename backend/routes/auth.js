@@ -2998,9 +2998,8 @@ router.get("/admin/email-config", authMiddleware, coAdminMiddleware, async (req,
 router.post("/admin/email-test", authMiddleware, coAdminMiddleware, async (req, res) => {
   try {
     const email = String(req.body.email || "").trim().toLowerCase();
-    if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) {
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    }
+    const validEmail = new RegExp("^[^\\\\s@]+@[^\\\\s@]+\\\\.[^\\\\s@]+$").test(email);
+    if (!validEmail) return res.status(400).json({ message: "Enter a valid test recipient email." });
     await sendEmail(
       email,
       "ASKC TECHNOLOGIES — Email configuration test",
