@@ -21,9 +21,9 @@ function WhyChooseUs() {
 		<section className="py-12 md:py-20 bg-white">
 			<div className="container">
 				<div className="section-header">
-					<h2 className="section-title">Why Choose Us</h2>
+					<h2 className="section-title">A Technology Partner You Can Rely On</h2>
 					<p className="section-subtitle">
-						Building reliable digital solutions with modern, proven technologies that scale with your business.
+						We combine clear communication, dependable engineering, and practical technology choices to create secure digital solutions built around your goals—and ready to grow with your business.
 					</p>
 				</div>
 				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
