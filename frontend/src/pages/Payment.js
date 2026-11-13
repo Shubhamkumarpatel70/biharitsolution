@@ -85,6 +85,35 @@ const Payment = () => {
     fetchData();
   }, [plan, selectedPlanId]);
 
+  useEffect(() => {
+    const orderId = searchParams.get('cashfree_order_id');
+    const token = localStorage.getItem('token');
+    if (!orderId || !token) return;
+    let cancelled = false;
+    const verify = async () => {
+      setStatus('processing');
+      try {
+        const response = await axios.post('/api/auth/cashfree/verify-order', { orderId }, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (cancelled) return;
+        if (response.data.status === 'active') {
+          setSubscription(response.data.subscription);
+          setStatus('success');
+        } else {
+          setStatus('idle');
+          setError(response.data.message || 'Payment is still pending. Please check again shortly.');
+        }
+      } catch (err) {
+        if (cancelled) return;
+        setStatus('error');
+        setError(err.response?.data?.message || 'Payment verification could not be completed. Please retry.');
+      }
+    };
+    verify();
+    return () => { cancelled = true; };
+  }, [searchParams]);
+
   if (loadingPlan) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
@@ -186,35 +215,6 @@ const Payment = () => {
       setError(err.response?.data?.message || err.message || 'Could not start Cashfree checkout.');
     }
   };
-
-  useEffect(() => {
-    const orderId = searchParams.get('cashfree_order_id');
-    const token = localStorage.getItem('token');
-    if (!orderId || !token) return;
-    let cancelled = false;
-    const verify = async () => {
-      setStatus('processing');
-      try {
-        const response = await axios.post('/api/auth/cashfree/verify-order', { orderId }, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (cancelled) return;
-        if (response.data.status === 'active') {
-          setSubscription(response.data.subscription);
-          setStatus('success');
-        } else {
-          setStatus('idle');
-          setError(response.data.message || 'Payment is still pending. Please check again shortly.');
-        }
-      } catch (err) {
-        if (cancelled) return;
-        setStatus('error');
-        setError(err.response?.data?.message || 'Payment verification could not be completed. Please retry.');
-      }
-    };
-    verify();
-    return () => { cancelled = true; };
-  }, [searchParams]);
 
   const handleRetryCashfreeVerification = async () => {
     const orderId = searchParams.get('cashfree_order_id');
