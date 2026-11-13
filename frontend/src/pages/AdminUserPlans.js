@@ -41,7 +41,7 @@ const AdminUserPlans = () => {
   }, []);
 
   return (
-    <div style={{ maxWidth: 900, margin: '0 auto', color: '#E5E7EB' }}>
+    <div className="admin-redesign-page" style={{ maxWidth: 900, margin: '0 auto', color: '#E5E7EB' }}>
       <h2 style={{ color: '#2ECC71', fontWeight: 700, fontSize: '1.7rem', marginBottom: '1.2rem' }}>User Plans</h2>
       {loading ? (
         <div>Loading...</div>
