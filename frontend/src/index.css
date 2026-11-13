@@ -282,3 +282,55 @@ button:focus-visible {
     scroll-behavior: auto !important;
   }
 }
+
+
+/* Admin workspace: shared responsive safeguards for every dashboard tab */
+.admin-dashboard-content {
+  min-width: 0;
+  width: 100%;
+  overflow-wrap: anywhere;
+}
+.admin-dashboard-content > * {
+  min-width: 0;
+  max-width: 100%;
+}
+.admin-dashboard-content table {
+  width: 100%;
+  max-width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+.admin-dashboard-content :where(.overflow-x-auto, [class*="overflow-x-scroll"]) {
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
+}
+.admin-dashboard-content :where(input, select, textarea) {
+  max-width: 100%;
+  min-width: 0;
+}
+.admin-dashboard-content :where(img, video, canvas, svg) {
+  max-width: 100%;
+}
+@media (max-width: 640px) {
+  .admin-dashboard-content {
+    font-size: 0.9375rem;
+  }
+  .admin-dashboard-content :where(button, a[role="button"]) {
+    min-height: 40px;
+  }
+  .admin-dashboard-content :where(.grid) {
+    min-width: 0;
+  }
+  .admin-dashboard-content :where(table) {
+    font-size: 0.8125rem;
+  }
+  .admin-dashboard-content :where(th, td) {
+    white-space: nowrap;
+  }
+  .admin-dashboard-content :where(form) {
+    min-width: 0;
+  }
+  .admin-dashboard-content :where(input, select, textarea) {
+    width: 100%;
+  }
+}
