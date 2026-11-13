@@ -37,6 +37,7 @@ const passport = require("passport");
 const NewsletterSubscriber = require("../models/NewsletterSubscriber");
 const Coupon = require("../models/Coupon");
 const TeamMember = require("../models/Team");
+const ClientWork = require("../models/ClientWork");
 const Feature = require("../models/Feature");
 const Service = require("../models/Service");
 const PaymentOption = require("../models/PaymentOption");
@@ -4542,5 +4543,80 @@ router.post(
     }
   }
 );
+
+
+
+// Client Work CMS
+// Public website: only active client work items are visible.
+router.get("/client-work", async (req, res) => {
+  try {
+    const items = await ClientWork.find({ isActive: true }).sort({ order: 1, createdAt: -1 }).lean();
+    res.json({ clientWork: items });
+  } catch (err) {
+    console.error("Error fetching client work:", err);
+    res.status(500).json({ message: "Could not load client work." });
+  }
+});
+
+// Admin: manage client names and logos.
+router.get("/admin/client-work", authMiddleware, coAdminMiddleware, async (req, res) => {
+  try {
+    const items = await ClientWork.find().sort({ order: 1, createdAt: -1 });
+    res.json({ clientWork: items });
+  } catch (err) {
+    console.error("Error fetching admin client work:", err);
+    res.status(500).json({ message: "Could not fetch client work." });
+  }
+});
+
+router.post("/admin/client-work", authMiddleware, coAdminMiddleware, upload.single("logo"), async (req, res) => {
+  try {
+    const name = String(req.body.name || "").trim();
+    if (!name) return res.status(400).json({ message: "Client or website name is required." });
+    if (!req.file) return res.status(400).json({ message: "Please upload a client logo." });
+    const item = await ClientWork.create({
+      name,
+      logo: bufferToBase64(req.file.buffer, req.file.mimetype),
+      websiteUrl: String(req.body.websiteUrl || "").trim(),
+      order: Number.isFinite(Number(req.body.order)) ? Number(req.body.order) : 0,
+      isActive: req.body.isActive !== "false",
+    });
+    res.status(201).json({ clientWork: item, message: "Client work added successfully." });
+  } catch (err) {
+    console.error("Error creating client work:", err);
+    res.status(500).json({ message: "Could not add client work." });
+  }
+});
+
+router.put("/admin/client-work/:id", authMiddleware, coAdminMiddleware, upload.single("logo"), async (req, res) => {
+  try {
+    const name = String(req.body.name || "").trim();
+    if (!name) return res.status(400).json({ message: "Client or website name is required." });
+    const update = {
+      name,
+      websiteUrl: String(req.body.websiteUrl || "").trim(),
+      order: Number.isFinite(Number(req.body.order)) ? Number(req.body.order) : 0,
+      isActive: req.body.isActive !== "false",
+    };
+    if (req.file) update.logo = bufferToBase64(req.file.buffer, req.file.mimetype);
+    const item = await ClientWork.findByIdAndUpdate(req.params.id, update, { new: true, runValidators: true });
+    if (!item) return res.status(404).json({ message: "Client work item not found." });
+    res.json({ clientWork: item, message: "Client work updated successfully." });
+  } catch (err) {
+    console.error("Error updating client work:", err);
+    res.status(500).json({ message: "Could not update client work." });
+  }
+});
+
+router.delete("/admin/client-work/:id", authMiddleware, coAdminMiddleware, async (req, res) => {
+  try {
+    const item = await ClientWork.findByIdAndDelete(req.params.id);
+    if (!item) return res.status(404).json({ message: "Client work item not found." });
+    res.json({ message: "Client work deleted successfully." });
+  } catch (err) {
+    console.error("Error deleting client work:", err);
+    res.status(500).json({ message: "Could not delete client work." });
+  }
+});
 
 module.exports = router;
