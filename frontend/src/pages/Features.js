@@ -113,42 +113,55 @@ function Features() {
       {/* Features Grid */}
       <section className="py-12 md:py-20 bg-white">
         <div className="container">
-          <div className="section-header">
-            <h2 className="section-title">What Makes Us Different</h2>
-            <p className="section-subtitle">
-              Comprehensive features designed to give you the best web development experience
+          <div className="max-w-2xl mx-auto text-center mb-10 md:mb-14">
+            <span className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-blue-700 mb-4">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-600" />
+              The ASKC Advantage
+            </span>
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-primary-900 mb-4">
+              What Makes Us Different
+            </h2>
+            <p className="text-base md:text-lg text-text-muted leading-relaxed">
+              More than just a website. Get the performance, security, flexibility, and ongoing support your business needs to grow online.
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 md:gap-6">
             {features.map((feature, index) => (
-              <div 
-                key={feature.title} 
-                className={`group relative bg-white rounded-xl p-6 border border-gray-200 shadow-md hover:shadow-gold-hover hover:border-accent-500/50 transition-all duration-300 hover:-translate-y-1 ${
+              <article
+                key={feature.title}
+                className={`group relative flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 md:p-7 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-blue-200 hover:shadow-xl ${
                   isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
                 }`}
-                style={{ transitionDelay: `${index * 0.1}s` }}
+                style={{ transitionDelay: `${index * 0.07}s` }}
               >
-                <div className="mb-4">
-                  <div className="w-16 h-16 bg-accent-500/15 rounded-xl flex items-center justify-center text-primary-800 border border-accent-500/20 mb-4 group-hover:scale-105 transition-transform duration-300">
-                    <Icon name={feature.icon} className="w-8 h-8" strokeWidth={2} />
+                <div className="flex items-start justify-between gap-4 mb-5">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-blue-100 bg-blue-50 text-blue-700 transition-colors duration-300 group-hover:bg-blue-700 group-hover:text-white">
+                    <Icon name={feature.icon} className="h-6 w-6" strokeWidth={2} />
                   </div>
+                  <span className="text-xs font-semibold tracking-widest text-slate-300">
+                    {String(index + 1).padStart(2, '0')}
+                  </span>
                 </div>
-                <h3 className="text-xl font-bold text-primary-600 mb-2">
+                <h3 className="text-lg md:text-xl font-bold text-slate-900 mb-2">
                   {feature.title}
                 </h3>
-                <p className="text-text-muted text-sm mb-4 leading-relaxed">{feature.desc}</p>
-                <div className="border-t border-gray-200 pt-4">
-                  <h4 className="text-sm font-semibold text-text-main mb-3">Includes:</h4>
-                  <ul className="space-y-2">
-                    {feature.details.map((detail, idx) => (
-                      <li key={idx} className="flex items-center gap-2 text-sm text-text-main">
-                        <span className="text-accent-500 font-bold">✓</span>
-                        <span>{detail}</span>
+                <p className="text-sm leading-6 text-slate-600 mb-6">
+                  {feature.desc}
+                </p>
+                <div className="mt-auto border-t border-slate-100 pt-5">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">What’s included</h4>
+                  <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-2">
+                    {feature.details.map((detail) => (
+                      <li key={detail} className="flex items-start gap-2 text-sm text-slate-700">
+                        <span className="mt-0.5 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-700">
+                          <Icon name="check" className="h-3 w-3" />
+                        </span>
+                        <span className="leading-5">{detail}</span>
                       </li>
                     ))}
                   </ul>
                 </div>
-              </div>
+              </article>
             ))}
           </div>
         </div>
@@ -198,7 +211,7 @@ function Features() {
             <div className="bg-white rounded-xl border border-gray-200 shadow-md overflow-hidden min-w-[520px] sm:min-w-0">
               <div className="grid grid-cols-3 gap-2 sm:gap-4 bg-gradient-primary p-3 sm:p-4 text-white font-bold text-sm sm:text-base">
                 <div className="text-left pl-1">Feature</div>
-                <div className="text-center">ASKC Digital Web</div>
+                <div className="text-center">ASKC TECHNOLOGIES</div>
                 <div className="text-center">Typical</div>
               </div>
               <div className="divide-y divide-gray-200">
@@ -247,7 +260,7 @@ function Features() {
           <div className="max-w-3xl mx-auto text-center px-2">
             <h2 className="text-3xl md:text-4xl font-black text-white mb-4">Ready to use these features?</h2>
             <p className="text-white/90 text-lg mb-8">
-              Get started with ASKC Digital Web and ship a site that is fast, secure, and easy to maintain.
+              Build with ASKC TECHNOLOGIES and launch a website that is fast, secure, and ready to grow.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
