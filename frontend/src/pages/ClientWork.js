@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from '../axios';
+import { Icon } from '../components/icons';
 
 function ClientWork() {
   const [items, setItems] = useState([]);
