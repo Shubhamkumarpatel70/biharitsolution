@@ -12,6 +12,7 @@ const Payment = () => {
   const [subscription, setSubscription] = useState(null);
   const [error, setError] = useState('');
   const [plans, setPlans] = useState([]);
+  const [loadingPlan, setLoadingPlan] = useState(true);
   const [transactionId, setTransactionId] = useState('');
   const [amount, setAmount] = useState('');
   const [planObj, setPlanObj] = useState(null);
@@ -56,25 +57,44 @@ const Payment = () => {
         }
 
         // Fetch payment options
-        const paymentRes = await axios.get('/api/auth/payment-options');
-        setPaymentOptions(paymentRes.data.paymentOptions);
-        if (paymentRes.data.paymentOptions.length > 0) {
-          setSelectedPaymentOption(paymentRes.data.paymentOptions[0]);
+        try {
+          const paymentRes = await axios.get('/api/auth/payment-options');
+          const options = Array.isArray(paymentRes.data?.paymentOptions) ? paymentRes.data.paymentOptions : [];
+          setPaymentOptions(options);
+          if (options.length > 0) setSelectedPaymentOption(options[0]);
+        } catch (paymentError) {
+          // Payment options are only needed for manual UPI/QR; Cashfree can still be used.
+          console.error('Error fetching manual payment options:', paymentError);
+          setPaymentOptions([]);
         }
       } catch (err) {
-        console.error('Error fetching data:', err);
+        console.error('Error fetching payment page data:', err);
+        setError(err.response?.data?.message || 'Unable to load this plan. Please refresh and try again.');
+      } finally {
+        setLoadingPlan(false);
       }
     };
     fetchData();
   }, [plan]);
 
+  if (loadingPlan) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="text-center" role="status" aria-live="polite">
+          <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+          <p className="text-sm font-medium text-slate-600">Loading your selected plan…</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!planObj) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-slate-50">
         <div className="text-center text-red-500 text-xl font-medium">
-          <div className="mb-4">Invalid plan selected.</div>
+          <div className="mb-4">{error || 'This plan is not available.'}</div>
           <div className="text-sm text-slate-500 mb-4">
-            Plan: "{plan}" not found. Available plans:
+            Selected plan: "{plan}". Available plans:
           </div>
           <div className="text-sm text-slate-600 mb-4">
             {plans.map(p => p.name).join(', ')}
