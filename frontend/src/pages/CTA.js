@@ -6,13 +6,13 @@ function CTA() {
     <section className="relative overflow-hidden bg-[#f4f5f7] py-16 sm:py-20 lg:py-28" aria-labelledby="home-cta-title">
       <div className="container relative z-10">
         <div className="relative isolate overflow-hidden rounded-[2rem] bg-[#111820] px-6 py-12 text-white shadow-2xl shadow-slate-900/15 sm:px-10 sm:py-16 lg:px-16 lg:py-20">
-          <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
+          <div className="pointer-events-none absolute inset-0 z-0" aria-hidden="true">
             <div className="absolute -right-24 -top-36 h-96 w-96 rounded-full bg-accent-500/15 blur-3xl" />
             <div className="absolute -bottom-40 left-1/4 h-80 w-80 rounded-full bg-cyan-400/10 blur-3xl" />
             <div className="absolute inset-0 opacity-[0.08]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.25) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.25) 1px, transparent 1px)', backgroundSize: '42px 42px' }} />
           </div>
 
-          <div className="grid items-center gap-10 lg:grid-cols-[1fr_auto] lg:gap-14">
+          <div className="relative z-10 grid items-center gap-10 lg:grid-cols-[1fr_auto] lg:gap-14">
             <div className="max-w-2xl">
               <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-accent-400/30 bg-accent-400/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-accent-300">
                 <span className="h-2 w-2 rounded-full bg-accent-400 shadow-[0_0_12px_rgba(250,204,21,.8)]" />
