@@ -10,6 +10,7 @@ const AdminUsers = () => {
   const [changingRole, setChangingRole] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({});
+  const [billingBusy, setBillingBusy] = useState(null);
 
   // Filter users based on search and filters
   const filteredUsers = useMemo(() => {
@@ -94,6 +95,39 @@ const AdminUsers = () => {
     }
   };
 
+
+  const assignPlan = async (user) => {
+    const planName = window.prompt('Plan name to assign:', user.latestSubscription?.planName || 'Custom Plan');
+    if (!planName) return;
+    const totalAmount = window.prompt('Total plan amount in INR:', String(user.latestSubscription?.totalAmount || '5000'));
+    if (totalAmount === null || !Number.isFinite(Number(totalAmount)) || Number(totalAmount) < 0) return;
+    const durationDays = window.prompt('Plan validity in days:', String(user.latestSubscription?.durationDays || 30));
+    if (durationDays === null) return;
+    setBillingBusy(user._id);
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post('/api/auth/admin/users/' + user._id + '/assign-plan', { planName, totalAmount: Number(totalAmount), durationDays: Number(durationDays) }, { headers: { Authorization: 'Bearer ' + token } });
+      const r = await axios.get('/api/auth/admin/users', { headers: { Authorization: 'Bearer ' + token } });
+      setUsers(r.data.users || []); setSuccess('Plan assigned successfully.');
+    } catch (err) { setError(err.response?.data?.message || 'Could not assign plan.'); }
+    finally { setBillingBusy(null); }
+  };
+
+  const recordPayment = async (user) => {
+    const balance = Math.max(0, Number(user.latestSubscription?.totalAmount || 0) - Number(user.latestSubscription?.amountPaid || 0));
+    const amount = window.prompt('Payment received (INR). Outstanding: ₹' + balance, '');
+    if (amount === null || !Number.isFinite(Number(amount)) || Number(amount) <= 0) return;
+    const reference = window.prompt('Transaction / receipt reference (optional):', '') || '';
+    setBillingBusy(user._id);
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post('/api/auth/admin/users/' + user._id + '/record-payment', { amount: Number(amount), method: 'manual', reference }, { headers: { Authorization: 'Bearer ' + token } });
+      const r = await axios.get('/api/auth/admin/users', { headers: { Authorization: 'Bearer ' + token } });
+      setUsers(r.data.users || []); setSuccess('Payment recorded successfully.');
+    } catch (err) { setError(err.response?.data?.message || 'Could not record payment.'); }
+    finally { setBillingBusy(null); }
+  };
+
   const roleOptions = [
     { value: 'user', label: 'User' },
     { value: 'coadmin', label: 'Co-Admin' },
@@ -170,7 +204,7 @@ const AdminUsers = () => {
                   <tr className="bg-gray-900">
                     <th className="p-3 text-left border-b border-gray-700 text-sm font-semibold">Name</th>
                     <th className="p-3 text-left border-b border-gray-700 text-sm font-semibold">Email</th>
-                    <th className="p-3 text-left border-b border-gray-700 text-sm font-semibold">Role</th>
+                    <th className="p-3 text-left border-b border-gray-700 text-sm font-semibold">Role</th><th className="p-3 text-left border-b border-gray-700 text-sm font-semibold">Plan / Payment</th>
                     <th className="p-3 text-left border-b border-gray-700 text-sm font-semibold">Actions</th>
                     <th className="p-3 text-left border-b border-gray-700 text-sm font-semibold">Created</th>
                   </tr>
