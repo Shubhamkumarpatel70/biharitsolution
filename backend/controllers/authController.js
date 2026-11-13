@@ -56,7 +56,7 @@ exports.sendRegisterOtp = async (req, res) => {
   let generatedOtp = "";
   try {
     if (!email || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) {
-      return res.status(400).json({ message: "Please enter a valid email address." });
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     }
     const existingUser = await User.findOne({ $expr: { $eq: [{ $toLower: "$email" }, email] } }).select("_id");
     if (existingUser) return res.status(400).json({ message: "User already exists." });
