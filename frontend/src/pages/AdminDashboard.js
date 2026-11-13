@@ -52,6 +52,12 @@ const AdminDashboard = () => {
   const activeLabel = activeItem?.label || 'Dashboard';
 
   useEffect(() => {
+    const openUserPlans = () => selectTab('user-plans');
+    window.addEventListener('askc-open-user-plans', openUserPlans);
+    return () => window.removeEventListener('askc-open-user-plans', openUserPlans);
+  }, []);
+
+  useEffect(() => {
     if (!sidebarOpen) return undefined;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
