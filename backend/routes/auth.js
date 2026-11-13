@@ -363,7 +363,7 @@ router.post("/cashfree/create-order", authMiddleware, async (req, res) => {
           // cannot redirect customers to the old domain after payment.
           return_url: (["https://askcweb.in", "https://www.askcweb.in", "https://askctechnologies.in"].includes(req.headers.origin)
             ? req.headers.origin
-            : String(process.env.FRONTEND_URL || process.env.CLIENT_URL || "https://askcweb.in").replace(/\\/+$/, "")) +
+            : String(process.env.FRONTEND_URL || process.env.CLIENT_URL || "https://askcweb.in").replace(/\/+$/, "")) +
             "/payment/" + encodeURIComponent(planDoc.name) + "?cashfree_order_id=" + orderId
         },
         order_note: "ASKC TECHNOLOGIES " + planDoc.name + " subscription"
