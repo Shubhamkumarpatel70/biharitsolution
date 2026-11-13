@@ -4,6 +4,7 @@ const subscriptionSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   plan: { type: String, enum: ['starter', 'premium', 'pro'], required: true },
   planName: { type: String, trim: true, default: '' },
+  sourcePlan: { type: mongoose.Schema.Types.ObjectId, ref: 'Plan', default: null },
   totalAmount: { type: Number, min: 0, default: 0 },
   paymentEntries: [{ amount: { type: Number, required: true, min: 0.01 }, method: { type: String, default: 'manual' }, reference: { type: String, default: '' }, note: { type: String, default: '' }, status: { type: String, enum: ['pending','confirmed','rejected'], default: 'confirmed' }, recordedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, recordedAt: { type: Date, default: Date.now } }],
   status: { type: String, enum: ['pending', 'active', 'rejected', 'expired'], default: 'pending' },
