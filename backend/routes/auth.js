@@ -578,6 +578,9 @@ router.post(
     if (await getCheckoutPaymentMode() !== "manual") {
       return res.status(403).json({ message: "Manual payment submissions are disabled. Complete payment through the configured online gateway." });
     }
+    if (!(await PaymentOption.countDocuments({ isActive: true }))) {
+      return res.status(503).json({ message: "Manual payment is not configured. Please contact ASKC Technologies." });
+    }
     // Get data from FormData (req.body) or JSON (req.body)
     let { plan, transactionId, method } = req.body;
     const paymentImage = req.file;
@@ -2031,6 +2034,9 @@ router.post(
     // Keep this legacy duplicate route protected too; never trust frontend-only mode controls.
     if (await getCheckoutPaymentMode() !== "manual") {
       return res.status(403).json({ message: "Manual payment submissions are disabled. Complete payment through the configured online gateway." });
+    }
+    if (!(await PaymentOption.countDocuments({ isActive: true }))) {
+      return res.status(503).json({ message: "Manual payment is not configured. Please contact ASKC Technologies." });
     }
     // Get data from FormData (req.body) or JSON (req.body)
     let { plan, transactionId, method } = req.body;
@@ -3921,6 +3927,12 @@ router.put("/admin/payment-settings", authMiddleware, adminMiddleware, async (re
     const mode = String(req.body?.mode || "").trim().toLowerCase();
     if (!["manual", "cashfree"].includes(mode)) {
       return res.status(400).json({ message: "Choose either manual or cashfree payment mode." });
+    }
+    if (mode === "cashfree" && (!process.env.CASHFREE_APP_ID || !process.env.CASHFREE_SECRET_KEY)) {
+      return res.status(409).json({ message: "Configure CASHFREE_APP_ID and CASHFREE_SECRET_KEY in Render before enabling Cashfree checkout." });
+    }
+    if (mode === "manual" && !(await PaymentOption.countDocuments({ isActive: true }))) {
+      return res.status(409).json({ message: "Add and activate at least one manual UPI, QR or bank payment option before enabling manual checkout." });
     }
     const settings = await PaymentMode.findOneAndUpdate(
       { key: "checkout" },
