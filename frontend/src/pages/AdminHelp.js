@@ -59,11 +59,12 @@ const AdminHelp = () => {
       {loading ? <div>Loading...</div> : error ? <div style={{ color: '#FF6B35' }}>{error}</div> : (
         <div style={{ background: '#23272F', borderRadius: '1rem', padding: '2rem', boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}>
           {complaints.length === 0 ? <div>No complaints found.</div> : (
-            <table style={{ width: '100%', color: '#E5E7EB', borderCollapse: 'collapse' }}>
+            <div style={{ width: '100%', overflowX: 'auto' }}><table style={{ width: '100%', minWidth: 1050, color: '#E5E7EB', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ color: '#2ECC71', borderBottom: '1px solid #333' }}>
                   <th style={{ padding: '0.5rem' }}>User</th>
                   <th style={{ padding: '0.5rem' }}>Email</th>
+                  <th style={{ padding: '0.5rem' }}>Submitted At</th>
                   <th style={{ padding: '0.5rem' }}>Message</th>
                   <th style={{ padding: '0.5rem' }}>Status</th>
                   <th style={{ padding: '0.5rem' }}>Reopen</th>
@@ -74,11 +75,11 @@ const AdminHelp = () => {
               </thead>
               <tbody>
                 {complaints.map(c => {
-                  console.log('AdminHelp complaint:', c);
                   return (
                     <tr key={c._id} style={{ borderBottom: '1px solid #333' }}>
                       <td style={{ padding: '0.5rem' }}>{c.user?.name || 'N/A'}</td>
                       <td style={{ padding: '0.5rem' }}>{c.user?.email || 'N/A'}</td>
+                      <td style={{ padding: '0.5rem', whiteSpace: 'nowrap', fontSize: '0.85rem', color: '#A1A1AA' }}>{c.createdAt ? new Date(c.createdAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}</td>
                       <td style={{ padding: '0.5rem' }}>{c.message}</td>
                       <td style={{ padding: '0.5rem', color: c.status === 'resolved' ? '#2ECC71' : '#FF6B35' }}>{c.status}</td>
                       <td style={{ padding: '0.5rem' }}>
@@ -113,7 +114,7 @@ const AdminHelp = () => {
                   );
                 })}
               </tbody>
-            </table>
+            </table></div>
           )}
         </div>
       )}
