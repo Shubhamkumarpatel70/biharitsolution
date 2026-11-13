@@ -287,8 +287,8 @@ function Navbar() {
                 className={`flex flex-col justify-center items-center w-10 h-10 bg-white border border-gray-200 rounded-lg cursor-pointer p-0 transition-all duration-300 relative hover:bg-gray-50 hover:border-gray-300 hover:scale-105 ${
                   isMobileMenuOpen ? 'bg-gray-100 border-gray-300' : ''
                 }`}
-                onClick={toggleMobileMenu}
-                aria-label="Toggle mobile menu"
+                onClick={() => isUserDashboardShell ? window.dispatchEvent(new Event('askc:toggle-dashboard-sidebar')) : toggleMobileMenu()}
+                aria-label={isUserDashboardShell ? 'Toggle dashboard sidebar' : 'Toggle mobile menu'}
                 aria-expanded={isMobileMenuOpen}
               >
                 <span

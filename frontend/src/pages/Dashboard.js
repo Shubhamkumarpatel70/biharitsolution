@@ -46,12 +46,12 @@ function Dashboard() {
 
   return (
     <div className="min-h-screen min-h-dvh bg-slate-100 flex relative">
-      {sidebarOpen && <button type="button" aria-label="Close dashboard menu" onClick={() => setSidebarOpen(false)} className="fixed inset-0 z-[80] bg-slate-950/55 lg:hidden" />}
-      <aside className={`fixed inset-y-0 left-0 z-[90] h-dvh max-h-dvh transform transition-transform duration-300 lg:sticky lg:top-0 lg:translate-x-0 lg:shrink-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
+      {sidebarOpen && <button type="button" aria-label="Close dashboard menu" onClick={() => setSidebarOpen(false)} className="fixed inset-x-0 top-[5.5rem] bottom-0 z-[1900] bg-slate-950/55 lg:hidden" />}
+      <aside className={`fixed top-[5.5rem] bottom-0 left-0 z-[1901] h-auto max-h-[calc(100dvh-5.5rem)] w-[min(18rem,86vw)] transform transition-transform duration-300 lg:sticky lg:top-0 lg:bottom-auto lg:z-auto lg:h-dvh lg:max-h-dvh lg:w-auto lg:translate-x-0 lg:shrink-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
         <Sidebar onLogout={handleLogout} user={user} onClose={() => setSidebarOpen(false)} />
       </aside>
       <main className="flex-1 min-w-0 min-h-screen flex flex-col">
-        <div className="sticky top-0 z-40 flex items-center gap-3 border-b border-slate-200 bg-white/95 px-3 py-2.5 shadow-sm backdrop-blur lg:hidden">
+        <div className="hidden lg:hidden">
           <button type="button" onClick={() => setSidebarOpen(true)} aria-label="Open dashboard sidebar" aria-expanded={sidebarOpen} className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-slate-700"><span className="text-xl leading-none">☰</span></button>
           <div className="min-w-0"><p className="text-sm font-bold text-slate-900">ASKC Technologies</p><p className="text-xs text-slate-500">User Dashboard</p></div>
         </div>
