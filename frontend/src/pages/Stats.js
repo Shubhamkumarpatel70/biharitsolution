@@ -81,9 +81,9 @@ function Stats() {
 		>
 			<div className="container">
 				<header className="section-header">
-					<h2 id="stats-title" className="section-title">Our Impact in Numbers</h2>
+					<h2 id="stats-title" className="section-title">Results That Speak for Themselves</h2>
 					<p id="stats-subtitle" className="section-subtitle">
-						Trusted delivery, measurable results, and customer-first support.
+						A look at the work we deliver, the standards we uphold, and the support our clients can count on.
 					</p>
 				</header>
 
