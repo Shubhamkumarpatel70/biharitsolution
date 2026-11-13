@@ -886,6 +886,14 @@ router.post("/admin/users/:id/assign-plan", authMiddleware, adminMiddleware, asy
       paymentEntries: [],
       adminNote: String(note || "").slice(0, 500)
     });
+    await createUserNotification(
+      user._id,
+      "New subscription assigned",
+      `ASKC TECHNOLOGIES assigned you the ${resolvedName} plan (ID: ${uniqueId}). Total amount: ₹${resolvedAmount.toLocaleString("en-IN")}.`,
+      "subscription",
+      `subscription:assigned:${sub._id}`,
+      "/dashboard/subscription"
+    );
     res.status(201).json({ subscription: sub, message: "Plan assigned successfully." });
   } catch (err) {
     console.error("Admin plan assignment failed:", err);
@@ -1267,6 +1275,25 @@ router.get(
 // Add this route for user notifications
 router.get("/user-notifications", authMiddleware, async (req, res) => {
   try {
+    const now = new Date();
+    const expiringSubscriptions = await Subscription.find({
+      user: req.user.id,
+      status: "active",
+      canceled: { $ne: true },
+      expiresAt: { $gte: now, $lte: new Date(now.getTime() + 7 * 86400000) },
+    });
+    for (const subscription of expiringSubscriptions) {
+      const daysRemaining = Math.max(0, Math.ceil((new Date(subscription.expiresAt).getTime() - now.getTime()) / 86400000));
+      const expiryKey = `subscription:expiring:${subscription._id}:${new Date(subscription.expiresAt).toISOString().slice(0, 10)}`;
+      await createUserNotification(
+        req.user.id,
+        "Subscription expiring soon",
+        `Your ${subscription.planName || subscription.plan} subscription (${subscription.uniqueId}) expires in ${daysRemaining} day(s), on ${new Date(subscription.expiresAt).toLocaleString("en-IN")}.`,
+        "subscription",
+        expiryKey,
+        "/dashboard/subscription"
+      );
+    }
     const notifications = await Notification.find({
       $and: [
         { $or: [{ user: req.user.id }, { user: null }] },
