@@ -1261,12 +1261,34 @@ router.post(
   coAdminMiddleware,
   async (req, res) => {
     try {
-      const { name, role, idNumber, photo } = req.body;
+      const name = String(req.body?.name || "").trim();
+      const role = String(req.body?.role || "").trim();
+      const idNumber = String(req.body?.idNumber || "").trim().toUpperCase();
+      const photo = typeof req.body?.photo === "string" ? req.body.photo : "";
+
+      if (!name || !role || !idNumber) {
+        return res.status(400).json({ message: "Employee name, job position and ID number are required." });
+      }
+      if (name.length > 100 || role.length > 80 || idNumber.length > 40) {
+        return res.status(400).json({ message: "One or more ID card fields exceed the allowed length." });
+      }
+      if (photo.length > 8 * 1024 * 1024) {
+        return res.status(413).json({ message: "Photo is too large. Please upload a smaller image (under 5 MB)." });
+      }
+
+      const existingCard = await IDCard.findOne({ idNumber }).select("_id").lean();
+      if (existingCard) {
+        return res.status(409).json({ message: "This employee ID number is already in use. Generate a new ID number." });
+      }
+
       const idCard = await IDCard.create({ name, role, idNumber, photo });
-      res.status(201).json({ idCard });
+      return res.status(201).json({ idCard, message: "ID card saved successfully." });
     } catch (err) {
       console.error("ID Card save error:", err);
-      res.status(500).json({ message: "Could not save ID card." });
+      if (err.name === "ValidationError") {
+        return res.status(400).json({ message: "Please check the ID card details and try again." });
+      }
+      return res.status(500).json({ message: "Could not save ID card. Please try again." });
     }
   },
 );
