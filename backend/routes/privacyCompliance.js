@@ -63,7 +63,7 @@ router.get("/", async (req, res) => {
 router.put("/:month", async (req, res) => {
   try {
     const month = String(req.params.month || "");
-    if (!/^\\d{4}-(0[1-9]|1[0-2])$/.test(month)) return res.status(400).json({ message: "Month must use YYYY-MM format." });
+    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) return res.status(400).json({ message: "Month must use YYYY-MM format." });
     const submitted = Array.isArray(req.body.items) ? req.body.items : [];
     const allowed = new Set(CHECKLIST);
     const items = submitted.filter(item => item && allowed.has(item.key)).map(item => ({

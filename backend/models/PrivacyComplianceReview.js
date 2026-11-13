@@ -24,7 +24,7 @@ const auditSchema = new mongoose.Schema({
 }, { _id: false });
 
 const monthlySchema = new mongoose.Schema({
-  month: { type: String, required: true, match: /^\\d{4}-(0[1-9]|1[0-2])$/ },
+  month: { type: String, required: true, match: /^\d{4}-(0[1-9]|1[0-2])$/ },
   items: { type: [itemSchema], default: [] },
   status: { type: String, enum: ["in_progress", "ready_for_review", "completed"], default: "in_progress" },
   reviewer: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
