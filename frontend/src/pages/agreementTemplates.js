@@ -1,8 +1,8 @@
-const CO = "ASKC DIGITAL WEB";
+const CO = "ASKC Technologies";
 const LOGO = "/agreements/logo.jpeg";
-const EMAIL = "support@askcweb.in";
+const EMAIL = "askctechnologies@gmail.com";
 const WEB = "www.askcweb.in";
-const PHONE = "+91 62626 92632";
+const PHONE = "+91 7992365197";
 
 export const DOCUMENT_TYPES = [
   { id: "nda", label: "Non-Disclosure Agreement (NDA)" },
@@ -167,7 +167,7 @@ ${dcBadge(docCode)}
 </div>
 <div style="margin-top:25px;font-size:11px;line-height:1.8;color:#475569;">
 <strong style="color:#061d4b">Payment Details:</strong><br>
-Account Name: ASKC Digital Web<br>
+Account Name: ASKC Technologies<br>
 Bank: State Bank of India &nbsp;|&nbsp; UPI: support@askcweb<br>
 ${paymentNote?`<br><em>${paymentNote}</em>`:''}
 </div>
