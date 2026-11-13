@@ -7,15 +7,15 @@ import { Icon } from './icons';
 const primaryNavLinks = [
   { to: '/', label: 'Home' },
   { to: '/about', label: 'About' },
-  { to: '/plans', label: 'Plans' },
+  { to: '/plans', label: 'Pricing' },
   { to: '/features', label: 'Features' },
+  { to: '/contact', label: 'Contact' },
 ];
 
 const moreNavLinks = [
   { to: '/services', label: 'Services' },
   { to: '/team', label: 'Our Team' },
   { to: '/careers', label: 'Careers' },
-  { to: '/contact', label: 'Contact' },
 ];
 
 function isMoreNavActive(pathname) {
