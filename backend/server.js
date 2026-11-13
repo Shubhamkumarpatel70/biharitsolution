@@ -41,6 +41,8 @@ app.use(
           "https://api.qrserver.com",
           "https://api.cashfree.com",
           "https://sandbox.cashfree.com",
+          "https://api.cashfree.com",
+          "https://sandbox.cashfree.com",
           "https://www.google-analytics.com",
           "https://ssl.gstatic.com",
           "https://www.googletagmanager.com",
