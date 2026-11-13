@@ -13,13 +13,13 @@ const contactMethods = [
   {
     title: 'Phone',
     content: '+91 79923 65197',
-    link: 'tel:+91 79923 65197',
+    link: 'tel:+917992365197',
     icon: 'phone'
   },
   {
     title: 'WhatsApp',
     content: '+91 79923 65197',
-    link: 'https://wa.me/91+91 79923 65197',
+    link: 'https://wa.me/917992365197',
     icon: 'chat'
   },
   {
@@ -341,7 +341,7 @@ function Contact() {
                 Email Us Now
                 <span className="transition-transform duration-300 group-hover:translate-x-1">→</span>
               </a>
-              <a href="tel:+91 79923 65197" className="btn btn-secondary">
+              <a href="tel:+917992365197" className="btn btn-secondary">
                 Call Us Now
               </a>
             </div>
