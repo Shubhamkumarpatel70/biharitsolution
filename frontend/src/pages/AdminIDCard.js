@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import html2canvas from 'html2canvas';
-import axios from 'axios';
+import api from '../axios';
 import Barcode from 'react-barcode';
 
 const AdminIDCard = () => {
@@ -34,8 +34,8 @@ const AdminIDCard = () => {
 
   const fetchIDCards = async () => {
     try {
-      const res = await axios.get('/api/auth/admin/id-cards');
-      setIdCards(res.data.idCards);
+      const res = await api.get('/api/auth/admin/id-cards');
+      setIdCards(Array.isArray(res.data?.idCards) ? res.data.idCards : []);
     } catch (err) {
       console.error('Error fetching ID cards:', err);
     }
@@ -59,21 +59,23 @@ const AdminIDCard = () => {
     }
     setLoading(true);
     try {
-      await axios.post('/api/auth/admin/id-cards', {
+      const saved = await api.post('/api/auth/admin/id-cards', {
         name,
         role,
         idNumber,
         photo
       });
+      if (!saved.data?.idCard?._id) throw new Error('Server did not confirm that the ID card was saved.');
+      await fetchIDCards();
       alert('ID Card saved successfully');
-      fetchIDCards();
       // Reset form
       setName('');
       setRole('');
       generateDynamicID();
     } catch (err) {
       console.error('Error saving ID card:', err);
-      alert('Failed to save ID card');
+      const message = err.response?.data?.message || err.message || 'Please check your connection and try again.';
+      alert(`Could not save ID card: ${message}`);
     } finally {
       setLoading(false);
     }
@@ -82,7 +84,7 @@ const AdminIDCard = () => {
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this ID card?')) return;
     try {
-      await axios.delete(`/api/auth/admin/id-cards/${id}`);
+      await api.delete(`/api/auth/admin/id-cards/${id}`);
       fetchIDCards();
     } catch (err) {
       console.error('Error deleting ID card:', err);
