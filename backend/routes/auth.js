@@ -2733,28 +2733,26 @@ router.post(
   coAdminMiddleware,
   async (req, res) => {
     try {
-      const { email, emails, subject, message } = req.body;
-
-      // Support both "email" (single) and "emails" (array) for backward compatibility
-      let emailList = [];
-      if (emails && Array.isArray(emails)) {
-        emailList = emails
-          .map((e) => String(e).trim().toLowerCase())
-          .filter((e) => e && e.includes("@"));
-      } else if (email) {
-        const singleEmail = String(email).trim().toLowerCase();
-        if (singleEmail.includes("@")) {
-          emailList = [singleEmail];
-        }
-      }
+      const { email, emails, subject, message } = req.body || {};
+      const suppliedEmails = Array.isArray(emails) ? emails : email ? [email] : [];
+      const emailList = [
+        ...new Set(
+          suppliedEmails
+            .map((value) => String(value || "").trim().toLowerCase())
+            .filter((value) =>
+              /^[a-z0-9.!#$%&'*+/=?^`{|}~-]+@[a-z0-9-]+(?:\\.[a-z0-9-]+)+$/i.test(value)
+            )
+        ),
+      ];
 
       const normalizedSubject = String(subject || "").trim();
       const normalizedMessage = String(message || "").trim();
 
-      if (emailList.length === 0) {
-        return res
-          .status(400)
-          .json({ message: "At least one valid email is required." });
+      if (!emailList.length) {
+        return res.status(400).json({ message: "Enter at least one valid email address." });
+      }
+      if (emailList.length > 100) {
+        return res.status(400).json({ message: "You can send one campaign to a maximum of 100 recipients at a time." });
       }
       if (!normalizedSubject) {
         return res.status(400).json({ message: "Subject is required." });
@@ -2763,161 +2761,100 @@ router.post(
         return res.status(400).json({ message: "Message is required." });
       }
 
-      // Get site origin for unsubscribe links
       const siteOrigin = getPublicSiteOrigin();
       if (!siteOrigin) {
-        return res.status(500).json({
-          message:
-            "Public site URL is not configured. Set CLIENT_URL or PUBLIC_SITE_URL on the server.",
+        return res.status(503).json({
+          message: "Public website URL is not configured. Set PUBLIC_SITE_URL or FRONTEND_URL in the backend environment.",
         });
       }
 
-      // Process each email
+      const escapeHtml = (value) =>
+        String(value)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+
       let successCount = 0;
-      const errors = [];
+      const failedEmails = [];
+      let firstFailureReason = "";
 
-      for (const normalizedEmail of emailList) {
+      for (const recipient of emailList) {
         try {
-          // Update subscriber status
-          await NewsletterSubscriber.findOneAndUpdate(
-            { email: normalizedEmail },
-            { email: normalizedEmail, status: "subscribed" },
-            { upsert: true, new: true, setDefaultsOnInsert: true },
-          );
-
-          // Generate unsubscribe URL
           const unsubscribeUrl =
-            siteOrigin.replace(/\/$/, "") +
+            siteOrigin.replace(/\\/$/, "") +
             "/unsubscribe-email?email=" +
-            encodeURIComponent(normalizedEmail);
+            encodeURIComponent(recipient);
 
-          // Build HTML
-          const escapedSubject = normalizedSubject
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "<")
-            .replace(/>/g, ">");
-          const escapedMessage = normalizedMessage
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "<")
-            .replace(/>/g, ">")
-            .replace(/\n/g, "<br/>");
-
+          const safeSubject = escapeHtml(normalizedSubject);
+          const safeMessage = escapeHtml(normalizedMessage).replace(/\\r?\\n/g, "<br/>");
           const html = `<div style="margin:0;padding:24px;background:#f8fafc;font-family:Arial,Helvetica,sans-serif;color:#0f172a;">
             <div style="max-width:620px;margin:0 auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;">
               <div style="padding:20px 24px;background:linear-gradient(135deg,#0f172a,#1e293b);">
                 <div style="font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#94a3b8;font-weight:700;">ASKC TECHNOLOGIES</div>
-                <h2 style="margin:10px 0 0 0;font-size:22px;line-height:1.3;color:#ffffff;">${escapedSubject}</h2>
+                <h2 style="margin:10px 0 0;font-size:22px;line-height:1.3;color:#ffffff;">${safeSubject}</h2>
               </div>
               <div style="padding:24px;">
-                <div style="font-size:15px;line-height:1.7;color:#334155;">${escapedMessage}</div>
+                <div style="font-size:15px;line-height:1.7;color:#334155;">${safeMessage}</div>
                 <div style="margin-top:24px;padding-top:16px;border-top:1px solid #e2e8f0;">
-                  <p style="font-size:12px;color:#64748b;margin:0 0 10px 0;">
-                    You received this email because you have subscribed to updates from ASKC TECHNOLOGIES.
-                  </p>
-                  <a href="${unsubscribeUrl}" style="display:inline-block;padding:10px 14px;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:8px;color:#0f172a;text-decoration:none;font-size:12px;font-weight:700;">
-                    Unsubscribe
-                  </a>
+                  <p style="font-size:12px;color:#64748b;margin:0 0 10px;">You received this email because you subscribed to updates from ASKC TECHNOLOGIES.</p>
+                  <a href="${unsubscribeUrl}" style="display:inline-block;padding:10px 14px;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:8px;color:#0f172a;text-decoration:none;font-size:12px;font-weight:700;">Unsubscribe</a>
                 </div>
               </div>
             </div>
-            <p style="max-width:620px;margin:12px auto 0 auto;font-size:11px;color:#94a3b8;text-align:center;">
-              Need help? Contact askctechnologies@gmail.com
-            </p>
+            <p style="max-width:620px;margin:12px auto 0;font-size:11px;color:#94a3b8;text-align:center;">Need help? Contact askctechnologies@gmail.com</p>
           </div>`;
 
           await sendEmail(
-            normalizedEmail,
+            recipient,
             normalizedSubject,
             normalizedMessage,
             html,
-            "ASKC TECHNOLOGIES <askctechnologies@gmail.com>",
+            "ASKC TECHNOLOGIES <askctechnologies@gmail.com>"
           );
 
-          successCount++;
-        } catch (emailErr) {
-          console.error("Error sending to " + normalizedEmail + ":", emailErr);
-          errors.push(normalizedEmail);
+          // Keep the subscriber record available for the unsubscribe endpoint.
+          await NewsletterSubscriber.findOneAndUpdate(
+            { email: recipient },
+            { $setOnInsert: { email: recipient, status: "subscribed" } },
+            { upsert: true, new: true, setDefaultsOnInsert: true }
+          );
+
+          successCount += 1;
+        } catch (emailError) {
+          console.error("Promotional email delivery failed for recipient:", recipient, emailError);
+          if (!firstFailureReason) {
+            firstFailureReason = String(emailError?.message || "Email provider rejected the message.").slice(0, 300);
+          }
+          failedEmails.push(recipient);
         }
       }
 
       if (successCount === 0) {
-        return res
-          .status(500)
-          .json({ message: "Could not send promotional emails." });
-      }
-
-      if (errors.length > 0) {
-        res.json({
-          message:
-            "Email sent to " +
-            successCount +
-            " recipient(s). Failed: " +
-            errors.join(", "),
-          successCount,
-          failedEmails: errors,
-        });
-      } else {
-        res.json({
-          message:
-            "Promotional email sent to " +
-            successCount +
-            " recipient(s) successfully.",
+        return res.status(502).json({
+          message: firstFailureReason
+            ? "No promotional emails were sent. " + firstFailureReason
+            : "No promotional emails could be delivered. Check the backend email provider configuration.",
+          successCount: 0,
+          failedEmails,
         });
       }
 
-      // Duplicate 'siteOrigin' declaration removed. Already declared above in this function.
-
-      const unsubscribeUrl = `${siteOrigin.replace(/\/$/, "")}/unsubscribe-email?email=${encodeURIComponent(
-        normalizedEmail,
-      )}`;
-      const escapedSubject = normalizedSubject
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;");
-      const escapedMessage = normalizedMessage
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/\n/g, "<br/>");
-      const html = `
-        <div style="margin:0;padding:24px;background:#f8fafc;font-family:Arial,Helvetica,sans-serif;color:#0f172a;">
-          <div style="max-width:620px;margin:0 auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;">
-            <div style="padding:20px 24px;background:linear-gradient(135deg,#0f172a,#1e293b);">
-              <div style="font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#94a3b8;font-weight:700;">ASKC TECHNOLOGIES</div>
-              <h2 style="margin:10px 0 0 0;font-size:22px;line-height:1.3;color:#ffffff;">${escapedSubject}</h2>
-            </div>
-            <div style="padding:24px;">
-              <div style="font-size:15px;line-height:1.7;color:#334155;">${escapedMessage}</div>
-              <div style="margin-top:24px;padding-top:16px;border-top:1px solid #e2e8f0;">
-                <p style="font-size:12px;color:#64748b;margin:0 0 10px 0;">
-                  You received this email because you have subscribed to updates from ASKC TECHNOLOGIES.
-                </p>
-                <a href="${unsubscribeUrl}" style="display:inline-block;padding:10px 14px;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:8px;color:#0f172a;text-decoration:none;font-size:12px;font-weight:700;">
-                  Unsubscribe
-                </a>
-              </div>
-            </div>
-          </div>
-          <p style="max-width:620px;margin:12px auto 0 auto;font-size:11px;color:#94a3b8;text-align:center;">
-            Need help? Contact askctechnologies@gmail.com
-          </p>
-        </div>
-      `;
-
-      await sendEmail(
-        normalizedEmail,
-        normalizedSubject,
-        normalizedMessage,
-        html,
-        "ASKC TECHNOLOGIES <askctechnologies@gmail.com>",
-      );
-
-      res.json({ message: "Promotional email sent successfully." });
-    } catch (err) {
-      console.error("Error sending promotional email:", err);
-      res.status(500).json({ message: "Could not send promotional email." });
+      return res.status(200).json({
+        message: failedEmails.length
+          ? `Email sent to ${successCount} recipient(s); ${failedEmails.length} failed.`
+          : `Promotional email sent to ${successCount} recipient(s) successfully.`,
+        successCount,
+        failedEmails,
+      });
+    } catch (error) {
+      console.error("Promotional email endpoint error:", error);
+      return res.status(500).json({
+        message: "The promotional email request could not be processed. Check the backend logs for details.",
+      });
     }
-  },
+  }
 );
 
 // Mark contact as read
