@@ -269,7 +269,7 @@ router.post("/cashfree/create-order", authMiddleware, async (req, res) => {
     if (!appId || !secret) {
       return res.status(503).json({ message: "Online payments are temporarily unavailable. Please use manual payment." });
     }
-    const planDoc = await Plan.findOne({ name: { $regex: new RegExp("^" + String(plan).replace(/[.*+?^${}()|[\]\\]/g, "\\// Create a new subscription (after payment)") + "$", "i") } });
+    const planDoc = await Plan.findOne({ name: String(plan).trim() });
     if (!planDoc || !Number.isFinite(Number(planDoc.price)) || Number(planDoc.price) <= 0) {
       return res.status(400).json({ message: "Selected plan is unavailable." });
     }
@@ -312,13 +312,13 @@ router.post("/cashfree/create-order", authMiddleware, async (req, res) => {
       console.error("Cashfree order creation failed:", data);
       return res.status(502).json({ message: data.message || "Could not start Cashfree checkout." });
     }
-    const durationInDays = parsePlanDurationDays(planDoc.duration);
+    const durationDays = parsePlanDurationDays(planDoc.duration);
     const subscription = await Subscription.create({
       user: user._id,
       plan: planEnum,
       uniqueId: orderId,
       status: "pending",
-      expiresAt: new Date(Date.now() + durationInDays * 86400000),
+      expiresAt: new Date(Date.now() + durationDays * 86400000),
       paymentMethod: "cashfree",
       durationDays,
       cashfreeOrderId: orderId,
