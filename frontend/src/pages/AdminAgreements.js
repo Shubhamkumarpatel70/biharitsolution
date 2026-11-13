@@ -7,6 +7,8 @@ const STATUS_COLORS = {
   draft:    { bg: 'bg-slate-100', text: 'text-slate-600', dot: 'bg-slate-400' },
   sent:     { bg: 'bg-blue-50',   text: 'text-blue-700',  dot: 'bg-blue-500' },
   signed:   { bg: 'bg-green-50',  text: 'text-green-700', dot: 'bg-green-500' },
+  accepted: { bg: 'bg-emerald-50', text: 'text-emerald-700', dot: 'bg-emerald-500' },
+  declined: { bg: 'bg-red-50', text: 'text-red-700', dot: 'bg-red-500' },
   archived: { bg: 'bg-amber-50',  text: 'text-amber-700', dot: 'bg-amber-500' },
 };
 
@@ -33,7 +35,7 @@ const initForm = {
 export default function AdminAgreements() {
   const [view, setView]               = useState('clients'); // 'clients' | 'folder'
   const [clients, setClients]         = useState([]);
-  const [registeredUsers, setRegisteredUsers] = useState([]);
+  const [clientLookup, setClientLookup] = useState('');
   const [selectedClientUserId, setSelectedClientUserId] = useState('');
   const [folderDocs, setFolderDocs]   = useState([]);
   const [activeClient, setActiveClient] = useState(null);
@@ -83,15 +85,21 @@ export default function AdminAgreements() {
 
   useEffect(() => { loadClients(); }, [loadClients]);
 
-  useEffect(() => {
-    const loadRegisteredUsers = async () => {
-      try {
-        const response = await axios.get('/api/auth/admin/agreement-users', { headers });
-        setRegisteredUsers(response.data.users || []);
-      } catch { setRegisteredUsers([]); }
-    };
-    loadRegisteredUsers();
-  }, []);
+  const lookupRegisteredClient = async (rawEmail) => {
+    const email = String(rawEmail || '').trim().toLowerCase();
+    setSelectedClientUserId('');
+    setClientLookup('');
+    if (!email) return;
+    try {
+      const response = await axios.get('/api/auth/admin/agreement-user-lookup', { params: { email }, headers });
+      const user = response.data.user;
+      setSelectedClientUserId(user._id);
+      setForm(current => ({ ...current, clientName: user.name || '', clientEmail: user.email || email }));
+      setClientLookup('Verified registered account: ' + user.name + ' (' + user.email + ')');
+    } catch (error) {
+      setClientLookup(error.response?.status === 404 ? 'No registered account matched this email. You can still create a manual client document.' : (error.response?.data?.message || 'Could not verify this account.'));
+    }
+  };
 
   const openFolder = (client) => {
     setActiveClient(client);
@@ -274,8 +282,8 @@ export default function AdminAgreements() {
           </div>
           <button
             onClick={() => {
-              const folderUser = view === 'folder' ? registeredUsers.find(user => user.email?.toLowerCase() === activeClient?.clientEmail?.toLowerCase()) : null;
-              setSelectedClientUserId(folderUser?._id || '');
+              setSelectedClientUserId('');
+              setClientLookup('');
               setForm(view === 'folder' ? { ...initForm, clientName: activeClient?.clientName || '', clientEmail: activeClient?.clientEmail || '' } : initForm);
               setShowGen(true); setShowPreview(false);
             }}
@@ -423,20 +431,6 @@ export default function AdminAgreements() {
                   {DOCUMENT_TYPES.map(d => <option key={d.id} value={d.id}>{d.label}</option>)}
                 </select>
               </div>
-              <div className="rounded-xl border border-indigo-100 bg-indigo-50/70 p-4 space-y-2">
-                <label className="block text-xs font-bold uppercase tracking-wider text-indigo-900">Select Registered User (recommended)</label>
-                <select value={selectedClientUserId} onChange={e => {
-                  const id = e.target.value;
-                  setSelectedClientUserId(id);
-                  const selected = registeredUsers.find(user => user._id === id);
-                  if (selected) setForm(current => ({...current, clientName: selected.name || '', clientEmail: selected.email || ''}));
-                  else setForm(current => ({...current, clientName: '', clientEmail: ''}));
-                }} className="w-full rounded-xl border border-indigo-200 bg-white px-4 py-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-400">
-                  <option value="">Choose a registered user by name / email…</option>
-                  {registeredUsers.map(user => <option key={user._id} value={user._id}>{user.name} — {user.email}</option>)}
-                </select>
-                <p className="text-xs text-indigo-800">Selecting a user automatically fills their registered name and email and links the saved agreement to their account. You can still enter a non-registered client manually below.</p>
-              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Client Name *</label>
@@ -459,14 +453,16 @@ export default function AdminAgreements() {
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Client Email</label>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Client Email (registered account auto-detected)</label>
                 <input
                   type="email"
                   value={form.clientEmail}
-                  onChange={e => setForm(f => ({ ...f, clientEmail: e.target.value }))}
-                  placeholder="client@example.com"
+                  onChange={e => { setSelectedClientUserId(''); setClientLookup(''); setForm(f => ({ ...f, clientEmail: e.target.value })); }}
+                  onBlur={e => lookupRegisteredClient(e.target.value)}
+                  placeholder="Enter exact registered email"
                   className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-slate-50"
                 />
+                {clientLookup && <p className={`mt-1.5 text-xs ${selectedClientUserId ? 'text-emerald-700' : 'text-amber-700'}`}>{clientLookup}</p>}
               </div>
               {['quotation','handover','change_request'].includes(form.documentType) && (
                 <div>
