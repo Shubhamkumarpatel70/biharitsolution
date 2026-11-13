@@ -102,19 +102,24 @@ const crypto = require("crypto");
 
 async function createUserNotification(userId, title, message, type = "general", eventKey = "", link = "") {
   if (!userId) return null;
-  if (eventKey) {
-    const existing = await Notification.findOne({ user: userId, eventKey }).select("_id");
-    if (existing) return existing;
+  try {
+    if (eventKey) {
+      const existing = await Notification.findOne({ user: userId, eventKey }).select("_id");
+      if (existing) return existing;
+    }
+    return await Notification.create({
+      user: userId,
+      title,
+      message,
+      type,
+      eventKey,
+      link,
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    });
+  } catch (notificationError) {
+    console.error("Could not create user event notification:", notificationError?.message);
+    return null;
   }
-  return Notification.create({
-    user: userId,
-    title,
-    message,
-    type,
-    eventKey,
-    link,
-    expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-  });
 }
 
 function generateProjectSubmissionId() {
