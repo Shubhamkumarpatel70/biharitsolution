@@ -52,31 +52,35 @@ const generateOtpEmailHtml = (otp, title, description) => {
 
 // Send OTP for registration
 exports.sendRegisterOtp = async (req, res) => {
+  const email = String(req.body?.email || "").trim().toLowerCase();
+  let generatedOtp = "";
   try {
-    const { email } = req.body;
-    if (!email) return res.status(400).json({ message: "Email is required." });
-    const existingUser = await User.findOne({ email });
-    if (existingUser)
-      return res.status(400).json({ message: "User already exists." });
-    const otp = generateOtp();
+    if (!email || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) {
+      return res.status(400).json({ message: "Please enter a valid email address." });
+    }
+    const existingUser = await User.findOne({ $expr: { $eq: [{ $toLower: "$email" }, email] } }).select("_id");
+    if (existingUser) return res.status(400).json({ message: "User already exists." });
+
+    generatedOtp = crypto.randomInt(100000, 1000000).toString();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
     await Otp.deleteMany({ email, purpose: "register" });
-    await Otp.create({ email, otp, purpose: "register", expiresAt });
+    await Otp.create({ email, otp: generatedOtp, purpose: "register", expiresAt });
 
     const html = generateOtpEmailHtml(
-      otp,
+      generatedOtp,
       "Verify your Email",
-      "Thank you for registering. Please use the verification code below to complete your registration.",
+      "Thank you for registering. Please use the verification code below to complete your registration. This code expires in 10 minutes.",
     );
-    await sendEmail(
-      email,
-      "Your Registration Verification Code",
-      `Your OTP is: ${otp}`,
-      html,
-    );
-    res.json({ message: "OTP sent to email." });
+    await sendEmail(email, "Your ASKC TECHNOLOGIES Registration Verification Code", `Your OTP is: ${generatedOtp}. It expires in 10 minutes.`, html);
+    return res.json({ message: "OTP sent to email address." });
   } catch (err) {
-    res.status(500).json({ message: "Could not send OTP." });
+    console.error("Registration OTP delivery failed:", { recipient: email, message: err?.message, code: err?.code });
+    if (email && generatedOtp) {
+      try { await Otp.deleteOne({ email, otp: generatedOtp, purpose: "register" }); } catch (cleanupError) {
+        console.error("Could not remove undelivered registration OTP:", cleanupError?.message);
+      }
+    }
+    return res.status(500).json({ message: "Could not send registration OTP. Check the configured email provider and try again." });
   }
 };
 
