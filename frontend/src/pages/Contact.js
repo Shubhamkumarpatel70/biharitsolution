@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import PageHero from '../components/PageHero';
 import { Icon } from '../components/icons';
 import axios from '../axios';
 
@@ -106,11 +105,52 @@ function Contact() {
 
   return (
     <div className="min-h-screen bg-gray-50 text-text-main pt-20">
-      <PageHero
-        eyebrow="Contact"
-        title="Let’s talk about your project"
-        subtitle="Tell us what you’re building—we’ll reply with next steps and a realistic timeline."
-      />
+      <section className="relative isolate overflow-hidden bg-[#f4f8fc] py-16 md:py-24">
+        <div aria-hidden="true" className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full bg-sky-200/50 blur-3xl" />
+        <div aria-hidden="true" className="pointer-events-none absolute -bottom-32 -left-20 h-80 w-80 rounded-full bg-indigo-100/70 blur-3xl" />
+        <div className="container relative mx-auto grid items-center gap-10 px-4 sm:px-6 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className={`transition-all duration-700 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'}`}>
+            <span className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-white/80 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-sky-700 shadow-sm">
+              <span className="h-2 w-2 rounded-full bg-sky-500" /> Contact our team
+            </span>
+            <h1 className="mt-6 max-w-2xl text-4xl font-black leading-[1.08] tracking-tight text-slate-950 sm:text-5xl lg:text-6xl">
+              Let’s turn your <span className="text-sky-600">next idea</span> into something real.
+            </h1>
+            <p className="mt-6 max-w-xl text-base leading-8 text-slate-600 sm:text-lg">
+              Have a website, app or digital project in mind? Share a few details. We’ll understand your goals and come back with clear next steps, an honest estimate and a realistic timeline.
+            </p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <a href="#contact-form" className="inline-flex min-h-12 items-center justify-center rounded-xl bg-slate-950 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-slate-900/15 transition hover:-translate-y-0.5 hover:bg-sky-700">Start a conversation <span className="ml-2" aria-hidden="true">↗</span></a>
+              <a href="https://wa.me/917992365197" target="_blank" rel="noopener noreferrer" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-slate-300 bg-white px-6 py-3 text-sm font-bold text-slate-700 transition hover:border-sky-300 hover:text-sky-700">Chat on WhatsApp</a>
+            </div>
+            <p className="mt-5 text-xs font-medium text-slate-500">No pressure. Just a practical conversation about your project.</p>
+          </div>
+          <div className="relative">
+            <div className="rounded-[2rem] border border-white bg-white/90 p-6 shadow-[0_24px_80px_rgba(15,23,42,0.10)] sm:p-8">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-5">
+                <div><p className="text-xs font-bold uppercase tracking-[0.16em] text-sky-700">Let’s get started</p><h2 className="mt-1 text-xl font-extrabold text-slate-900">A good project starts with a conversation.</h2></div>
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-50 text-sky-700"><Icon name="chat" className="h-6 w-6" /></div>
+              </div>
+              <div className="mt-6 space-y-5">
+                {[
+                  ['01', 'Tell us your idea', 'A short brief is enough to begin.'],
+                  ['02', 'Plan the right approach', 'We’ll discuss scope, priorities and options.'],
+                  ['03', 'Get clear next steps', 'You’ll receive an estimate and realistic timeline.']
+                ].map(([number, title, description]) => (
+                  <div key={number} className="flex gap-4">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sm font-black text-sky-700">{number}</span>
+                    <div><h3 className="font-bold text-slate-900">{title}</h3><p className="mt-1 text-sm leading-6 text-slate-500">{description}</p></div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-7 rounded-2xl bg-slate-50 p-4">
+                <p className="text-sm font-semibold text-slate-800">Prefer a direct conversation?</p>
+                <a href="tel:+917992365197" className="mt-1 inline-block text-sm font-bold text-sky-700 hover:text-sky-800">+91 79923 65197</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
       {/* Features Section */}
       <section className="py-10 md:py-14 bg-white">
         <div className="container">
@@ -134,13 +174,12 @@ function Contact() {
       </section>
 
       {/* Contact Section */}
-      <section className="py-12 md:py-20 bg-gray-50">
+      <section className="bg-[#f7f9fc] py-14 md:py-20">
         <div className="container">
-          <div className="section-header">
-            <h2 className="section-title">Contact Information</h2>
-            <p className="section-subtitle">
-              Get in touch with us through any of these channels
-            </p>
+          <div className="mx-auto mb-10 max-w-2xl text-center">
+            <span className="text-xs font-bold uppercase tracking-[0.18em] text-sky-700">We’re easy to reach</span>
+            <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">Let’s find the best way to connect.</h2>
+            <p className="mt-3 text-base leading-7 text-slate-600">Choose whichever channel works best for you, or send your project brief using the form.</p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12">
@@ -183,10 +222,9 @@ function Contact() {
               style={{ transitionDelay: '0.4s' }}
             >
               <div className="mb-6">
-                <h3 className="text-2xl font-bold text-primary-600 mb-2">Send Us a Message</h3>
-                <p className="text-text-muted text-sm">
-                  Fill out the form below and we'll get back to you within 24 hours
-                </p>
+                <span className="text-xs font-bold uppercase tracking-[0.16em] text-sky-700">Project enquiry</span>
+                <h3 className="mt-2 text-2xl font-black tracking-tight text-slate-950">Tell us a little about what you need.</h3>
+                <p className="mt-2 text-sm leading-6 text-slate-500">The more context you share, the more useful our first response can be. We’ll follow up with next steps and a realistic timeline.</p>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">
@@ -280,7 +318,7 @@ function Contact() {
 
                 <button
                   type="submit"
-                  className="btn btn-primary w-full justify-center py-3 font-bold rounded-xl group"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 py-4 font-bold text-white shadow-lg shadow-slate-900/10 transition hover:-translate-y-0.5 hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? (
