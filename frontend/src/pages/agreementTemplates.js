@@ -56,7 +56,7 @@ td{padding:9px 10px;border-bottom:1px solid #e2e8f0;}
 .payment-method img{width:90px;height:90px;object-fit:contain;border:1px solid #e2e8f0;border-radius:6px;padding:4px;}
 .payment-method-details{flex:1;min-width:0;overflow-wrap:anywhere;}
 .payment-note{font-size:9px;color:#64748b;margin-top:8px;}
-.sig-line{border-top:1px solid #334155;margin-top:45px;padding-top:4px;font-size:10px;font-weight:700;text-transform:uppercase;text-align:center;}
+.signature-parties{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:28px;page-break-inside:avoid;break-inside:avoid;}\n.signature-party{min-width:0;border:1px solid #cbd5e1;border-radius:8px;padding:13px 14px 12px;background:#fff;position:relative;}\n.signature-party h3{font-size:10px;color:#061d4b;font-weight:800;text-transform:uppercase;letter-spacing:.45px;margin-bottom:5px;}\n.signature-party .signatory-name{font-size:12px;font-weight:700;color:#0f172a;margin-bottom:2px;}\n.signature-line{height:34px;border-bottom:1px solid #334155;margin:5px 0 9px;}\n.signature-meta{display:grid;grid-template-columns:1fr;gap:7px;font-size:10px;color:#334155;}\n.signature-meta span{display:block;border-bottom:1px dotted #64748b;min-height:18px;padding-bottom:3px;}\n.company-seal{width:94px;height:94px;border:3px double #b91c1c;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:#991b1b;margin:13px auto 0;transform:rotate(-8deg);font-weight:900;line-height:1.25;padding:7px;}\n.company-seal strong{font-size:9px;letter-spacing:.4px;}\n.company-seal small{font-size:7px;letter-spacing:.5px;}\n.signature-note{font-size:8px;color:#64748b;text-align:center;margin-top:7px;}\n@media(max-width:700px){.signature-parties{grid-template-columns:1fr;gap:14px;}}
 
 footer{background:#061d4b;padding:0 45px;height:58px;display:flex;align-items:center;justify-content:center;gap:35px;position:relative;margin-top:auto;}
 footer::before{content:'';position:absolute;left:0;top:0;height:100%;width:200px;background:#334155;clip-path:polygon(0 0,100% 0,85% 100%,0 100%);}
@@ -87,6 +87,32 @@ const ctrl = (label) => `<div class="controls" style="position:fixed;top:18px;ri
 <button onclick="window.print()" style="background:#061d4b;color:#fff;border:none;padding:10px 22px;font-weight:700;border-radius:8px;cursor:pointer;font-size:13px;">🖨 ${label}</button></div>`;
 
 const officialStampText = () => `<div class="sig-stamp-text">ASKC TECHNOLOGIES OFFICIAL STAMP</div>`;
+
+const signatureBlock = (clientName = "Client") => `<section class="signature-parties" aria-label="Document signatures">
+  <div class="signature-party">
+    <h3>For the Client</h3>
+    <p class="signatory-name">${clientName || "Client"}</p>
+    <div class="signature-line"></div>
+    <div class="signature-meta">
+      <span><strong>Client Signature:</strong> ______________________________</span>
+      <span><strong>Date:</strong> ______________________________</span>
+      <span><strong>Place:</strong> ______________________________</span>
+    </div>
+  </div>
+  <div class="signature-party">
+    <h3>For ${CO}</h3>
+    <p class="signatory-name">Shubham Kumar · Authorized Signatory</p>
+    <div class="signature-line"></div>
+    <div class="signature-meta">
+      <span><strong>ASKC Signature:</strong> ______________________________</span>
+      <span><strong>Date:</strong> ______________________________</span>
+      <span><strong>Place:</strong> ______________________________</span>
+    </div>
+    <div class="company-seal"><strong>ASKC TECHNOLOGIES</strong><small>OFFICIAL COMPANY SEAL</small><small>AUTHORIZED</small></div>
+    <p class="signature-note">Affix / validate the physical company stamp here</p>
+  </div>
+</section>`;
+
 
 const paymentBlock = (options = []) => {
   const methods = (options || []).filter(option => option && (option.upiId || option.accountNumber || option.qrCode));
@@ -137,10 +163,7 @@ ${dcBadge(docCode)}
 <div class="clause"><strong>3. Exclusions:</strong> Obligations do not apply to information that is: (a) in the public domain; (b) already in possession; (c) independently developed; or (d) legally required by court order.</div>
 <div class="clause"><strong>4. Return of Materials:</strong> Upon written request, all documentation containing Confidential Information shall be returned or destroyed promptly.</div>
 <div class="clause"><strong>5. Governing Law:</strong> Obligations survive indefinitely beyond any service contract termination and are governed by applicable local jurisdictional legislations.</div>
-<div class="sig-block">
-<div class="sig-col"><p style="font-size:10px;margin-bottom:6px;"><strong>For Disclosing Party:</strong></p><p style="font-size:12px;font-weight:700;">${clientName}</p><div class="sig-line">Authorized Client Signature & Date</div></div>
-<div class="sig-col"><p style="font-size:10px;margin-bottom:6px;"><strong>For ${CO}:</strong></p><p style="font-size:12px;font-weight:700;">Shubham Kumar</p><div class="sig-line">Authorized Signatory Signature & Date</div>${officialStampText()}</div>
-</div></div>${ftr(docCode)}</div></body></html>`;
+${signatureBlock(clientName)}</div>${ftr(docCode)}</div></body></html>`;
 }
 
 function tQuotation({clientName,clientCompany,docCode,projectDesc,designCost,devCost,infraCost,addonDesc,addonCost,validDays,today,paymentOptions}) {
@@ -173,7 +196,7 @@ ${addonDesc||ac>0?`<tr><td><strong>Add-ons</strong></td><td>${addonDesc||'Additi
 </div>
 <p style="font-size:10px;margin-top:22px;color:#64748b;line-height:1.5;">*This is a professional scope projection. Final execution cost will be bound within the final Client Agreement. Acceptance enables drafting of the binding Master Service Agreement (MSA).</p>
 ${paymentBlock(paymentOptions)}
-<div style="margin-top:22px;text-align:center;"><span style="font-size:11px;font-weight:700;color:#061d4b;border-top:1px solid #cbd5e1;padding:8px 35px;display:inline-block;">Client Authorization Signature: _________________________</span></div>
+${signatureBlock(clientName)}
 </div>${ftr(docCode)}</div></body></html>`;
 }
 
@@ -204,7 +227,7 @@ ${dcBadge(docCode)}
 ${paymentNote?`<em>${paymentNote}</em>`:'Please use one of the payment methods listed below.'}
 ${paymentBlock(paymentOptions)}
 </div>
-</div>${ftr(docCode)}</div></body></html>`;
+</div>${signatureBlock(clientName)}${ftr(docCode)}</div></body></html>`;
 }
 
 function tWelcome({clientName,clientCompany,docCode,today}) {
@@ -227,6 +250,7 @@ ${["Project Kickoff Call — We'll schedule an onboarding call to align on goals
 <div style="font-size:11px;color:#64748b;line-height:1.7;"><strong>Support Hours:</strong><br>Mon – Fri<br>10:00 AM – 6:00 PM IST</div>
 </div>
 <p style="font-size:10px;color:#94a3b8;margin-top:18px;text-align:center;">Issued: ${today}${clientCompany?` | ${clientCompany}`:''}</p>
+${signatureBlock(clientName)}
 </div>${ftr(docCode)}</div></body></html>`;
 }
 
@@ -248,10 +272,7 @@ ${hostingInfo?`<div style="font-size:11px;"><strong>Hosting / Credentials:</stro
 </div>`:''}
 <div class="sec-title">Deliverables Checklist</div>
 ${items.map(item=>`<div class="chk"><span class="ok">✓</span><span>${item}</span></div>`).join('')}
-<div class="sig-block">
-<div class="sig-col"><p style="font-size:10px;margin-bottom:5px;"><strong>Client Acceptance:</strong></p><p style="font-size:12px;">${clientName}</p><div class="sig-line">Client Signature & Date</div></div>
-<div class="sig-col"><p style="font-size:10px;margin-bottom:5px;"><strong>Delivered By:</strong></p><p style="font-size:12px;">Shubham Kumar</p><div class="sig-line">Agency Authorized Signature</div></div>
-</div></div>${ftr(docCode)}</div></body></html>`;
+${signatureBlock(clientName)}</div>${ftr(docCode)}</div></body></html>`;
 }
 
 function tChangeRequest({clientName,clientCompany,docCode,projectDesc,timelineImpact,costImpact,crStatus,today}) {
@@ -274,10 +295,7 @@ ${dcBadge(docCode)}
 <tr><td><strong>Timeline Impact</strong></td><td>—</td><td>${timelineImpact||'To be assessed'}</td></tr>
 <tr><td><strong>Cost Impact</strong></td><td>—</td><td>${costImpact||'To be quoted'}</td></tr>
 </table>
-<div class="sig-block">
-<div class="sig-col"><p style="font-size:10px;margin-bottom:5px;"><strong>Requested By (Client):</strong></p><p style="font-size:12px;">${clientName}</p><div class="sig-line">Client Signature</div></div>
-<div class="sig-col"><p style="font-size:10px;margin-bottom:5px;"><strong>Approved By (Agency):</strong></p><p style="font-size:12px;">Shubham Kumar</p><div class="sig-line">Agency Signature</div></div>
-</div></div>${ftr(docCode)}</div></body></html>`;
+${signatureBlock(clientName)}</div>${ftr(docCode)}</div></body></html>`;
 }
 
 function tQuestionnaire({clientName,clientCompany,docCode,q1,q2,q3,q4,q5,q6,q7,q8,today}) {
@@ -304,7 +322,5 @@ ${qs.map((item,i)=>`<div style="margin-bottom:16px;">
 <p style="font-size:11.5px;font-weight:700;color:#061d4b;margin-bottom:6px;">${i+1}. ${item.q}</p>
 <div style="border:1px solid #e2e8f0;border-radius:4px;padding:10px;min-height:48px;font-size:11px;color:${item.a?'#334155':'#94a3b8'};line-height:1.6;">${item.a||'— Not provided —'}</div>
 </div>`).join('')}
-<div class="sig-block" style="margin-top:20px;">
-<div class="sig-col"><p style="font-size:12px;">${clientName}</p><div class="sig-line">Client Signature & Date</div></div>
-</div></div>${ftr(docCode)}</div></body></html>`;
+${signatureBlock(clientName)}</div>${ftr(docCode)}</div></body></html>`;
 }
