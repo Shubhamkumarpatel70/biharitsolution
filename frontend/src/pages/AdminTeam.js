@@ -199,7 +199,7 @@ const AdminTeam = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+    <div className="admin-redesign-page flex items-center justify-center min-h-screen">
         <div className="text-white text-xl">Loading team members...</div>
       </div>
     );
