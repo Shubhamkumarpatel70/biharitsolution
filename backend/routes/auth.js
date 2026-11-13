@@ -4738,11 +4738,13 @@ router.post("/privacy/requests", authMiddleware, async (req, res) => {
       status: { $in: ["submitted", "in_review", "awaiting_user"] }
     });
     if (existing) return res.status(409).json({ message: "You already have an open request of this type.", request: existing });
+    const submittedAt = new Date();
     const request = await PrivacyRequest.create({
       user: req.user.id,
       type,
       details,
-      statusHistory: [{ status: "submitted", note: "Request submitted by user.", changedBy: req.user.id }]
+      dueAt: new Date(submittedAt.getTime() + 90 * 24 * 60 * 60 * 1000),
+      statusHistory: [{ status: "submitted", note: "Request submitted by user.", changedBy: req.user.id, changedAt: submittedAt }]
     });
     res.status(201).json({ message: "Privacy request submitted successfully.", request });
   } catch (err) {
@@ -4774,16 +4776,63 @@ router.get("/admin/privacy/requests", authMiddleware, coAdminMiddleware, async (
 
 router.patch("/admin/privacy/requests/:id", authMiddleware, coAdminMiddleware, async (req, res) => {
   try {
+    const allowedStatuses = ["submitted", "in_review", "awaiting_user", "completed", "rejected"];
+    const allowedDecisions = ["pending", "approved", "partially_approved", "declined"];
+    const allowedActions = ["not_started", "provided", "corrected", "erased", "anonymized", "retained_partially", "not_applicable"];
     const status = String(req.body?.status || "");
     const response = String(req.body?.response || "").trim().slice(0, 4000);
-    if (!["submitted", "in_review", "awaiting_user", "completed", "rejected"].includes(status)) {
-      return res.status(400).json({ message: "Invalid request status." });
-    }
+    const decision = String(req.body?.decision || "pending");
+    const resolutionAction = String(req.body?.resolutionAction || "not_started");
+    const retentionReason = String(req.body?.retentionReason || "").trim().slice(0, 2000);
+    const internalNotes = String(req.body?.internalNotes || "").trim().slice(0, 4000);
+    const identityVerified = req.body?.identityVerified === true;
+
+    if (!allowedStatuses.includes(status)) return res.status(400).json({ message: "Invalid request status." });
+    if (!allowedDecisions.includes(decision)) return res.status(400).json({ message: "Invalid decision." });
+    if (!allowedActions.includes(resolutionAction)) return res.status(400).json({ message: "Invalid resolution action." });
+    if (status === "completed" && !response) return res.status(400).json({ message: "Add a user-visible response before completing the request." });
+    if (status === "completed" && !identityVerified) return res.status(400).json({ message: "Verify the requester's identity before completing the request." });
+
     const request = await PrivacyRequest.findById(req.params.id);
     if (!request) return res.status(404).json({ message: "Privacy request not found." });
+    if (status === "completed" && request.type === "erasure") {
+      if (!["erased", "anonymized", "retained_partially"].includes(resolutionAction)) {
+        return res.status(400).json({ message: "For erasure requests, record whether data was erased, anonymised or retained in part." });
+      }
+      if (resolutionAction === "retained_partially" && retentionReason.length < 10) {
+        return res.status(400).json({ message: "Record the legal or operational reason for any retained data." });
+      }
+    }
+
+    const now = new Date();
+    const previousStatus = request.status;
     request.status = status;
     request.response = response;
-    request.statusHistory.push({ status, note: response, changedBy: req.user.id, changedAt: new Date() });
+    request.decision = decision;
+    request.resolutionAction = resolutionAction;
+    request.retentionReason = retentionReason;
+    request.internalNotes = internalNotes;
+    if (identityVerified && !request.identityVerifiedAt) {
+      request.identityVerifiedAt = now;
+      request.identityVerifiedBy = req.user.id;
+    }
+    if (["completed", "rejected"].includes(status)) {
+      request.resolvedAt = now;
+      request.resolvedBy = req.user.id;
+      request.userNotifiedAt = now;
+    } else {
+      request.resolvedAt = null;
+      request.resolvedBy = null;
+    }
+    if (previousStatus !== status || response) {
+      request.statusHistory.push({ status, note: response, changedBy: req.user.id, changedAt: now });
+    }
+    request.adminAudit.push({
+      action: "request_updated",
+      note: "Status, decision, identity verification and resolution metadata updated.",
+      changedBy: req.user.id,
+      changedAt: now
+    });
     await request.save();
     const updated = await PrivacyRequest.findById(request._id).populate("user", "name email").lean();
     res.json({ message: "Privacy request updated.", request: updated });
