@@ -365,6 +365,7 @@ const Payment = () => {
             )}
 
             {paymentMethod !== 'cashfree' && (
+            <>
             {/* Coupon Section */}
             <div className="mb-6">
               <div className="flex gap-2 mb-2">
@@ -412,10 +413,11 @@ const Payment = () => {
                 </div>
               )}
             </div>
-
+            </>
             )}
 
             {paymentMethod !== 'cashfree' && (
+            <>
             {/* Payment Instructions */}
             <div className="bg-blue-50 rounded-lg p-4 mb-6">
               <h3 className="text-slate-600 text-sm font-medium mb-2">PAYMENT INSTRUCTIONS</h3>
@@ -571,9 +573,10 @@ const Payment = () => {
                 )}
               </div>
             </div>
-
+            </>
             )}
             {paymentMethod !== 'cashfree' && (
+            <>
             {/* Submit Button */}
             <button
               onClick={handlePayment}
@@ -588,6 +591,8 @@ const Payment = () => {
                 {error}
               </div>
             )}
+            )}
+            </>
             )}
             {paymentMethod === 'cashfree' && error && (
               <div className="mt-3 text-center text-sm text-red-600">
