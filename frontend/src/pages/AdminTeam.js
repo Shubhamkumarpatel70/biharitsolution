@@ -8,6 +8,7 @@ const AdminTeam = () => {
   const [success, setSuccess] = useState('');
   const [founderImage, setFounderImage] = useState(null);
   const [founderPreview, setFounderPreview] = useState('');
+  const [founderImageFailed, setFounderImageFailed] = useState(false);
   const [founderLoading, setFounderLoading] = useState(false);
   const [founderSaving, setFounderSaving] = useState(false);
   const [imageMigrationRunning, setImageMigrationRunning] = useState(false);
@@ -38,9 +39,12 @@ const AdminTeam = () => {
     try {
       setFounderLoading(true);
       const response = await axios.get('/api/auth/founder-profile');
-      setFounderPreview(response.data.profile?.image || '');
+      const imageUrl = typeof response.data.profile?.image === 'string' ? response.data.profile.image.trim() : '';
+      setFounderPreview(imageUrl);
+      setFounderImageFailed(false);
     } catch (err) {
       setFounderPreview('');
+      setFounderImageFailed(false);
     } finally { setFounderLoading(false); }
   };
 
@@ -52,7 +56,8 @@ const AdminTeam = () => {
       const data = new FormData(); data.append('founderImage', founderImage);
       const token = localStorage.getItem('token');
       const response = await axios.put('/api/auth/admin/founder-profile', data, { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } });
-      setFounderPreview(response.data.profile?.image || ''); setFounderImage(null);
+      const imageUrl = typeof response.data.profile?.image === 'string' ? response.data.profile.image.trim() : '';
+      setFounderPreview(imageUrl); setFounderImageFailed(false); setFounderImage(null);
       setSuccess('Founder image updated. The About page now uses this image.');
     } catch (err) { setError(err.response?.data?.message || 'Could not upload founder image.'); }
     finally { setFounderSaving(false); }
@@ -277,10 +282,40 @@ const AdminTeam = () => {
           </div>
           <form onSubmit={saveFounderImage} className="flex flex-col gap-4 sm:flex-row sm:items-center">
             <div className="flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
-              {founderPreview ? <img src={founderPreview} alt="Current founder" className="h-full w-full object-cover" /> : <span className="text-xs text-slate-500">No image</span>}
+              {founderPreview && !founderImageFailed ? (
+                <img
+                  src={founderPreview}
+                  alt="Founder profile"
+                  loading="lazy"
+                  referrerPolicy="no-referrer"
+                  onError={() => setFounderImageFailed(true)}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <span className="px-2 text-center text-xs leading-5 text-slate-500">
+                  {founderImageFailed ? 'Image unavailable. Please upload again.' : 'No image uploaded'}
+                </span>
+              )}
             </div>
             <div className="min-w-0 flex-1 space-y-3">
-              <input type="file" accept="image/jpeg,image/png,image/webp" onChange={e => setFounderImage(e.target.files?.[0] || null)} className="block w-full rounded-xl border border-slate-300 p-2 text-sm" />
+              <input type="file" accept="image/jpeg,image/png,image/webp" onChange={e => {
+                const file = e.target.files?.[0] || null;
+                if (!file) { setFounderImage(null); return; }
+                if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+                  setError('Please select a JPG, PNG or WebP image.');
+                  e.target.value = '';
+                  return;
+                }
+                if (file.size > 5 * 1024 * 1024) {
+                  setError('Founder image must be 5 MB or smaller.');
+                  e.target.value = '';
+                  return;
+                }
+                setError('');
+                setFounderImage(file);
+                setFounderImageFailed(false);
+                setFounderPreview(URL.createObjectURL(file));
+              }} className="block w-full rounded-xl border border-slate-300 p-2 text-sm" />
               <div className="flex flex-wrap items-center gap-2">
                 <button type="submit" disabled={!founderImage || founderSaving} className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50">{founderSaving ? 'Uploading…' : 'Upload founder image'}</button>
                 <span className="text-xs text-slate-500">{founderLoading ? 'Loading current image…' : founderImage ? founderImage.name : founderPreview ? 'Current image is active' : 'No founder image uploaded'}</span>
