@@ -240,7 +240,7 @@ const Payment = () => {
       const formData = new FormData();
       formData.append('plan', planObj.name);
       formData.append('transactionId', transactionId);
-      formData.append('method', paymentMethod);
+      formData.append('method', paymentMethod === 'qr' ? 'upi' : paymentMethod);
       formData.append('paymentImage', paymentImage);
       
       // Don't set Content-Type header - let axios/browser set it with boundary
