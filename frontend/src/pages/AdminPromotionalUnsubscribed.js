@@ -5,6 +5,7 @@ const AdminPromotionalUnsubscribed = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [deletingId, setDeletingId] = useState('');
 
   const fetchUnsubscribed = async () => {
     try {
@@ -19,6 +20,23 @@ const AdminPromotionalUnsubscribed = () => {
       setError('Could not fetch unsubscribed users.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async (item) => {
+    const confirmed = window.confirm(`Delete the unsubscribe record for ${item.email}? This will NOT subscribe them again. A fresh opt-in is still required before promotional emails can be sent.`);
+    if (!confirmed) return;
+    try {
+      setDeletingId(item._id);
+      const token = localStorage.getItem('token');
+      await axios.delete(`/api/auth/admin/newsletter-unsubscribed/${item._id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setUsers((current) => current.filter((user) => user._id !== item._id));
+    } catch (err) {
+      setError(err.response?.data?.message || 'Could not delete unsubscribe record.');
+    } finally {
+      setDeletingId('');
     }
   };
 
@@ -57,6 +75,7 @@ const AdminPromotionalUnsubscribed = () => {
                   <th className="text-left px-4 py-3 font-semibold text-slate-700">Email</th>
                   <th className="text-left px-4 py-3 font-semibold text-slate-700">Status</th>
                   <th className="text-left px-4 py-3 font-semibold text-slate-700">Unsubscribed At</th>
+                  <th className="text-right px-4 py-3 font-semibold text-slate-700">Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -70,6 +89,11 @@ const AdminPromotionalUnsubscribed = () => {
                     </td>
                     <td className="px-4 py-3 text-slate-600">
                       {item.updatedAt ? new Date(item.updatedAt).toLocaleString() : 'N/A'}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <button type="button" onClick={() => handleDelete(item)} disabled={deletingId === item._id} className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50">
+                        {deletingId === item._id ? 'Deleting...' : 'Delete record'}
+                      </button>
                     </td>
                   </tr>
                 ))}
