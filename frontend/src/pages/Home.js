@@ -65,7 +65,7 @@ export default function Home() {
             <p>{homeContent?.summary || 'From standout websites to custom business applications, ASKC TECHNOLOGIES turns your ideas into useful, dependable digital products.'}</p>
             <div className="maya-hero-actions">
               <Link className="maya-btn maya-btn-blue" to="/contact">Start a project <span>↗</span></Link>
-              <Link className="maya-btn maya-btn-white" to="/projects">Explore our work <span>→</span></Link>
+              <Link className="maya-btn maya-btn-white" to="/portfolio">Explore our work <span>→</span></Link>
             </div>
             <div className="maya-hand-note"><span>↳</span> Thoughtful design. Reliable technology. Real progress.</div>
           </div>
@@ -92,11 +92,11 @@ export default function Home() {
             <span className="maya-kicker maya-kicker-gold">WHAT WE CREATE</span>
             <h2>Digital work<br />with a purpose.</h2>
             <p>Every business is different. We create practical digital experiences that fit your goals and your customers.</p>
-            <Link className="maya-text-link" to="/projects">Explore projects <span>→</span></Link>
+            <Link className="maya-text-link" to="/portfolio">Explore projects <span>→</span></Link>
           </div>
           <div className="maya-focus-grid">
             {focusAreas.map(([number, title, description], index) => (
-              <Link to="/projects" className={`maya-focus-card maya-focus-card-${index + 1}`} key={number}>
+              <Link to="/portfolio" className={`maya-focus-card maya-focus-card-${index + 1}`} key={number}>
                 <span className="maya-focus-number">{number}</span>
                 <div className="maya-project-art" aria-hidden="true">
                   <div className="maya-art-browser"><i /><i /><i /><b /><span /><span /><em /></div>
