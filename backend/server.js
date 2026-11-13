@@ -8,6 +8,7 @@ const rateLimit = require("express-rate-limit");
 const authRoutes = require("./routes/auth");
 const privacyComplianceRoutes = require("./routes/privacyCompliance");
 const privacyRegisterRoutes = require("./routes/privacyRegister");
+const privacyOperationsRoutes = require("./routes/privacyOperations");
 const jwt = require("jsonwebtoken");
 const User = require("./models/User");
 const http = require("http");
@@ -383,6 +384,7 @@ const PORT = process.env.PORT || 5000;
 app.use("/api/auth", authRoutes);
 app.use("/api/privacy-compliance", privacyComplianceRoutes);
 app.use("/api/privacy-register", privacyRegisterRoutes);
+app.use("/api/privacy-operations", privacyOperationsRoutes);
 
 // Serve official agreements and documents
 const path = require("path");
