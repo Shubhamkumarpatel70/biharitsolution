@@ -812,6 +812,11 @@ router.post("/admin/users/:id/assign-plan", authMiddleware, adminMiddleware, asy
       return res.status(400).json({ message: "Enter a plan name and valid amount." });
     }
     const days = Math.max(1, Math.min(3650, Number(durationDays) || 30));
+    const now = new Date();
+    await Subscription.updateMany(
+      { user: user._id, status: "active", canceled: { $ne: true } },
+      { $set: { status: "expired", canceled: true, cancellationReason: "Replaced by a newly assigned plan.", cancellationStatus: "approved", cancellationApprovedDate: now } }
+    );
     const uniqueId = "ASKC-ADM-" + Date.now() + "-" + require("crypto").randomBytes(3).toString("hex").toUpperCase();
     const sub = await Subscription.create({
       user: user._id,
