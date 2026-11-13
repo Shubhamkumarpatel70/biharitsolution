@@ -185,7 +185,7 @@ const AdminDashboard = () => {
                 </p>
               </div>
               <span className="hidden sm:inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-500 shadow-sm">
-                <Icon name="calendar" className="w-3.5 h-3.5" />
+                <Icon name="clock" className="w-3.5 h-3.5" />
                 Admin workspace
               </span>
             </div>
