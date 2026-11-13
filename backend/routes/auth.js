@@ -2740,7 +2740,7 @@ router.post(
           suppliedEmails
             .map((value) => String(value || "").trim().toLowerCase())
             .filter((value) =>
-              /^[a-z0-9.!#$%&'*+/=?^`{|}~-]+@[a-z0-9-]+(?:\\.[a-z0-9-]+)+$/i.test(value)
+              /^[a-z0-9.!#$%&'*+/=?^`{|}~-]+@[a-z0-9-]+(?:\.[a-z0-9-]+)+$/i.test(value)
             )
         ),
       ];
@@ -2783,12 +2783,12 @@ router.post(
       for (const recipient of emailList) {
         try {
           const unsubscribeUrl =
-            siteOrigin.replace(/\\/$/, "") +
+            siteOrigin.replace(/\/+$/, "") +
             "/unsubscribe-email?email=" +
             encodeURIComponent(recipient);
 
           const safeSubject = escapeHtml(normalizedSubject);
-          const safeMessage = escapeHtml(normalizedMessage).replace(/\\r?\\n/g, "<br/>");
+          const safeMessage = escapeHtml(normalizedMessage).replace(/\r?\n/g, "<br/>");
           const html = `<div style="margin:0;padding:24px;background:#f8fafc;font-family:Arial,Helvetica,sans-serif;color:#0f172a;">
             <div style="max-width:620px;margin:0 auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;">
               <div style="padding:20px 24px;background:linear-gradient(135deg,#0f172a,#1e293b);">
