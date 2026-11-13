@@ -223,6 +223,16 @@ const AdminUsers = () => {
                           {user.role === 'coadmin' ? 'Co-Admin' : user.role.charAt(0).toUpperCase() + user.role.slice(1)}
                         </span>
                       </td>
+                      <td className="p-3 border-b border-gray-700 min-w-[220px]">
+                        <div className="space-y-1 text-xs">
+                          <p className="font-bold text-white">{user.latestSubscription?.planName || 'No plan assigned'}</p>
+                          {user.latestSubscription && <p className="text-gray-400">₹{Number(user.latestSubscription.amountPaid || 0).toLocaleString('en-IN')} paid · ₹{Math.max(0, Number(user.latestSubscription.totalAmount || 0) - Number(user.latestSubscription.amountPaid || 0)).toLocaleString('en-IN')} due</p>}
+                          <div className="flex flex-wrap gap-1">
+                            <button onClick={() => assignPlan(user)} disabled={billingBusy === user._id} className="rounded-lg bg-blue-600 px-2 py-1.5 font-bold text-white disabled:opacity-50">{user.latestSubscription ? 'Change plan' : 'Assign plan'}</button>
+                            {user.latestSubscription && <button onClick={() => recordPayment(user)} disabled={billingBusy === user._id} className="rounded-lg bg-emerald-600 px-2 py-1.5 font-bold text-white disabled:opacity-50">Add payment</button>}
+                          </div>
+                        </div>
+                      </td>
                       <td className="p-3 border-b border-gray-700">
                         <div className="flex items-center gap-2">
                           <select
