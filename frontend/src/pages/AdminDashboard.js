@@ -27,6 +27,7 @@ import AdminPromotionalEmail from './AdminPromotionalEmail';
 import AdminPromotionalUnsubscribed from './AdminPromotionalUnsubscribed';
 import AdminIDCard from './AdminIDCard';
 import AdminAgreements from './AdminAgreements';
+import AdminClientWork from './AdminClientWork';
 import { Icon } from '../components/icons';
 
 const AdminDashboard = () => {
@@ -102,6 +103,7 @@ const AdminDashboard = () => {
       case 'help': return <AdminHelp />;
       case 'id-card': return <AdminIDCard />;
       case 'agreements': return <AdminAgreements />;
+      case 'client-work': return <AdminClientWork />;
       default: return <AdminHome />;
     }
   };
