@@ -4682,7 +4682,7 @@ router.patch("/privacy/consent", authMiddleware, async (req, res) => {
     await NewsletterSubscriber.findOneAndUpdate(
       { email: user.email.toLowerCase() },
       granted
-        ? { $set: { status: "subscribed", consentedAt: new Date(), consentSource: "privacy-centre", consentedBy: String(user._id) }, $setOnInsert: { email: user.email.toLowerCase() } }
+        ? { $set: { email: user.email.toLowerCase(), status: "subscribed", consentedAt: new Date(), consentSource: "privacy-centre", consentedBy: String(user._id) } }
         : { $set: { status: "unsubscribed" }, $setOnInsert: { email: user.email.toLowerCase(), consentSource: "privacy-centre" } },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
