@@ -207,7 +207,7 @@ const AdminUsers = () => {
                         </div>
                       </td>
                       <td className="p-3 border-b border-gray-700 text-sm text-gray-400">
-                        {new Date(user.createdAt).toLocaleDateString()}
+                        {user.createdAt ? new Date(user.createdAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
                       </td>
                     </tr>
                   ))}
@@ -250,7 +250,7 @@ const AdminUsers = () => {
                       )}
                     </div>
                     <div className="text-xs text-gray-400">
-                      Created: {new Date(user.createdAt).toLocaleDateString()}
+                      Registered: {user.createdAt ? new Date(user.createdAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
                     </div>
                   </div>
                 </div>
