@@ -121,8 +121,24 @@ const Subscription = () => {
           <div className="space-y-4 mb-6">
             <div className="flex flex-col sm:flex-row sm:items-center gap-2">
               <span className="font-semibold text-slate-600">Current Plan:</span>
-              <span className="text-slate-900 text-lg">{planDisplayNames[subscription.plan] || subscription.plan}</span>
+              <span className="text-slate-900 text-lg">{subscription.planName || planDisplayNames[subscription.plan] || subscription.plan}</span>
             </div>
+            {subscription.totalAmount > 0 && (
+              <>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                  <span className="font-semibold text-slate-600">Total Plan Amount:</span>
+                  <span className="font-bold text-slate-900">₹{Number(subscription.totalAmount).toLocaleString('en-IN')}</span>
+                </div>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                  <span className="font-semibold text-slate-600">Amount Paid:</span>
+                  <span className="font-bold text-emerald-700">₹{Number(subscription.amountPaid || 0).toLocaleString('en-IN')}</span>
+                </div>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                  <span className="font-semibold text-slate-600">Remaining Balance:</span>
+                  <span className="font-bold text-amber-700">₹{Math.max(0, Number(subscription.totalAmount || 0) - Number(subscription.amountPaid || 0)).toLocaleString('en-IN')}</span>
+                </div>
+              </>
+            )}
             <div className="flex flex-col sm:flex-row sm:items-center gap-2">
               <span className="font-semibold text-slate-600">Status:</span>
               <span className={`font-bold ${
