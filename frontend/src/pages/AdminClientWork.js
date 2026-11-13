@@ -161,7 +161,7 @@ function AdminClientWork() {
 
           <div className="flex min-h-48 flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-5">
             <span className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">Logo preview</span>
-            {preview ? <img src={preview} alt="Selected client logo preview" className="max-h-28 max-w-full object-contain" /> : <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-white text-slate-400 shadow-sm"><Icon name="image" className="h-7 w-7" /></div>}
+            {preview ? <img src={preview} alt="Selected client logo preview" className="max-h-28 max-w-full object-contain" /> : <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-white text-slate-400 shadow-sm"><Icon name="document" className="h-7 w-7" /></div>}
             <span className="mt-3 max-w-full truncate text-sm font-semibold text-slate-700">{form.name || 'Client name'}</span>
           </div>
         </div>
@@ -190,8 +190,8 @@ function AdminClientWork() {
                   {item.websiteUrl && <p className="mt-1 truncate text-xs text-slate-400">{item.websiteUrl}</p>}
                 </div>
                 <div className="flex shrink-0 flex-col gap-1">
-                  <button type="button" onClick={() => startEdit(item)} className="rounded-lg border border-slate-200 p-2 text-slate-600 hover:bg-slate-50" aria-label={`Edit ${item.name}`}><Icon name="edit" className="h-4 w-4" /></button>
-                  <button type="button" onClick={() => removeItem(item)} className="rounded-lg border border-red-100 p-2 text-red-600 hover:bg-red-50" aria-label={`Delete ${item.name}`}><Icon name="trash" className="h-4 w-4" /></button>
+                  <button type="button" onClick={() => startEdit(item)} className="rounded-lg border border-slate-200 p-2 text-slate-600 hover:bg-slate-50" aria-label={`Edit ${item.name}`}><Icon name="pen" className="h-4 w-4" /></button>
+                  <button type="button" onClick={() => removeItem(item)} className="rounded-lg border border-red-100 p-2 text-red-600 hover:bg-red-50" aria-label={`Delete ${item.name}`}><Icon name="close" className="h-4 w-4" /></button>
                 </div>
               </article>
             ))}
