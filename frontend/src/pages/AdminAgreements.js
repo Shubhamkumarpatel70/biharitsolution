@@ -365,7 +365,8 @@ export default function AdminAgreements() {
           ) : (
             <div className="grid grid-cols-1 gap-4">
               {folderDocs.map(doc => {
-                const sc = STATUS_COLORS[doc.status] || STATUS_COLORS.draft;
+                const displayStatus = doc.responseStatus && doc.responseStatus !== 'pending' ? doc.responseStatus : doc.status;
+                const sc = STATUS_COLORS[displayStatus] || STATUS_COLORS.draft;
                 return (
                   <article key={doc._id} className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
                     <div className="grid grid-cols-[44px_minmax(0,1fr)] gap-3 sm:grid-cols-[56px_minmax(0,1fr)] sm:gap-4">
@@ -374,20 +375,22 @@ export default function AdminAgreements() {
                         <div className="flex flex-wrap items-start justify-between gap-2">
                           <h3 className="min-w-0 flex-1 break-words text-sm font-extrabold leading-6 text-slate-900 sm:text-base">{doc.documentTitle}</h3>
                           <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold ${sc.bg} ${sc.text}`}>
-                            <span className={`h-1.5 w-1.5 rounded-full ${sc.dot}`} />{doc.status}
+                            <span className={`h-1.5 w-1.5 rounded-full ${sc.dot}`} />{displayStatus}
                           </span>
                         </div>
                         <p className="mt-1 text-xs font-medium leading-5 text-slate-600">
                           Created {new Date(doc.createdAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                         </p>
                         {doc.clientEmail && <p className="mt-1 break-all text-xs text-slate-500">{doc.clientEmail}</p>}
+                        {doc.responseStatus === 'accepted' && <div className="mt-2 rounded-lg border border-emerald-100 bg-emerald-50 p-3 text-xs text-emerald-800"><strong>Accepted by:</strong> {doc.acceptedByName} · <strong>Place:</strong> {doc.acceptedPlace} · <strong>Time:</strong> {doc.acceptedAtIST || (doc.acceptedAt ? new Date(doc.acceptedAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : '—')}</div>}
+                        {doc.responseStatus === 'declined' && <div className="mt-2 rounded-lg border border-red-100 bg-red-50 p-3 text-xs text-red-800"><strong>Declined by:</strong> {doc.declinedByName} · <strong>Time:</strong> {doc.declinedAt ? new Date(doc.declinedAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : '—'}{doc.declineReason ? ' · Reason: ' + doc.declineReason : ''}</div>}
                       </div>
                     </div>
                     <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-[minmax(150px,220px)_1fr] sm:items-center">
                       <label className="block text-xs font-semibold text-slate-700">
                         Document status
                         <select value={doc.status} onChange={e => handleStatus(doc._id, e.target.value)} className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                          {['draft','sent','signed','archived'].map(status => <option key={status} value={status}>{status.charAt(0).toUpperCase()+status.slice(1)}</option>)}
+                          {['draft','sent','accepted','declined','signed','archived'].map(status => <option key={status} value={status}>{status.charAt(0).toUpperCase()+status.slice(1)}</option>)}
                         </select>
                       </label>
                       <div className="flex min-w-0 flex-wrap items-center gap-2">
