@@ -43,6 +43,10 @@ export default function AdminAgreements() {
   const [viewLoading, setViewLoading] = useState(false);
   const [form, setForm]               = useState(initForm);
   const [toast, setToast]             = useState(null);
+  const [agreementSearch, setAgreementSearch] = useState('');
+  const [searchingAgreement, setSearchingAgreement] = useState(false);
+  const [agreementSearchResult, setAgreementSearchResult] = useState(null);
+  const [agreementSearchError, setAgreementSearchError] = useState('');
 
   const token = localStorage.getItem('token');
   const headers = { Authorization: `Bearer ${token}` };
@@ -147,6 +151,29 @@ export default function AdminAgreements() {
 
   const handleView = (doc) => openDocument(doc._id);
 
+  const searchAgreementByCode = async (e) => {
+    e.preventDefault();
+    const code = agreementSearch.trim().toUpperCase();
+    if (!code) { setAgreementSearchError('Enter an agreement ID to search.'); return; }
+    setSearchingAgreement(true); setAgreementSearchError(''); setAgreementSearchResult(null);
+    try {
+      const folders = await Promise.all(clients.map(async client => {
+        try {
+          const response = await axios.get('/api/auth/admin/agreements/client/' + encodeURIComponent(client.clientName), { headers });
+          return { client, documents: response.data.agreements || [] };
+        } catch { return { client, documents: [] }; }
+      }));
+      let match = null;
+      for (const folder of folders) {
+        const doc = folder.documents.find(item => [item.docCode, item.documentTitle, item.htmlContent, item.notes].filter(Boolean).join(' ').toUpperCase().includes(code));
+        if (doc) { match = { client: folder.client, doc }; break; }
+      }
+      if (match) setAgreementSearchResult(match);
+      else setAgreementSearchError('No agreement found for ' + code + '. Check the ID and try again.');
+    } catch { setAgreementSearchError('Could not search agreements right now. Please try again.'); }
+    finally { setSearchingAgreement(false); }
+  };
+
   // ── Delete ────────────────────────────────────────────────────────
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this document? This cannot be undone.')) return;
@@ -237,6 +264,25 @@ export default function AdminAgreements() {
           </button>
         </div>
       </div>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+        <div className="mb-3">
+          <h2 className="text-base font-extrabold text-slate-900 sm:text-lg">Manage agreements from one place.</h2>
+          <p className="mt-1 text-sm text-slate-600">Search directly using an agreement ID, such as ASKC-DOC-AK-1126-884.</p>
+        </div>
+        <form onSubmit={searchAgreementByCode} className="flex flex-col gap-2 sm:flex-row">
+          <label className="sr-only" htmlFor="agreement-id-search">Agreement ID</label>
+          <input id="agreement-id-search" value={agreementSearch} onChange={e => { setAgreementSearch(e.target.value); setAgreementSearchError(""); }} placeholder="Enter agreement ID (e.g. ASKC-DOC-AK-1126-884)" className="min-h-12 min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-100" />
+          <button type="submit" disabled={searchingAgreement || !agreementSearch.trim()} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-6 text-sm font-extrabold text-white shadow-sm transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60">{searchingAgreement ? "Searching…" : "Search Agreement"}</button>
+        </form>
+        {agreementSearchError && <p role="alert" className="mt-3 text-sm font-semibold text-rose-700">{agreementSearchError}</p>}
+        {agreementSearchResult && (
+          <div className="mt-4 flex flex-col gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0"><p className="text-xs font-bold uppercase tracking-wide text-emerald-800">Agreement found</p><p className="mt-1 break-words text-sm font-extrabold text-slate-900">{agreementSearchResult.doc.documentTitle}</p><p className="mt-1 text-xs font-medium text-slate-700">{agreementSearchResult.client.clientName} · {agreementSearchResult.doc.docCode || agreementSearch}</p></div>
+            <button type="button" onClick={() => handleView(agreementSearchResult.doc)} disabled={viewLoading} className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 text-sm font-bold text-white hover:bg-indigo-700 disabled:opacity-60"><Icon name="eye" className="h-4 w-4" /> View Agreement</button>
+          </div>
+        )}
+      </section>
 
       {/* Loading */}
       {loading && (
