@@ -14,110 +14,40 @@ function generateOtp() {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-const generateOtpEmailHtml = (otp, title, description) => `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <style>
-    body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      background-color: #ffffff;
-      margin: 0;
-      padding: 0;
-    }
-    .container {
-      max-width: 500px;
-      margin: 0 auto;
-      padding: 40px 20px;
-      text-align: center;
-    }
-    .logo {
-      font-size: 24px;
-      font-weight: 900;
-      color: #0f172a;
-      letter-spacing: -0.5px;
-      margin-bottom: 40px;
-      text-decoration: none;
-    }
-    .title {
-      color: #0f172a;
-      font-size: 24px;
-      font-weight: 700;
-      margin: 0 0 30px 0;
-    }
-    .otp-box {
-      border: 1px solid #e2e8f0;
-      border-radius: 12px;
-      padding: 30px 20px;
-      margin-bottom: 30px;
-    }
-    .otp-code {
-      font-size: 42px;
-      font-weight: 800;
-      color: #6366f1; /* Modern indigo/purple */
-      letter-spacing: 6px;
-      margin: 0;
-    }
-    .desc {
-      color: #334155;
-      font-size: 14px;
-      margin: 0 0 15px 0;
-    }
-    .note {
-      color: #0f172a;
-      font-size: 14px;
-      margin: 0;
-    }
-    .divider {
-      border: none;
-      border-top: 1px solid #e2e8f0;
-      margin: 40px 0;
-    }
-    .footer {
-      color: #64748b;
-      font-size: 12px;
-      line-height: 1.6;
-    }
-    .footer a {
-      color: #64748b;
-      text-decoration: underline;
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div style="margin-bottom: 30px;">
-      <a href="https://askcweb.in" class="logo">ASKC TECHNOLOGIES</a>
-    </div>
-    
-    <h1 class="title">${title}</h1>
-    
-    <div class="otp-box">
-      <p class="otp-code">${otp}</p>
-    </div>
-    
-    <p class="desc">Please make sure you never share this code with anyone.</p>
-    <p class="note"><b>Note:</b> The code will expire in 10 minutes.</p>
-    
-    <hr class="divider" />
-    
-    <div class="footer">
-      <p style="margin-bottom: 20px;">
-        You have received this email because you initiated a request at ASKC TECHNOLOGIES, to ensure the security of your account.
-      </p>
-      <p>
-        <a href="https://askcweb.in/privacy">Privacy policy</a> | <a href="https://askcweb.in/contact">Help center</a><br/>
-        Contact Us: <a href="mailto:askctechnologies@gmail.com">askctechnologies@gmail.com</a>
-      </p>
-      <p style="margin-top: 20px;">
-        &copy; ${new Date().getFullYear()} ASKC TECHNOLOGIES. All rights reserved.
-      </p>
-    </div>
-  </div>
-</body>
-</html>
-`;
+const generateOtpEmailHtml = (otp, title, description) => {
+  const escapeHtml = (value) => String(value || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  return `<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="x-apple-disable-message-reformatting"><title>${escapeHtml(title)}</title></head>
+<body style="margin:0;padding:0;background:#f3f6fb;font-family:Arial,Helvetica,sans-serif;color:#172033;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#f3f6fb;padding:28px 12px;">
+    <tr><td align="center">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:560px;background:#ffffff;border:1px solid #e6ebf2;border-radius:18px;overflow:hidden;">
+        <tr><td style="background:#102b55;padding:26px 28px;text-align:left;">
+          <div style="font-size:21px;line-height:1.2;font-weight:800;letter-spacing:.3px;color:#ffffff;">ASKC <span style="color:#8fc5ff;">TECHNOLOGIES</span></div>
+          <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#c2d5ee;margin-top:7px;">Digital solutions. Built with care.</div>
+        </td></tr>
+        <tr><td style="padding:34px 28px 28px;">
+          <div style="display:inline-block;padding:7px 11px;border-radius:20px;background:#edf5ff;color:#1756a2;font-size:11px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;">Account security</div>
+          <h1 style="font-size:25px;line-height:1.25;color:#102b55;margin:18px 0 10px;">${escapeHtml(title)}</h1>
+          <p style="font-size:14px;line-height:1.75;color:#536174;margin:0 0 24px;">${escapeHtml(description)}</p>
+          <div style="background:#f5f8fc;border:1px solid #dce6f2;border-radius:14px;padding:22px 16px;text-align:center;">
+            <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#718096;margin-bottom:10px;">Your verification code</div>
+            <div style="font-size:36px;line-height:1.2;font-weight:800;letter-spacing:9px;color:#1763b1;">${escapeHtml(otp)}</div>
+          </div>
+          <p style="font-size:13px;line-height:1.7;color:#536174;margin:22px 0 8px;">This code expires in <strong style="color:#102b55;">10 minutes</strong>.</p>
+          <p style="font-size:12px;line-height:1.7;color:#8a5360;background:#fff7f7;border:1px solid #f3d9dc;border-radius:10px;padding:12px 14px;margin:0;">For your security, never share this code with anyone. ASKC TECHNOLOGIES will never ask you to disclose your OTP.</p>
+        </td></tr>
+        <tr><td style="padding:18px 28px;background:#f8fafc;border-top:1px solid #e8edf4;">
+          <p style="font-size:11px;line-height:1.7;color:#748196;margin:0 0 7px;">You received this message because an account security request was made using this email address. If this wasn't you, you can safely ignore this email.</p>
+          <p style="font-size:11px;color:#748196;margin:0;"><a href="https://askctechnologies.in" style="color:#1756a2;text-decoration:none;">askctechnologies.in</a> &nbsp;·&nbsp; <a href="mailto:askctechnologies@gmail.com" style="color:#1756a2;text-decoration:none;">askctechnologies@gmail.com</a></p>
+          <p style="font-size:10px;color:#9aa5b4;margin:12px 0 0;">© ${new Date().getFullYear()} ASKC TECHNOLOGIES. All rights reserved.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`;
+};
 
 // Send OTP for registration
 exports.sendRegisterOtp = async (req, res) => {
@@ -307,7 +237,7 @@ exports.getLoginCaptcha = async (req, res) => {
 
 exports.registerUser = async (req, res) => {
   try {
-    const { name, email, password, subscribeOffers } = req.body;
+    const { name, email, password, subscribeOffers, marketingConsent } = req.body;
     if (!name || !email || !password) {
       return res.status(400).json({ message: "All fields are required." });
     }
@@ -321,14 +251,18 @@ exports.registerUser = async (req, res) => {
       email,
       password: hashedPassword,
       role: "user",
+      subscribeOffers: subscribeOffers === true || marketingConsent === true,
+      marketingConsent: subscribeOffers === true || marketingConsent === true,
+      marketingConsentAt: subscribeOffers === true || marketingConsent === true ? new Date() : null,
     });
     await user.save();
 
     // Subscribe to newsletter if user opted in
-    if (subscribeOffers === true) {
+    if (subscribeOffers === true || marketingConsent === true) {
+      const normalizedEmail = String(email).trim().toLowerCase();
       await NewsletterSubscriber.findOneAndUpdate(
-        { email },
-        { email, status: "subscribed" },
+        { email: normalizedEmail },
+        { $set: { email: normalizedEmail, status: "subscribed", consentedAt: new Date() } },
         { upsert: true, new: true, setDefaultsOnInsert: true },
       );
     }
