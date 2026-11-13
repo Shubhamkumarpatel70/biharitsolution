@@ -28,7 +28,8 @@ export const adminNavItems = [
   { id: 'payment-options', label: 'Payment Options', iconName: 'creditCard', category: 'finance' },
   { id: 'coupons', label: 'Coupons', iconName: 'currency', category: 'finance' },
   { id: 'help', label: 'Help', iconName: 'help', category: 'support' },
-  { id: 'privacy-requests', label: 'Privacy & DPDP', iconName: 'shield', category: 'settings' },
+  { id: 'privacy-requests', label: 'Privacy Requests', iconName: 'shield', category: 'settings' },
+  { id: 'privacy-compliance', label: 'Monthly Compliance', iconName: 'clipboard', category: 'settings' },
 ];
 
 const categoryLabels = {

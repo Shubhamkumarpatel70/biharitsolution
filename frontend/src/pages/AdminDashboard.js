@@ -28,6 +28,7 @@ import AdminAgreements from './AdminAgreements';
 import AdminClientWork from './AdminClientWork';
 import AdminProjects from './AdminProjects';
 import AdminPrivacyRequests from './AdminPrivacyRequests';
+import AdminPrivacyCompliance from './AdminPrivacyCompliance';
 import { Icon } from '../components/icons';
 
 const AdminDashboard = () => {
@@ -100,6 +101,7 @@ const AdminDashboard = () => {
       case 'career-applications': return <AdminCareerApplications />;
       case 'help': return <AdminHelp />;
       case 'privacy-requests': return <AdminPrivacyRequests />;
+      case 'privacy-compliance': return <AdminPrivacyCompliance />;
       case 'id-card': return <AdminIDCard />;
       case 'agreements': return <AdminAgreements />;
       case 'client-work': return <AdminClientWork />;
