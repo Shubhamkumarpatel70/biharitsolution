@@ -4254,9 +4254,20 @@ router.get("/user-agreements", authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select("name email");
     if (!user) return res.status(404).json({ message: "User not found." });
+    const escapeRegex = value => String(value || "").replace(/[.*+?^${}()|[\\]\\]/g, "\\$&");
     const agreements = await Agreement.find({
       $or: [
-        { clientEmail: { $regex: new RegExp("^" + String(user.email).replace(/[.*+?^${}()|[\\]\\]/g, "\\// Get all agreements (grouped by client)") + "$", "i") } },
+        { clientEmail: { $regex: new RegExp("^" + escapeRegex(user.email) + "$", "i") } },
+        { clientName: { $regex: new RegExp("^" + escapeRegex(user.name) + "$", "i") } }
+      ]
+    }).select("-htmlContent").sort({ createdAt: -1 }).lean();
+    res.json({ agreements });
+  } catch (err) {
+    res.status(500).json({ message: "Could not load your agreements." });
+  }
+});
+
+// Get all agreements (grouped by client)") + "$", "i") } },
         { clientName: { $regex: new RegExp("^" + String(user.name).replace(/[.*+?^${}()|[\\]\\]/g, "\\// Get all agreements (grouped by client)") + "$", "i") } }
       ]
     }).select("-htmlContent").sort({ createdAt: -1 }).lean();
