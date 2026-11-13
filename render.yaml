@@ -20,4 +20,10 @@ services:
       - key: REACT_APP_API_URL
         value: https://askcweb.in
       - key: CLIENT_URL
-        value: https://askcweb.in
+        value: https://askctechnologies.in
+      - key: CASHFREE_APP_ID
+        sync: false
+      - key: CASHFREE_SECRET_KEY
+        sync: false
+      - key: CASHFREE_ENVIRONMENT
+        value: sandbox
