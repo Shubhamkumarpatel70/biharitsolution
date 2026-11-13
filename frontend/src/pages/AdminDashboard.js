@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AdminSidebar from '../components/AdminSidebar';
 import AdminBottomNav from '../components/AdminBottomNav';
@@ -37,6 +37,15 @@ const AdminDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('home');
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!sidebarOpen) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const closeOnEscape = (event) => { if (event.key === 'Escape') setSidebarOpen(false); };
+    document.addEventListener('keydown', closeOnEscape);
+    return () => { document.body.style.overflow = previousOverflow; document.removeEventListener('keydown', closeOnEscape); };
+  }, [sidebarOpen]);
 
   const getUserRole = () => {
     try {
@@ -137,7 +146,7 @@ const AdminDashboard = () => {
     <div className="min-h-screen min-h-dvh bg-slate-100 flex">
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-slate-900/40 z-[60] lg:hidden"
+          className="askc-admin-overlay fixed inset-0 bg-slate-950/55 backdrop-blur-sm z-[60] lg:hidden"
           onClick={() => setSidebarOpen(false)}
           aria-hidden
         />
@@ -147,14 +156,17 @@ const AdminDashboard = () => {
         type="button"
         onClick={() => setSidebarOpen(!sidebarOpen)}
         className="lg:hidden fixed top-4 left-4 z-[80] inline-flex items-center gap-2 bg-slate-900 text-white border border-slate-700 rounded-xl px-3 py-2.5 shadow-lg hover:bg-slate-800 transition-colors"
-        aria-label="Open sidebar"
+        aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"}
+        aria-expanded={sidebarOpen}
+        aria-controls="askc-admin-sidebar"
       >
         <Icon name="menu" className="w-5 h-5" strokeWidth={2.2} />
         <span className="text-xs font-semibold tracking-wide">Menu</span>
       </button>
 
       <aside
-        className={`
+        id="askc-admin-sidebar"
+        className={`askc-admin-drawer
         fixed lg:static inset-y-0 left-0 z-[70] flex flex-col
         h-dvh max-h-dvh lg:h-screen lg:max-h-screen
         transform transition-transform duration-300 ease-in-out
