@@ -2979,6 +2979,41 @@ router.get(
   },
 );
 
+// Admin email diagnostics: never expose secret values in API responses.
+router.get("/admin/email-config", authMiddleware, coAdminMiddleware, async (req, res) => {
+  const hasResend = Boolean(String(process.env.RESEND_API_KEY || "").trim());
+  const hasSmtp = Boolean(String(process.env.SMTP_USER || "").trim() && String(process.env.SMTP_PASS || "").trim());
+  const provider = hasResend ? "Resend" : hasSmtp ? "SMTP" : "Not configured";
+  res.json({
+    provider,
+    configured: hasResend || hasSmtp,
+    senderConfigured: Boolean(process.env.RESEND_FROM || process.env.SMTP_FROM || process.env.SMTP_USER),
+    requiredEnvironment: hasResend
+      ? ["RESEND_API_KEY", "RESEND_FROM"]
+      : ["SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASS", "SMTP_FROM"],
+    emailFlows: ["registration OTP", "forgot-password OTP", "promotional campaigns", "agreement emails"],
+  });
+});
+
+router.post("/admin/email-test", authMiddleware, coAdminMiddleware, async (req, res) => {
+  try {
+    const email = String(req.body.email || "").trim().toLowerCase();
+    if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) {
+      return res.status(400).json({ message: "Enter a valid test recipient email." });
+    }
+    await sendEmail(
+      email,
+      "ASKC TECHNOLOGIES — Email configuration test",
+      "Your ASKC email service is configured and can deliver messages.",
+      "<div style='font-family:Arial,sans-serif;padding:24px'><h2>ASKC TECHNOLOGIES</h2><p>Your configured email provider is working. Registration OTP, forgot-password OTP, promotional campaigns and agreement emails use this delivery service.</p></div>"
+    );
+    res.json({ success: true, message: "Test email accepted by the configured provider." });
+  } catch (err) {
+    console.error("Admin email configuration test failed:", err);
+    res.status(502).json({ success: false, message: err?.message || "Email provider test failed." });
+  }
+});
+
 // Admin: Send promotional email to one or multiple emails
 router.post(
   "/admin/promotional-email",
