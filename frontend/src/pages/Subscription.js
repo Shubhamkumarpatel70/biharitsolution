@@ -148,9 +148,17 @@ const Subscription = () => {
               </span>
             </div>
             <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+              <span className="font-semibold text-slate-600">Subscription ID:</span>
+              <span className="font-mono text-sm text-slate-800 break-all">{subscription.uniqueId || subscription._id}</span>
+            </div>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+              <span className="font-semibold text-slate-600">Assigned At:</span>
+              <span className="text-slate-800">{subscription.createdAt ? new Date(subscription.createdAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'medium' }) : 'N/A'}</span>
+            </div>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
               <span className="font-semibold text-slate-600">Expires At:</span>
               <span className="text-slate-800">
-                {subscription.expiresAt ? new Date(subscription.expiresAt).toLocaleDateString() : 'N/A'}
+                {subscription.expiresAt ? new Date(subscription.expiresAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'medium' }) : 'N/A'}
               </span>
             </div>
           </div>
