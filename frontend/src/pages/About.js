@@ -22,11 +22,13 @@ function About() {
   const [founderProfile, setFounderProfile] = useState(null);
   const [founderImageFailed, setFounderImageFailed] = useState(false);
   const founderFallbackImage = 'https://res.cloudinary.com/df9m0nyqz/image/upload/v1794591643/askc-technologies/founder/sbfe3dsbxvtdgyf2i7uw.jpg';
+  const founderImage = typeof founderProfile?.image === 'string' && /^https:\/\/res\.cloudinary\.com\//i.test(founderProfile.image.trim()) ? founderProfile.image.trim() : founderFallbackImage;
 
   useEffect(() => {
     setIsVisible(true);
     axios.get('/api/auth/founder-profile', { params: { _t: Date.now() } }).then(response => {
-      setFounderProfile(response.data?.profile || null);
+      const image = response.data?.profile?.image;
+      setFounderProfile(typeof image === 'string' && image.trim() ? { ...response.data.profile, image: image.trim() } : null);
       setFounderImageFailed(false);
     }).catch(() => setFounderProfile(null));
   }, []);
@@ -113,7 +115,7 @@ function About() {
             <div className="mx-auto h-52 w-52 overflow-hidden rounded-3xl bg-gradient-to-br from-slate-100 to-blue-100 border border-slate-200 flex items-center justify-center">
               {!founderImageFailed ? (
                 <img
-                  src={founderProfile?.image || founderFallbackImage}
+                  src={founderImage}
                   alt="Founder of ASKC TECHNOLOGIES"
                   loading="lazy"
                   decoding="async"
