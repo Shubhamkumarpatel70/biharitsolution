@@ -317,6 +317,12 @@ router.post("/cashfree/webhook", async (req, res) => {
       console.error("Cashfree webhook amount mismatch:", orderId);
       return res.status(200).json({ received: true });
     }
+    if (subscription.couponCode) {
+      await Coupon.findOneAndUpdate(
+        { code: subscription.couponCode, active: true, usedBy: { $ne: subscription.user }, $or: [{ usageLimit: 0 }, { $expr: { $lt: ["$usedCount", "$usageLimit"] } }] },
+        { $addToSet: { usedBy: subscription.user }, $inc: { usedCount: 1 } }
+      );
+    }
     const duration = Number(subscription.durationDays);
     const safeDuration = Number.isFinite(duration) && duration > 0 ? duration : 30;
     await Subscription.findOneAndUpdate(
@@ -340,7 +346,7 @@ router.post("/cashfree/webhook", async (req, res) => {
 
 router.post("/cashfree/create-order", authMiddleware, async (req, res) => {
   try {
-    const { plan, phone } = req.body || {};
+    const { plan, phone, couponCode } = req.body || {};
     const cleanPhone = String(phone || "").replace(/\D/g, "").slice(-10);
     if (!plan || !/^\d{10}$/.test(cleanPhone)) {
       return res.status(400).json({ message: "Select a plan and enter a valid 10-digit mobile number." });
@@ -359,7 +365,18 @@ router.post("/cashfree/create-order", authMiddleware, async (req, res) => {
     const planName = planDoc.name.toLowerCase();
     const planEnum = planName.includes("premium") ? "premium" : planName.includes("pro") ? "pro" : "starter";
     const orderId = "ASKC_" + Date.now() + "_" + require("crypto").randomBytes(4).toString("hex");
-    const amount = Number(Number(planDoc.price).toFixed(2));
+    let discountAmount = 0;
+    let normalizedCouponCode = "";
+    if (couponCode) {
+      normalizedCouponCode = String(couponCode).trim().toUpperCase();
+      const coupon = await Coupon.findOne({ code: normalizedCouponCode, active: true });
+      if (!coupon) return res.status(400).json({ message: "Coupon is invalid or expired." });
+      if (coupon.usageLimit > 0 && coupon.usedCount >= coupon.usageLimit) return res.status(400).json({ message: "Coupon usage limit reached." });
+      if (coupon.usedBy.some(id => String(id) === String(user._id))) return res.status(400).json({ message: "You have already used this coupon." });
+      discountAmount = Math.min(Number(coupon.amount) || 0, Number(planDoc.price));
+    }
+    const amount = Number(Math.max(0, Number(planDoc.price) - discountAmount).toFixed(2));
+    if (amount <= 0) return res.status(400).json({ message: "Coupon discount must leave a payable amount greater than zero." });
     const baseUrl = process.env.CASHFREE_ENVIRONMENT === "production"
       ? "https://api.cashfree.com/pg"
       : "https://sandbox.cashfree.com/pg";
@@ -409,7 +426,9 @@ router.post("/cashfree/create-order", authMiddleware, async (req, res) => {
       durationDays,
       cashfreeOrderId: orderId,
       paymentStatus: "created",
-      amountPaid: amount
+      amountPaid: amount,
+      couponCode: normalizedCouponCode,
+      discountAmount
     });
     return res.status(201).json({
       orderId,
@@ -474,6 +493,12 @@ router.post("/cashfree/verify-order", authMiddleware, async (req, res) => {
     const successfulPayment = Array.isArray(payments)
       ? payments.find(payment => payment.payment_status === "SUCCESS")
       : null;
+    if (subscription.couponCode) {
+      await Coupon.findOneAndUpdate(
+        { code: subscription.couponCode, active: true, usedBy: { $ne: subscription.user }, $or: [{ usageLimit: 0 }, { $expr: { $lt: ["$usedCount", "$usageLimit"] } }] },
+        { $addToSet: { usedBy: subscription.user }, $inc: { usedCount: 1 } }
+      );
+    }
     const safeDuration = Number.isFinite(Number(subscription.durationDays)) && Number(subscription.durationDays) > 0 ? Number(subscription.durationDays) : 30;
     const updated = await Subscription.findOneAndUpdate(
       { _id: subscription._id, user: req.user.id, status: "pending" },
