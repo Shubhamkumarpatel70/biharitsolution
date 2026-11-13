@@ -30,6 +30,7 @@ export const adminNavItems = [
   { id: 'help', label: 'Help', iconName: 'help', category: 'support' },
   { id: 'privacy-requests', label: 'Privacy Requests', iconName: 'shield', category: 'settings' },
   { id: 'privacy-compliance', label: 'Monthly Compliance', iconName: 'clipboard', category: 'settings' },
+  { id: 'privacy-register', label: 'Privacy Registers', iconName: 'shield', category: 'settings' },
 ];
 
 const categoryLabels = {
