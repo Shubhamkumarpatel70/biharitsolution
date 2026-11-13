@@ -118,6 +118,7 @@ const AdminUsers = () => {
     if (!planModalUser) return;
     const totalAmount = Number(planForm.totalAmount);
     const durationDays = Number(planForm.durationDays);
+    if (!planChoice) { setError('Choose an Existing Plan or select Others for a custom plan.'); return; }
     if (!planForm.planName.trim() || !Number.isFinite(totalAmount) || totalAmount < 0 || !Number.isInteger(durationDays) || durationDays < 1 || durationDays > 3650) {
       setError('Enter a plan name, valid amount and validity between 1 and 3650 days.');
       return;
