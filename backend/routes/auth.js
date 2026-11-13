@@ -3530,146 +3530,86 @@ router.get("/services", async (req, res) => {
 });
 
 // Payment Options Management Routes
-router.get(
-  "/admin/payment-options",
-  authMiddleware,
-  coAdminMiddleware,
-  async (req, res) => {
-    try {
-      const paymentOptions = await PaymentOption.find().sort({
-        order: 1,
-        createdAt: -1,
-      });
-      res.json({ paymentOptions });
-    } catch (err) {
-      console.error("Error fetching payment options:", err);
-      res.status(500).json({ message: "Could not fetch payment options." });
-    }
-  },
-);
-
-router.post(
-  "/admin/payment-options",
-  authMiddleware,
-  coAdminMiddleware,
-  async (req, res) => {
-    try {
-      const { name, upiId, description, paymentType, order } = req.body;
-
-      if (!name || !upiId) {
-        return res
-          .status(400)
-          .json({ message: "Name and UPI ID are required." });
-      }
-
-      // Check if UPI ID already exists
-      const existingOption = await PaymentOption.findOne({ upiId });
-      if (existingOption) {
-        return res.status(400).json({ message: "UPI ID already exists." });
-      }
-
-      const paymentOption = new PaymentOption({
-        name,
-        upiId,
-        description,
-        paymentType: paymentType || "UPI",
-        order: order || 0,
-      });
-
-      await paymentOption.save();
-      res
-        .status(201)
-        .json({ paymentOption, message: "Payment option added successfully." });
-    } catch (err) {
-      console.error("Error adding payment option:", err);
-      res.status(500).json({ message: "Could not add payment option." });
-    }
-  },
-);
-
-router.put(
-  "/admin/payment-options/:id",
-  authMiddleware,
-  coAdminMiddleware,
-  async (req, res) => {
-    try {
-      const { name, upiId, description, paymentType, order, isActive } =
-        req.body;
-
-      if (!name || !upiId) {
-        return res
-          .status(400)
-          .json({ message: "Name and UPI ID are required." });
-      }
-
-      // Check if UPI ID already exists (excluding current option)
-      const existingOption = await PaymentOption.findOne({
-        upiId,
-        _id: { $ne: req.params.id },
-      });
-      if (existingOption) {
-        return res.status(400).json({ message: "UPI ID already exists." });
-      }
-
-      const paymentOption = await PaymentOption.findByIdAndUpdate(
-        req.params.id,
-        {
-          name,
-          upiId,
-          description,
-          paymentType: paymentType || "UPI",
-          order: order || 0,
-          isActive: isActive !== undefined ? isActive : true,
-        },
-        { new: true, runValidators: true },
-      );
-
-      if (!paymentOption) {
-        return res.status(404).json({ message: "Payment option not found." });
-      }
-
-      res.json({
-        paymentOption,
-        message: "Payment option updated successfully.",
-      });
-    } catch (err) {
-      console.error("Error updating payment option:", err);
-      res.status(500).json({ message: "Could not update payment option." });
-    }
-  },
-);
-
-router.delete(
-  "/admin/payment-options/:id",
-  authMiddleware,
-  coAdminMiddleware,
-  async (req, res) => {
-    try {
-      const paymentOption = await PaymentOption.findByIdAndDelete(
-        req.params.id,
-      );
-
-      if (!paymentOption) {
-        return res.status(404).json({ message: "Payment option not found." });
-      }
-
-      res.json({ message: "Payment option deleted successfully." });
-    } catch (err) {
-      console.error("Error deleting payment option:", err);
-      res.status(500).json({ message: "Could not delete payment option." });
-    }
-  },
-);
-
-// Public route to get active payment options
-router.get("/payment-options", async (req, res) => {
+router.get("/admin/payment-options", authMiddleware, coAdminMiddleware, async (req, res) => {
   try {
-    const paymentOptions = await PaymentOption.find({ isActive: true }).sort({
-      order: 1,
-    });
+    const paymentOptions = await PaymentOption.find().sort({ order: 1, createdAt: -1 });
     res.json({ paymentOptions });
   } catch (err) {
     console.error("Error fetching payment options:", err);
+    res.status(500).json({ message: "Could not fetch payment options." });
+  }
+});
+
+router.post("/admin/payment-options", authMiddleware, coAdminMiddleware, async (req, res) => {
+  try {
+    const { name, upiId, description, paymentType, order, accountName, accountNumber, ifscCode, bankName, branch, qrCode } = req.body;
+    const type = paymentType || "UPI";
+    if (!name?.trim()) return res.status(400).json({ message: "Payment option name is required." });
+    if (type === "UPI" && !upiId?.trim()) return res.status(400).json({ message: "UPI ID is required for UPI payments." });
+    if (type === "BANK_TRANSFER" && (!accountName?.trim() || !accountNumber?.trim() || !ifscCode?.trim() || !bankName?.trim())) {
+      return res.status(400).json({ message: "Account name, account number, bank name and IFSC are required for bank transfer." });
+    }
+    if (upiId?.trim()) {
+      const existing = await PaymentOption.findOne({ upiId: upiId.trim() });
+      if (existing) return res.status(400).json({ message: "UPI ID already exists." });
+    }
+    const paymentOption = await PaymentOption.create({
+      name: name.trim(), upiId: upiId?.trim() || `BANK-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, description, paymentType: type,
+      order: Number(order) || 0, accountName, accountNumber, ifscCode, bankName, branch, qrCode: qrCode || null
+    });
+    res.status(201).json({ paymentOption, message: "Payment option added successfully." });
+  } catch (err) {
+    console.error("Error adding payment option:", err);
+    res.status(500).json({ message: "Could not add payment option." });
+  }
+});
+
+router.put("/admin/payment-options/:id", authMiddleware, coAdminMiddleware, async (req, res) => {
+  try {
+    const { name, upiId, description, paymentType, order, isActive, accountName, accountNumber, ifscCode, bankName, branch, qrCode } = req.body;
+    const type = paymentType || "UPI";
+    if (!name?.trim()) return res.status(400).json({ message: "Payment option name is required." });
+    if (type === "UPI" && !upiId?.trim()) return res.status(400).json({ message: "UPI ID is required for UPI payments." });
+    if (type === "BANK_TRANSFER" && (!accountName?.trim() || !accountNumber?.trim() || !ifscCode?.trim() || !bankName?.trim())) {
+      return res.status(400).json({ message: "Account name, account number, bank name and IFSC are required for bank transfer." });
+    }
+    if (upiId?.trim()) {
+      const existing = await PaymentOption.findOne({ upiId: upiId.trim(), _id: { $ne: req.params.id } });
+      if (existing) return res.status(400).json({ message: "UPI ID already exists." });
+    }
+    const update = {
+      name: name.trim(), upiId: upiId?.trim() || `BANK-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, description, paymentType: type,
+      order: Number(order) || 0, isActive: isActive !== undefined ? isActive : true,
+      accountName, accountNumber, ifscCode, bankName, branch
+    };
+    if (qrCode !== undefined) update.qrCode = qrCode || null;
+    const paymentOption = await PaymentOption.findByIdAndUpdate(req.params.id, update, { new: true, runValidators: true });
+    if (!paymentOption) return res.status(404).json({ message: "Payment option not found." });
+    res.json({ paymentOption, message: "Payment option updated successfully." });
+  } catch (err) {
+    console.error("Error updating payment option:", err);
+    res.status(500).json({ message: "Could not update payment option." });
+  }
+});
+
+router.delete("/admin/payment-options/:id", authMiddleware, coAdminMiddleware, async (req, res) => {
+  try {
+    const paymentOption = await PaymentOption.findByIdAndDelete(req.params.id);
+    if (!paymentOption) return res.status(404).json({ message: "Payment option not found." });
+    res.json({ message: "Payment option deleted successfully." });
+  } catch (err) {
+    console.error("Error deleting payment option:", err);
+    res.status(500).json({ message: "Could not delete payment option." });
+  }
+});
+
+// Public endpoint used by agreement templates; expose only active payment instructions.
+router.get("/payment-options", async (req, res) => {
+  try {
+    const paymentOptions = await PaymentOption.find({ isActive: true }).sort({ order: 1 }).select("name upiId qrCode description paymentType accountName accountNumber ifscCode bankName branch");
+    res.json({ paymentOptions });
+  } catch (err) {
+    console.error("Error fetching public payment options:", err);
     res.status(500).json({ message: "Could not fetch payment options." });
   }
 });
