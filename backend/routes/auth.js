@@ -100,6 +100,23 @@ const bufferToBase64 = (buffer, mimetype) => {
 
 const crypto = require("crypto");
 
+async function createUserNotification(userId, title, message, type = "general", eventKey = "", link = "") {
+  if (!userId) return null;
+  if (eventKey) {
+    const existing = await Notification.findOne({ user: userId, eventKey }).select("_id");
+    if (existing) return existing;
+  }
+  return Notification.create({
+    user: userId,
+    title,
+    message,
+    type,
+    eventKey,
+    link,
+    expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+  });
+}
+
 function generateProjectSubmissionId() {
   const y = new Date().getFullYear();
   const rand = crypto.randomBytes(5).toString("hex").toUpperCase();
@@ -628,6 +645,23 @@ router.get("/user-subscriptions", authMiddleware, async (req, res) => {
     const updatedSubscriptions = await Subscription.find({
       user: req.user.id,
     }).sort({ createdAt: -1 });
+
+    for (const subscription of updatedSubscriptions) {
+      if (!subscription.expiresAt || subscription.status !== "active" || subscription.canceled) continue;
+      const remainingMs = new Date(subscription.expiresAt).getTime() - now.getTime();
+      const daysRemaining = Math.ceil(remainingMs / 86400000);
+      if (daysRemaining >= 0 && daysRemaining <= 7) {
+        const expiryKey = `subscription:expiring:${subscription._id}:${new Date(subscription.expiresAt).toISOString().slice(0, 10)}`;
+        await createUserNotification(
+          req.user.id,
+          "Subscription expiring soon",
+          `Your ${subscription.planName || subscription.plan} subscription (${subscription.uniqueId}) expires in ${daysRemaining} day(s), on ${new Date(subscription.expiresAt).toLocaleString("en-IN")}.`,
+          "subscription",
+          expiryKey,
+          "/dashboard/subscription"
+        );
+      }
+    }
     res.json({ subscriptions: updatedSubscriptions });
   } catch (err) {
     res.status(500).json({ message: "Could not fetch subscriptions." });
@@ -1235,7 +1269,9 @@ router.get("/user-notifications", authMiddleware, async (req, res) => {
         title: n.title || "Notification",
         message: n.message,
         createdAt: n.createdAt,
-        read: n.readBy && n.readBy.includes(req.user.id),
+        read: n.readBy && n.readBy.some((id) => String(id) === String(req.user.id)),
+        type: n.type || 'general',
+        link: n.link || '',
       })),
     });
   } catch (err) {
@@ -3805,6 +3841,14 @@ router.post("/project-requirement", authMiddleware, async (req, res) => {
       });
     }
 
+    await createUserNotification(
+      req.user.id,
+      "Project request submitted",
+      `Your project request ${projectReq.submissionId} was received and is now pending review.`,
+      "project",
+      `project:submitted:${projectReq._id}`,
+      "/dashboard/project-requirement"
+    );
     res.status(201).json({
       projectRequirement: projectReq,
       message: "Project requirement submitted successfully.",
@@ -3972,6 +4016,17 @@ router.patch(
         },
       ).populate("user", "name email");
 
+      if (updatedProject.user && (updatedProject.status !== prevStatus || adminNotes !== undefined || projectLink !== undefined || estimatedCompletionDate !== undefined)) {
+        const statusText = String(updatedProject.status || "updated").replace(/_/g, " ");
+        await createUserNotification(
+          updatedProject.user._id || updatedProject.user,
+          "Project update",
+          `Your project request ${updatedProject.submissionId} has been updated. Current status: ${statusText}.${updatedProject.adminNotes ? " Admin note: " + updatedProject.adminNotes : ""}`,
+          "project",
+          `project:update:${updatedProject._id}:${updatedProject.updatedAt?.getTime?.() || Date.now()}`,
+          "/dashboard/project-requirement"
+        );
+      }
       res.json({
         projectRequirement: updatedProject,
         message: "Project requirement updated successfully.",
@@ -4311,6 +4366,16 @@ router.post(
         docCode: docCode || "",
         status: "draft",
       });
+      if (linkedUser) {
+        await createUserNotification(
+          linkedUser._id,
+          "New agreement available",
+          `A new document "${documentTitle}" (${docCode || agreement._id}) has been added to your ASKC dashboard.`,
+          "agreement",
+          `agreement:${agreement._id}`,
+          "/dashboard/agreements"
+        );
+      }
       res.status(201).json({ agreement });
     } catch (err) {
       console.error("Agreement save error:", err);
