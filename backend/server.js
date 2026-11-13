@@ -41,6 +41,7 @@ app.use(
         imgSrc: [
           "'self'",
           "data:",
+          "https://res.cloudinary.com",
           "https://api.qrserver.com",
           "https://api.cashfree.com",
           "https://sandbox.cashfree.com",
