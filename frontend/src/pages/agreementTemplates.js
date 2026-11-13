@@ -139,7 +139,7 @@ ${dcBadge(docCode)}
 <div class="clause"><strong>5. Governing Law:</strong> Obligations survive indefinitely beyond any service contract termination and are governed by applicable local jurisdictional legislations.</div>
 <div class="sig-block">
 <div class="sig-col"><p style="font-size:10px;margin-bottom:6px;"><strong>For Disclosing Party:</strong></p><p style="font-size:12px;font-weight:700;">${clientName}</p><div class="sig-line">Authorized Client Signature & Date</div></div>
-<div class="sig-col"><p style="font-size:10px;margin-bottom:6px;"><strong>For ${CO}:</strong></p><p style="font-size:12px;font-weight:700;">Shubham Kumar</p> ${officialStampText()}<div class="sig-line">Authorized Signatory Signature & Date</div></div>
+<div class="sig-col"><p style="font-size:10px;margin-bottom:6px;"><strong>For ${CO}:</strong></p><p style="font-size:12px;font-weight:700;">Shubham Kumar</p><div class="sig-line">Authorized Signatory Signature & Date</div>${officialStampText()}</div>
 </div></div>${ftr(docCode)}</div></body></html>`;
 }
 
