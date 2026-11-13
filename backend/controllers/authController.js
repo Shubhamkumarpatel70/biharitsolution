@@ -625,7 +625,7 @@ exports.markNotificationRead = async (req, res) => {
     if (!notif)
       return res.status(404).json({ message: "Notification not found." });
     if (!notif.readBy) notif.readBy = [];
-    if (!notif.readBy.includes(req.user.id)) {
+    if (!notif.readBy.some((id) => String(id) === String(req.user.id))) {
       notif.readBy.push(req.user.id);
       await notif.save();
     }
