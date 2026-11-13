@@ -257,6 +257,61 @@ function getPublicSiteOrigin() {
 }
 
 // Cashfree Checkout: create a server-priced order and a pending subscription.
+// Cashfree server-to-server webhook. Signature is verified against the untouched raw request body.
+router.post("/cashfree/webhook", async (req, res) => {
+  try {
+    const secret = process.env.CASHFREE_SECRET_KEY;
+    const signature = req.headers["x-webhook-signature"];
+    const timestamp = req.headers["x-webhook-timestamp"];
+    if (!secret || !signature || !timestamp || !Buffer.isBuffer(req.body)) {
+      return res.status(400).json({ message: "Invalid webhook request." });
+    }
+    const expected = require("crypto")
+      .createHmac("sha256", secret)
+      .update(String(timestamp) + req.body.toString("utf8"))
+      .digest("base64");
+    const suppliedBuffer = Buffer.from(String(signature));
+    const expectedBuffer = Buffer.from(expected);
+    if (suppliedBuffer.length !== expectedBuffer.length ||
+        !require("crypto").timingSafeEqual(suppliedBuffer, expectedBuffer)) {
+      return res.status(401).json({ message: "Invalid webhook signature." });
+    }
+    const event = JSON.parse(req.body.toString("utf8"));
+    const orderId = event?.data?.order?.order_id;
+    const payment = event?.data?.payment;
+    if (event.type !== "PAYMENT_SUCCESS_WEBHOOK" ||
+        payment?.payment_status !== "SUCCESS" || !orderId) {
+      return res.status(200).json({ received: true });
+    }
+    const subscription = await Subscription.findOne({ cashfreeOrderId: orderId });
+    if (!subscription) return res.status(200).json({ received: true });
+    if (subscription.status === "active") return res.status(200).json({ received: true });
+    const paidAmount = Number(event?.data?.order?.order_amount);
+    if (!Number.isFinite(paidAmount) || paidAmount !== Number(subscription.amountPaid)) {
+      console.error("Cashfree webhook amount mismatch:", orderId);
+      return res.status(200).json({ received: true });
+    }
+    const duration = Number(subscription.durationDays);
+    const safeDuration = Number.isFinite(duration) && duration > 0 ? duration : 30;
+    await Subscription.findOneAndUpdate(
+      { _id: subscription._id, status: "pending" },
+      {
+        $set: {
+          status: "active",
+          paymentStatus: "paid",
+          transactionId: String(payment.cf_payment_id || orderId),
+          expiresAt: new Date(Date.now() + safeDuration * 86400000)
+        }
+      },
+      { new: true }
+    );
+    return res.status(200).json({ received: true });
+  } catch (err) {
+    console.error("Cashfree webhook error:", err);
+    return res.status(500).json({ message: "Webhook processing failed." });
+  }
+});
+
 router.post("/cashfree/create-order", authMiddleware, async (req, res) => {
   try {
     const { plan, phone } = req.body || {};
