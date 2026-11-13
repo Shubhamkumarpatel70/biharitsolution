@@ -369,13 +369,13 @@ const AdminUsers = () => {
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <label className="text-sm font-bold sm:col-span-2">Plan name
-                <input required maxLength="100" value={planForm.planName} onChange={e => setPlanForm(v => ({...v,planName:e.target.value}))} placeholder="e.g. Website Development Plan" className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-3 font-normal outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"/>
+                <input required maxLength="100" value={planForm.planName} readOnly={planChoice !== "others"} onChange={e => setPlanForm(v => ({...v,planName:e.target.value}))} placeholder="e.g. Website Development Plan" className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-3 font-normal outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"/>
               </label>
               <label className="text-sm font-bold">Total amount (₹)
-                <input required type="number" min="0" step="0.01" value={planForm.totalAmount} onChange={e => setPlanForm(v => ({...v,totalAmount:e.target.value}))} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-3 font-normal outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"/>
+                <input required type="number" min="0" step="0.01" value={planForm.totalAmount} readOnly={planChoice !== "others"} onChange={e => setPlanForm(v => ({...v,totalAmount:e.target.value}))} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-3 font-normal outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"/>
               </label>
               <label className="text-sm font-bold">Validity (days)
-                <input required type="number" min="1" max="3650" step="1" value={planForm.durationDays} onChange={e => setPlanForm(v => ({...v,durationDays:e.target.value}))} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-3 font-normal outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"/>
+                <input required type="number" min="1" max="3650" step="1" value={planForm.durationDays} readOnly={planChoice !== "others"} onChange={e => setPlanForm(v => ({...v,durationDays:e.target.value}))} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-3 font-normal outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"/>
               </label>
               <label className="text-sm font-bold sm:col-span-2">Admin note (optional)
                 <textarea rows="3" maxLength="500" value={planForm.note} onChange={e => setPlanForm(v => ({...v,note:e.target.value}))} placeholder="Scope, milestone, or internal note…" className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-3 font-normal outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"/>
