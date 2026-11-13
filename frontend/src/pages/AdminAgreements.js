@@ -86,7 +86,7 @@ export default function AdminAgreements() {
   useEffect(() => {
     const loadRegisteredUsers = async () => {
       try {
-        const response = await axios.get('/api/auth/admin/users', { headers });
+        const response = await axios.get('/api/auth/admin/agreement-users', { headers });
         setRegisteredUsers(response.data.users || []);
       } catch { setRegisteredUsers([]); }
     };
