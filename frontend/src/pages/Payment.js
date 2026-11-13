@@ -188,6 +188,29 @@ const Payment = () => {
     return () => { cancelled = true; };
   }, [searchParams]);
 
+  const handleRetryCashfreeVerification = async () => {
+    const orderId = searchParams.get('cashfree_order_id');
+    const token = localStorage.getItem('token');
+    if (!orderId || !token) return;
+    setStatus('processing');
+    setError('');
+    try {
+      const response = await axios.post('/api/auth/cashfree/verify-order', { orderId }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.data.status === 'active') {
+        setSubscription(response.data.subscription);
+        setStatus('success');
+      } else {
+        setStatus('idle');
+        setError(response.data.message || 'Payment is not confirmed yet. Please check again shortly.');
+      }
+    } catch (err) {
+      setStatus('idle');
+      setError(err.response?.data?.message || 'Could not verify payment. Please try again.');
+    }
+  };
+
   const handlePayment = async () => {
     if (!transactionId) {
       setError('Please enter your transaction ID.');
@@ -566,7 +589,14 @@ const Payment = () => {
               </div>
             )}
             )}
-            {paymentMethod === 'cashfree' && error && <p className="mt-3 text-center text-sm text-red-600">{error}</p>}
+            {paymentMethod === 'cashfree' && error && (
+              <div className="mt-3 text-center text-sm text-red-600">
+                <p>{error}</p>
+                {searchParams.get('cashfree_order_id') && (
+                  <button type="button" onClick={handleRetryCashfreeVerification} className="mt-2 rounded-lg border border-blue-200 bg-white px-4 py-2 font-semibold text-blue-700 hover:bg-blue-50">Check payment status again</button>
+                )}
+              </div>
+            )}
           </>
         )}
 
