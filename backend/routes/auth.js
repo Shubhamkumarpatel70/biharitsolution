@@ -3452,6 +3452,45 @@ router.get("/team", async (req, res) => {
   }
 });
 
+// Founder profile image: stored in MongoDB, not the ephemeral Render filesystem.
+const FounderProfile = require("../models/FounderProfile");
+
+router.get("/founder-profile", async (req, res) => {
+  try {
+    const profile = await FounderProfile.findOne({ key: "founder" }).select("image uploadedAt").lean();
+    res.json({ profile: profile ? { image: profile.image, uploadedAt: profile.uploadedAt } : null });
+  } catch (err) {
+    console.error("Founder profile fetch failed:", err);
+    res.status(500).json({ message: "Could not load founder profile." });
+  }
+});
+
+router.put(
+  "/admin/founder-profile",
+  authMiddleware,
+  coAdminMiddleware,
+  upload.single("founderImage"),
+  async (req, res) => {
+    try {
+      if (!req.file) return res.status(400).json({ message: "Please select an image to upload." });
+      const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+      if (!allowedTypes.includes(req.file.mimetype)) {
+        return res.status(400).json({ message: "Only JPG, PNG and WebP images are supported." });
+      }
+      const image = bufferToBase64(req.file.buffer, req.file.mimetype);
+      const profile = await FounderProfile.findOneAndUpdate(
+        { key: "founder" },
+        { $set: { image, mimeType: req.file.mimetype, uploadedAt: new Date(), updatedBy: String(req.user?.id || "") } },
+        { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true }
+      ).select("image uploadedAt");
+      res.json({ message: "Founder image uploaded successfully.", profile });
+    } catch (err) {
+      console.error("Founder profile upload failed:", err);
+      res.status(500).json({ message: "Could not save founder image." });
+    }
+  }
+);
+
 // Feature Management Routes
 
 // Get all features (admin only)
