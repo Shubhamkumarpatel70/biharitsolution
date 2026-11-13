@@ -2028,6 +2028,10 @@ router.post(
   authMiddleware,
   upload.single("paymentImage"),
   async (req, res) => {
+    // Keep this legacy duplicate route protected too; never trust frontend-only mode controls.
+    if (await getCheckoutPaymentMode() !== "manual") {
+      return res.status(403).json({ message: "Manual payment submissions are disabled. Complete payment through the configured online gateway." });
+    }
     // Get data from FormData (req.body) or JSON (req.body)
     let { plan, transactionId, method } = req.body;
     const paymentImage = req.file;
