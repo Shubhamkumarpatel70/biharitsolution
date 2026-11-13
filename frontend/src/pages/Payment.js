@@ -131,7 +131,7 @@ const Payment = () => {
   const handleCashfreePayment = async () => {
     const token = localStorage.getItem('token');
     if (!token) { navigate('/login'); return; }
-    if (!/^\\d{10}$/.test(phone.replace(/\\D/g, '').slice(-10))) {
+    if (!/^\d{10}$/.test(phone.replace(/\D/g, '').slice(-10))) {
       setError('Enter a valid 10-digit mobile number for payment.');
       return;
     }
@@ -139,7 +139,7 @@ const Payment = () => {
     setError('');
     try {
       const response = await axios.post('/api/auth/cashfree/create-order', {
-        plan: planObj.name, phone: phone.replace(/\\D/g, '').slice(-10)
+        plan: planObj.name, phone: phone.replace(/\D/g, '').slice(-10)
       }, { headers: { Authorization: `Bearer ${token}` } });
       const loadCashfree = () => new Promise((resolve, reject) => {
         if (window.Cashfree) return resolve();
@@ -336,36 +336,10 @@ const Payment = () => {
                 <div className="font-semibold text-slate-900 mb-1">Pay securely with Cashfree</div>
                 <p className="text-sm text-slate-600 mb-4">UPI, cards, net banking and supported methods. Your subscription activates automatically after Cashfree confirms payment.</p>
                 <label className="block text-sm font-medium text-slate-700 mb-2" htmlFor="cashfree-phone">Mobile number</label>
-                <input id="cashfree-phone" type="tel" inputMode="numeric" maxLength={10} value={phone} onChange={e => setPhone(e.target.value.replace(/\\D/g, '').slice(0,10))} placeholder="10-digit mobile number" className="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
+                <input id="cashfree-phone" type="tel" inputMode="numeric" maxLength={10} value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0,10))} placeholder="10-digit mobile number" className="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
                 <button type="button" onClick={handleCashfreePayment} disabled={status === 'processing' || phone.length !== 10} className="mt-4 w-full rounded-xl bg-blue-700 px-4 py-3 font-semibold text-slate-900 transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50">{status === 'processing' ? 'Connecting to Cashfree…' : `Pay ₹${totalAmount} securely`}</button>
               </div>
             )}
-
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold text-slate-900 mb-3">Payment Method</h3>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setPaymentMethod('upi')}
-                  className={`flex-1 py-3 px-4 rounded-lg border font-semibold transition-all duration-300 ${
-                    paymentMethod === 'upi' 
-                      ? 'bg-blue-600 border-blue-500 text-slate-900 shadow-lg scale-105' 
-                      : 'bg-blue-50 border-slate-200 text-slate-600 hover:bg-gray-600 hover:scale-105 transform'
-                  }`}
-                >
-                  💳 UPI Payment
-                </button>
-                <button
-                  onClick={() => setPaymentMethod('qr')}
-                  className={`flex-1 py-3 px-4 rounded-lg border font-semibold transition-all duration-300 ${
-                    paymentMethod === 'qr' 
-                      ? 'bg-blue-600 border-blue-500 text-slate-900 shadow-lg scale-105' 
-                      : 'bg-blue-50 border-slate-200 text-slate-600 hover:bg-gray-600 hover:scale-105 transform'
-                  }`}
-                >
-                  📱 Scan & Pay
-                </button>
-              </div>
-            </div>
 
             {/* Coupon Section */}
             <div className="mb-6">
