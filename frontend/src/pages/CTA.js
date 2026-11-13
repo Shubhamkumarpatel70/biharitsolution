@@ -41,12 +41,12 @@ function CTA() {
 
 					{/* Main Heading */}
 					<h2 className="text-4xl md:text-5xl lg:text-6xl font-black text-white mb-6 leading-tight">
-						Ready to build something great?
+						Have an idea? Let’s make it happen.
 					</h2>
 
 					{/* Subtitle */}
 					<p className="text-xl md:text-2xl text-white/90 mb-10 leading-relaxed max-w-2xl mx-auto">
-						Let's turn your idea into a high-performing product your users will love.
+						From the first conversation to launch day, we build thoughtful digital experiences that help your business move forward.
 					</p>
 
 					{/* CTA Buttons */}
