@@ -4639,4 +4639,158 @@ router.delete("/admin/projects/:id", authMiddleware, coAdminMiddleware, async (r
   }
 });
 
+
+/* DPDP privacy centre: authenticated data rights, consent and grievance workflows. */
+const PrivacyRequest = require("../models/PrivacyRequest");
+const PrivacyConsentEvent = require("../models/PrivacyConsentEvent");
+
+router.get("/privacy/me", authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("name email subscribeOffers marketingConsent marketingConsentAt createdAt updatedAt").lean();
+    if (!user) return res.status(404).json({ message: "User not found." });
+    const [requests, consentHistory] = await Promise.all([
+      PrivacyRequest.find({ user: req.user.id }).sort({ createdAt: -1 }).lean(),
+      PrivacyConsentEvent.find({ user: req.user.id }).sort({ occurredAt: -1 }).limit(100).lean()
+    ]);
+    res.json({ user, requests, consentHistory });
+  } catch (err) {
+    console.error("Privacy centre load error:", err);
+    res.status(500).json({ message: "Could not load privacy information." });
+  }
+});
+
+router.patch("/privacy/consent", authMiddleware, async (req, res) => {
+  try {
+    if (typeof req.body?.marketingEmails !== "boolean") {
+      return res.status(400).json({ message: "Choose whether to receive marketing emails." });
+    }
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: "User not found." });
+    const granted = req.body.marketingEmails;
+    user.marketingConsent = granted;
+    user.subscribeOffers = granted;
+    user.marketingConsentAt = granted ? new Date() : null;
+    await user.save();
+
+    await PrivacyConsentEvent.create({
+      user: user._id,
+      purpose: "marketing_emails",
+      action: granted ? "granted" : "withdrawn",
+      source: "privacy-centre"
+    });
+
+    await NewsletterSubscriber.findOneAndUpdate(
+      { email: user.email.toLowerCase() },
+      granted
+        ? { $set: { status: "subscribed", consentedAt: new Date(), consentSource: "privacy-centre", consentedBy: String(user._id) }, $setOnInsert: { email: user.email.toLowerCase() } }
+        : { $set: { status: "unsubscribed" }, $setOnInsert: { email: user.email.toLowerCase(), consentSource: "privacy-centre" } },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+    res.json({ message: granted ? "Marketing email consent saved." : "Marketing email consent withdrawn.", marketingEmails: granted });
+  } catch (err) {
+    console.error("Privacy consent update error:", err);
+    res.status(500).json({ message: "Could not update consent preference." });
+  }
+});
+
+router.get("/privacy/export", authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("name email role image subscribeOffers marketingConsent marketingConsentAt createdAt updatedAt").lean();
+    if (!user) return res.status(404).json({ message: "User not found." });
+    const [complaints, subscriptions, projectRequests, privacyRequests, consentHistory] = await Promise.all([
+      Complaint.find({ user: req.user.id }).select("message status response createdAt updatedAt").lean(),
+      Subscription.find({ user: req.user.id }).select("plan status uniqueId expiresAt paymentMethod paymentStatus amountPaid durationDays createdAt updatedAt").lean(),
+      ProjectRequirement.find({ user: req.user.id }).select("submissionId projectIdea websitePreference linkOption status estimatedCompletionDate createdAt updatedAt").lean(),
+      PrivacyRequest.find({ user: req.user.id }).select("type details status response createdAt updatedAt").lean(),
+      PrivacyConsentEvent.find({ user: req.user.id }).select("purpose action source policyVersion occurredAt").lean()
+    ]);
+    res.setHeader("Content-Disposition", 'attachment; filename="askc-personal-data.json"');
+    res.json({
+      exportedAt: new Date().toISOString(),
+      dataController: "ASKC TECHNOLOGIES",
+      note: "This export contains personal data currently retrievable from the ASKC account systems. Some records may be retained where required by applicable law.",
+      profile: user,
+      complaints,
+      subscriptions,
+      projectRequests,
+      privacyRequests,
+      consentHistory
+    });
+  } catch (err) {
+    console.error("Personal data export error:", err);
+    res.status(500).json({ message: "Could not prepare your personal data export." });
+  }
+});
+
+router.post("/privacy/requests", authMiddleware, async (req, res) => {
+  try {
+    const type = String(req.body?.type || "").trim();
+    const details = String(req.body?.details || "").trim();
+    if (!["access", "correction", "erasure", "grievance"].includes(type)) {
+      return res.status(400).json({ message: "Select a valid privacy request type." });
+    }
+    if (details.length < 10 || details.length > 4000) {
+      return res.status(400).json({ message: "Please provide details between 10 and 4,000 characters." });
+    }
+    const existing = await PrivacyRequest.findOne({
+      user: req.user.id,
+      type,
+      status: { $in: ["submitted", "in_review", "awaiting_user"] }
+    });
+    if (existing) return res.status(409).json({ message: "You already have an open request of this type.", request: existing });
+    const request = await PrivacyRequest.create({
+      user: req.user.id,
+      type,
+      details,
+      statusHistory: [{ status: "submitted", note: "Request submitted by user.", changedBy: req.user.id }]
+    });
+    res.status(201).json({ message: "Privacy request submitted successfully.", request });
+  } catch (err) {
+    console.error("Privacy request submission error:", err);
+    res.status(500).json({ message: "Could not submit your privacy request." });
+  }
+});
+
+router.get("/admin/privacy/requests", authMiddleware, coAdminMiddleware, async (req, res) => {
+  try {
+    const requests = await PrivacyRequest.find()
+      .populate("user", "name email")
+      .sort({ createdAt: -1 })
+      .limit(500)
+      .lean();
+    const [total, submitted, inReview, completed, erasure] = await Promise.all([
+      PrivacyRequest.countDocuments(),
+      PrivacyRequest.countDocuments({ status: "submitted" }),
+      PrivacyRequest.countDocuments({ status: "in_review" }),
+      PrivacyRequest.countDocuments({ status: "completed" }),
+      PrivacyRequest.countDocuments({ type: "erasure", status: { $in: ["submitted", "in_review", "awaiting_user"] } })
+    ]);
+    res.json({ requests, stats: { total, submitted, inReview, completed, erasure } });
+  } catch (err) {
+    console.error("Admin privacy requests error:", err);
+    res.status(500).json({ message: "Could not fetch privacy requests." });
+  }
+});
+
+router.patch("/admin/privacy/requests/:id", authMiddleware, coAdminMiddleware, async (req, res) => {
+  try {
+    const status = String(req.body?.status || "");
+    const response = String(req.body?.response || "").trim().slice(0, 4000);
+    if (!["submitted", "in_review", "awaiting_user", "completed", "rejected"].includes(status)) {
+      return res.status(400).json({ message: "Invalid request status." });
+    }
+    const request = await PrivacyRequest.findById(req.params.id);
+    if (!request) return res.status(404).json({ message: "Privacy request not found." });
+    request.status = status;
+    request.response = response;
+    request.statusHistory.push({ status, note: response, changedBy: req.user.id, changedAt: new Date() });
+    await request.save();
+    const updated = await PrivacyRequest.findById(request._id).populate("user", "name email").lean();
+    res.json({ message: "Privacy request updated.", request: updated });
+  } catch (err) {
+    console.error("Admin privacy request update error:", err);
+    res.status(500).json({ message: "Could not update privacy request." });
+  }
+});
+
 module.exports = router;
