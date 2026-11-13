@@ -125,6 +125,37 @@ async function createUserNotification(userId, title, message, type = "general", 
   }
 }
 
+async function notifyCashfreePaymentSuccess(subscription) {
+  try {
+    const user = await User.findById(subscription.user).select("name email");
+    if (!user) return;
+    const planLabel = subscription.planName || subscription.plan || "subscription";
+    const reference = subscription.transactionId || subscription.cashfreeOrderId || subscription.uniqueId;
+    const message = `Your payment of ₹${Number(subscription.amountPaid || 0).toLocaleString("en-IN")} for ${planLabel} has been verified by Cashfree. Your subscription is now active.`;
+    await createUserNotification(
+      user._id,
+      "Payment successful",
+      message,
+      "subscription",
+      `cashfree-payment-success:${subscription._id}`,
+      "/dashboard/subscription"
+    );
+    if (user.email) {
+      const html = `<div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;padding:28px;color:#172033"><h2 style="color:#1556a6">Payment successful</h2><p>Dear ${String(user.name || "Customer").replace(/[&<>"]/g, "")},</p><p>Your payment has been securely verified by Cashfree. Your ASKC TECHNOLOGIES subscription is now active.</p><div style="padding:16px;background:#f4f7fb;border-radius:10px"><p><b>Plan:</b> ${String(planLabel).replace(/[&<>"]/g, "")}</p><p><b>Amount paid:</b> ₹${Number(subscription.amountPaid || 0).toLocaleString("en-IN")}</p><p><b>Payment reference:</b> ${String(reference || "").replace(/[&<>"]/g, "")}</p></div><p>You can view your subscription in your user dashboard.</p><p>Regards,<br/>ASKC TECHNOLOGIES<br/><a href="https://askctechnologies.in">askctechnologies.in</a></p></div>`;
+      await sendEmail(
+        user.email,
+        "Payment successful — ASKC TECHNOLOGIES",
+        message + `\nPlan: ${planLabel}\nPayment reference: ${reference || "N/A"}\nYour subscription is now active.`,
+        html,
+        '"ASKC TECHNOLOGIES" <askctechnologies@gmail.com>'
+      );
+    }
+  } catch (notificationError) {
+    // A mail/notification provider issue must never roll back a verified payment.
+    console.error("Cashfree success notification failed:", notificationError?.message);
+  }
+}
+
 async function getCheckoutPaymentMode() {
   const settings = await PaymentMode.findOne({ key: "checkout" }).lean();
   return settings?.mode === "manual" ? "manual" : "cashfree";
@@ -331,7 +362,7 @@ router.post("/cashfree/webhook", async (req, res) => {
     }
     const duration = Number(subscription.durationDays);
     const safeDuration = Number.isFinite(duration) && duration > 0 ? duration : 30;
-    await Subscription.findOneAndUpdate(
+    const activatedSubscription = await Subscription.findOneAndUpdate(
       { _id: subscription._id, status: "pending" },
       {
         $set: {
@@ -343,6 +374,7 @@ router.post("/cashfree/webhook", async (req, res) => {
       },
       { new: true }
     );
+    if (activatedSubscription) await notifyCashfreePaymentSuccess(activatedSubscription);
     return res.status(200).json({ received: true });
   } catch (err) {
     console.error("Cashfree webhook error:", err);
@@ -428,6 +460,9 @@ router.post("/cashfree/create-order", authMiddleware, async (req, res) => {
     const subscription = await Subscription.create({
       user: user._id,
       plan: planEnum,
+      planName: planDoc.name,
+      sourcePlan: planDoc._id,
+      totalAmount: Number(planDoc.price),
       uniqueId: orderId,
       status: "pending",
       expiresAt: new Date(Date.now() + durationDays * 86400000),
@@ -521,6 +556,7 @@ router.post("/cashfree/verify-order", authMiddleware, async (req, res) => {
       },
       { new: true }
     );
+    if (updated) await notifyCashfreePaymentSuccess(updated);
     const finalSubscription = updated || await Subscription.findById(subscription._id);
     if (!finalSubscription || finalSubscription.status !== "active") {
       return res.status(409).json({ message: "Subscription could not be activated. Please contact support." });
