@@ -5223,4 +5223,49 @@ router.patch("/admin/privacy/requests/:id", authMiddleware, coAdminMiddleware, a
   }
 });
 
+
+/**
+ * One-time migration for legacy Base64 images already stored in MongoDB.
+ * Run from the admin Team page after Cloudinary environment variables are configured.
+ */
+router.post("/admin/cloudinary/migrate-images", authMiddleware, coAdminMiddleware, async (req, res) => {
+  const summary = { founder: 0, team: 0, clientLogos: 0, projects: 0, paymentProofs: 0, idCards: 0, userProfiles: 0, agreementImages: 0, failed: [] };
+  const migrateField = async (Model, field, bucket, label) => {
+    const docs = await Model.find({ [field]: /^data:image\// }).limit(1000);
+    for (const doc of docs) {
+      try {
+        doc[field] = await uploadDataUri(doc[field], `askc-technologies/${bucket}`);
+        await doc.save();
+        summary[label] += 1;
+      } catch (error) {
+        summary.failed.push({ type: label, id: String(doc._id), message: error.message });
+      }
+    }
+  };
+  try {
+    await migrateField(FounderProfile, "image", "founder", "founder");
+    await migrateField(TeamMember, "profileImage", "team", "team");
+    await migrateField(ClientWork, "logo", "client-logos", "clientLogos");
+    await migrateField(Project, "image", "projects", "projects");
+    await migrateField(Subscription, "paymentImage", "payment-proofs", "paymentProofs");
+    await migrateField(IDCard, "photo", "id-cards", "idCards");
+    await migrateField(User, "image", "user-profiles", "userProfiles");
+
+    const agreements = await Agreement.find({ htmlContent: /data:image\// }).limit(1000);
+    for (const agreement of agreements) {
+      try {
+        agreement.htmlContent = await moveInlineImagesToCloudinary(agreement.htmlContent);
+        await agreement.save();
+        summary.agreementImages += 1;
+      } catch (error) {
+        summary.failed.push({ type: "agreementImages", id: String(agreement._id), message: error.message });
+      }
+    }
+    res.json({ message: "Legacy image migration completed.", summary });
+  } catch (error) {
+    console.error("Cloudinary image migration failed:", error.message);
+    res.status(error.code === "CLOUDINARY_NOT_CONFIGURED" ? 503 : 500).json({ message: error.message || "Could not migrate legacy images.", summary });
+  }
+});
+
 module.exports = router;
