@@ -1211,6 +1211,17 @@ router.post("/user/update", authMiddleware, updateUserProfile);
 router.post("/user/change-password", authMiddleware, changeUserPassword);
 router.get("/notifications", authMiddleware, getUserNotifications);
 router.post("/notifications/read/:id", authMiddleware, markNotificationRead);
+router.post("/notifications/read-all", authMiddleware, async (req, res) => {
+  try {
+    await Notification.updateMany(
+      { $or: [{ user: req.user.id }, { user: null }], readBy: { $ne: req.user.id } },
+      { $addToSet: { readBy: req.user.id } }
+    );
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ message: "Could not mark all notifications as read." });
+  }
+});
 router.post("/cancel-subscription/:id", authMiddleware, cancelUserSubscription);
 router.post("/renew-subscription", authMiddleware, renewUserSubscription);
 
