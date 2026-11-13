@@ -1,116 +1,32 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
-const PrivacyPolicy = () => {
-  return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="mb-8">
-          <Link to="/" className="text-blue-400 hover:underline">
-            ← Back to Home
-          </Link>
-        </div>
-        
-        <h1 className="text-3xl font-bold mb-8 text-center">Privacy Policy</h1>
-        
-        <div className="bg-gray-800 rounded-lg p-8 space-y-6">
-          <section>
-            <h2 className="text-xl font-semibold mb-4 text-emerald-400">1. Information We Collect</h2>
-            <p className="text-gray-300 mb-3">
-              We collect information you provide directly to us, such as when you create an account, 
-              subscribe to our services, or contact us for support.
-            </p>
-            <ul className="list-disc list-inside text-gray-300 ml-4 space-y-2">
-              <li>Name and email address</li>
-              <li>Payment information (processed securely through third-party providers)</li>
-              <li>Account preferences and settings</li>
-              <li>Communication history with our support team</li>
-            </ul>
-          </section>
-
-          <section>
-            <h2 className="text-xl font-semibold mb-4 text-emerald-400">2. How We Use Your Information</h2>
-            <p className="text-gray-300 mb-3">
-              We use the information we collect to:
-            </p>
-            <ul className="list-disc list-inside text-gray-300 ml-4 space-y-2">
-              <li>Provide and maintain our services</li>
-              <li>Process payments and manage subscriptions</li>
-              <li>Send important updates and notifications</li>
-              <li>Respond to your questions and support requests</li>
-              <li>Improve our services and user experience</li>
-            </ul>
-          </section>
-
-          <section>
-            <h2 className="text-xl font-semibold mb-4 text-emerald-400">3. Information Sharing</h2>
-            <p className="text-gray-300 mb-3">
-              We do not sell, trade, or otherwise transfer your personal information to third parties 
-              except in the following circumstances:
-            </p>
-            <ul className="list-disc list-inside text-gray-300 ml-4 space-y-2">
-              <li>With your explicit consent</li>
-              <li>To comply with legal obligations</li>
-              <li>To protect our rights and safety</li>
-              <li>With trusted service providers who assist in operating our services</li>
-            </ul>
-          </section>
-
-          <section>
-            <h2 className="text-xl font-semibold mb-4 text-emerald-400">4. Data Security</h2>
-            <p className="text-gray-300 mb-3">
-              We implement appropriate security measures to protect your personal information:
-            </p>
-            <ul className="list-disc list-inside text-gray-300 ml-4 space-y-2">
-              <li>Encryption of sensitive data</li>
-              <li>Secure payment processing</li>
-              <li>Regular security audits</li>
-              <li>Access controls and authentication</li>
-            </ul>
-          </section>
-
-          <section>
-            <h2 className="text-xl font-semibold mb-4 text-emerald-400">5. Your Rights</h2>
-            <p className="text-gray-300 mb-3">
-              You have the right to:
-            </p>
-            <ul className="list-disc list-inside text-gray-300 ml-4 space-y-2">
-              <li>Access your personal information</li>
-              <li>Update or correct your information</li>
-              <li>Request deletion of your account</li>
-              <li>Opt-out of marketing communications</li>
-              <li>Export your data</li>
-            </ul>
-          </section>
-
-          <section>
-            <h2 className="text-xl font-semibold mb-4 text-emerald-400">6. Contact Us</h2>
-            <p className="text-gray-300 mb-3">
-              If you have any questions about this Privacy Policy, please contact us at:
-            </p>
-            <div className="bg-gray-700 p-4 rounded-lg">
-              <p className="text-gray-300">Email: privacy@customweb.com</p>
-              <p className="text-gray-300">Address: [Your Business Address]</p>
-            </div>
-          </section>
-
-          <section>
-            <h2 className="text-xl font-semibold mb-4 text-emerald-400">7. Updates to This Policy</h2>
-            <p className="text-gray-300">
-              We may update this Privacy Policy from time to time. We will notify you of any changes 
-              by posting the new Privacy Policy on this page and updating the "Last Updated" date.
-            </p>
-          </section>
-
-          <div className="border-t border-gray-600 pt-6 mt-8">
-            <p className="text-gray-400 text-sm">
-              Last Updated: {new Date().toLocaleDateString()}
-            </p>
-          </div>
-        </div>
-      </div>
+const PrivacyPolicy = () => (
+  <div className="min-h-screen bg-slate-50 text-slate-800">
+    <div className="max-w-4xl mx-auto px-4 py-10 sm:py-14">
+      <Link to="/" className="text-sky-700 hover:underline text-sm">← Back to Home</Link>
+      <header className="mt-7 mb-8">
+        <p className="text-xs font-semibold uppercase tracking-widest text-sky-700">ASKC TECHNOLOGIES</p>
+        <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mt-2">Privacy Notice</h1>
+        <p className="text-sm text-slate-500 mt-3">Effective date: 13 November 2026 · Last reviewed: 13 November 2026</p>
+      </header>
+      <article className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-8 space-y-7 text-sm leading-7">
+        <section><h2 className="text-lg font-bold text-slate-900 mb-2">1. Who is responsible for your personal data?</h2><p>ASKC TECHNOLOGIES ("ASKC", "we", "us") determines why and how personal data is processed through this website and the services we provide. For privacy questions or requests, contact <a className="text-sky-700 underline" href="mailto:askctechnologies@gmail.com">askctechnologies@gmail.com</a> or call +91 79923 65197.</p></section>
+        <section><h2 className="text-lg font-bold text-slate-900 mb-2">2. Personal data we may collect</h2><ul className="list-disc pl-5 space-y-1"><li>Account details such as name, email address, login identifiers and profile information.</li><li>Contact and enquiry details, messages, support conversations and complaint records.</li><li>Project requirements, files or information you choose to submit, and project communications.</li><li>Subscription, invoice and transaction references and payment status. Card and payment credentials are handled by the relevant payment provider; do not send them to us in messages.</li><li>Career application details and resumes when you apply for a role.</li><li>Technical and usage information such as device/browser information, security events and basic server logs, where generated by the website or its hosting infrastructure.</li></ul></section>
+        <section><h2 className="text-lg font-bold text-slate-900 mb-2">3. Why we use personal data</h2><p>We use personal data to create and secure accounts; provide requested website, subscription and project services; process and reconcile payments; respond to enquiries and support requests; administer recruitment; send essential service notices; prevent fraud, abuse and security incidents; maintain records; meet applicable legal obligations; and improve the reliability of our services. We process personal data on a lawful basis permitted by applicable law, including consent where required and other permitted grounds.</p></section>
+        <section><h2 className="text-lg font-bold text-slate-900 mb-2">4. Promotional messages and consent</h2><p>Promotional emails are optional. You can choose whether to receive them during registration or change your choice in the <Link to="/dashboard/privacy" className="text-sky-700 underline">Privacy Centre</Link>. You may also use the unsubscribe link in a promotional email. Withdrawing marketing consent does not affect essential account, security, transaction or service communications.</p></section>
+        <section><h2 className="text-lg font-bold text-slate-900 mb-2">5. Sharing and service providers</h2><p>We do not sell personal data. We may share the minimum information needed with service providers who support hosting, database infrastructure, email delivery, payment processing, security and customer support; with professional advisers where necessary; or with authorities where disclosure is required by law. Service providers are expected to protect information and use it only for the services they provide. We do not disclose payment credentials stored by payment providers to our website systems.</p></section>
+        <section><h2 className="text-lg font-bold text-slate-900 mb-2">6. Retention and deletion</h2><p>We retain personal data only for as long as reasonably necessary for the purposes described in this notice, including service delivery, security, dispute handling, accounting and legal compliance. When data is no longer required, we will take steps to delete or irreversibly anonymise it, subject to technical limitations and applicable retention obligations. An account or data deletion request may not remove records that must lawfully be retained.</p></section>
+        <section><h2 className="text-lg font-bold text-slate-900 mb-2">7. Your privacy rights and requests</h2><p>Subject to applicable law and verification, you may request access to information about your personal data, correction or completion of inaccurate information, erasure where permitted, withdrawal of consent where processing is based on consent, and grievance redressal. You can submit and track a request from the <Link to="/dashboard/privacy" className="text-sky-700 underline">Privacy Centre</Link>. You may also contact us by email. We may ask for reasonable information to verify your identity and clarify a request.</p></section>
+        <section><h2 className="text-lg font-bold text-slate-900 mb-2">8. Security and data incidents</h2><p>We use reasonable technical and organisational safeguards intended to protect personal data against unauthorised access, loss, misuse or disclosure. No internet transmission or storage system can be guaranteed completely secure. If a personal data breach occurs, we will assess and take the steps required by applicable law, including notices to affected individuals and the relevant authority where required.</p></section>
+        <section><h2 className="text-lg font-bold text-slate-900 mb-2">9. Children</h2><p>Our services are not intended to invite children to create accounts independently. Where applicable law requires verifiable parental or guardian consent for processing a child's personal data, we will take the steps required before such processing. Please contact us if you believe a child has provided personal data without required authorisation.</p></section>
+        <section><h2 className="text-lg font-bold text-slate-900 mb-2">10. Third-party websites and transfers</h2><p>Our website may link to third-party websites or payment services that operate under their own privacy notices. We are not responsible for their independent practices. Personal data may be processed on infrastructure located in India or elsewhere, subject to applicable transfer restrictions and safeguards required by law.</p></section>
+        <section><h2 className="text-lg font-bold text-slate-900 mb-2">11. Updates to this notice</h2><p>We may update this notice when our services, practices or legal requirements change. The updated version and effective date will be published on this page. Where required, we will provide an additional notice or seek consent before a new purpose is introduced.</p></section>
+        <section className="rounded-xl bg-slate-50 border border-slate-200 p-4"><h2 className="text-lg font-bold text-slate-900 mb-2">12. Privacy contact and grievance redressal</h2><p>For privacy requests, questions or grievances, contact ASKC TECHNOLOGIES at <a className="text-sky-700 underline" href="mailto:askctechnologies@gmail.com">askctechnologies@gmail.com</a> or +91 79923 65197. Please use the subject "Privacy Request" and include your account email and a description of the concern. Do not send passwords or OTPs.</p></section>
+        <p className="text-xs text-slate-500 border-t border-slate-200 pt-5">This notice describes the website's intended privacy handling and is not legal advice or a certification of compliance. ASKC TECHNOLOGIES should review it against its actual data flows, service-provider contracts, retention schedule and current legal obligations before relying on it as its final statutory notice.</p>
+      </article>
     </div>
-  );
-};
+  </div>
+);
 
 export default PrivacyPolicy;
