@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from '../axios';
+import { Link } from 'react-router-dom';
 
 const Notifications = () => {
   const [notifications, setNotifications] = useState([]);
@@ -43,6 +44,14 @@ const Notifications = () => {
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
+  const markAllAsRead = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post('/api/auth/notifications/read-all', {}, { headers: { Authorization: `Bearer ${token}` } });
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    } catch { setError('Could not mark all notifications as read.'); }
+  };
+
   if (loading) {
     return (
       <div className="max-w-3xl mx-auto text-center p-8">
@@ -54,9 +63,9 @@ const Notifications = () => {
 
   return (
     <div className="max-w-4xl mx-auto px-2 sm:px-0">
-      <h2 className="text-2xl sm:text-3xl font-bold text-primary-900 mb-4">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><h2 className="text-2xl sm:text-3xl font-bold text-primary-900">
         Notifications {unreadCount > 0 && <span className="bg-red-500 text-white rounded-full px-3 py-1 text-sm ml-2">{unreadCount}</span>}
-      </h2>
+      </h2>{unreadCount > 0 && <button onClick={markAllAsRead} className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Mark all as read</button>}</div>
       
       {error && (
         <div className="text-red-700 mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
@@ -86,7 +95,7 @@ const Notifications = () => {
               )}
 
               <div className="flex gap-3 items-start">
-                <div className="text-2xl mt-0.5">🔔</div>
+                <div className="text-2xl mt-0.5">{notification.type === 'agreement' ? '📄' : notification.type === 'subscription' ? '⏳' : notification.type === 'project' ? '🛠️' : '🔔'}</div>
                 <div className="flex-1 min-w-0">
                   <div className={`font-bold text-base sm:text-lg mb-1 ${notification.read ? 'text-slate-800' : 'text-emerald-700'}`}>
                     {notification.title || 'Notification'}
@@ -96,17 +105,13 @@ const Notifications = () => {
                   </div>
                   <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
                     <div className="text-xs sm:text-sm text-slate-500">
-                      {new Date(notification.createdAt).toLocaleDateString()}
+                      {new Date(notification.createdAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
                     </div>
                     
-                    {!notification.read && (
-                      <button
-                        onClick={() => markAsRead(notification._id)}
-                        className="self-start sm:self-auto bg-transparent text-emerald-700 border border-emerald-400 rounded-lg px-3 py-1.5 font-semibold text-xs hover:bg-emerald-100"
-                      >
-                        Mark as read
-                      </button>
-                    )}
+                    <div className="flex flex-wrap gap-2">
+                      {notification.link && <Link to={notification.link} className="rounded-lg border border-blue-300 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-50">View details</Link>}
+                      {!notification.read && <button onClick={() => markAsRead(notification._id)} className="rounded-lg border border-emerald-400 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100">Mark as read</button>}
+                    </div>
                   </div>
                 </div>
               </div>
