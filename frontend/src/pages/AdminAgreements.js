@@ -115,9 +115,14 @@ export default function AdminAgreements() {
     setSaving(true);
     try {
       const docCode = generateDocCode(form.clientName);
-      // Fetch current active payment instructions so new invoices/quotations use admin-managed details.
-      const paymentResponse = await axios.get('/api/auth/payment-options');
-      const paymentOptions = paymentResponse.data.paymentOptions || [];
+      // Payment instructions are optional; an unavailable payment-options endpoint must not block agreement generation.
+      let paymentOptions = [];
+      try {
+        const paymentResponse = await axios.get('/api/auth/payment-options');
+        paymentOptions = paymentResponse.data.paymentOptions || [];
+      } catch (paymentError) {
+        console.warn('Payment options unavailable while generating agreement:', paymentError?.response?.data || paymentError.message);
+      }
       const html = generateTemplate(form.documentType, { ...form, docCode, paymentOptions });
       const docLabel = DOCUMENT_TYPES.find(d => d.id === form.documentType)?.label || form.documentType;
       await axios.post('/api/auth/admin/agreements', {
@@ -138,7 +143,8 @@ export default function AdminAgreements() {
       if (view === 'folder' && activeClient) loadFolder(activeClient.clientName);
       else loadClients();
     } catch (err) {
-      showToast(err?.response?.data?.message || 'Failed to save document', 'error');
+      console.error('Agreement generation failed:', err?.response?.data || err);
+      showToast(err?.response?.data?.message || err?.message || 'Failed to save document. Check required fields and server logs.', 'error');
     } finally { setSaving(false); }
   };
 
