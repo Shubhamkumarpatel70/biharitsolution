@@ -834,6 +834,27 @@ router.post("/admin/users/:id/assign-plan", authMiddleware, adminMiddleware, asy
   }
 });
 
+// Admin: immediately terminate or cancel a user's subscription.
+router.patch("/admin/terminate-subscription/:id", authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const reason = String(req.body?.reason || "").trim().slice(0, 500);
+    if (!reason) return res.status(400).json({ message: "A termination reason is required." });
+    const sub = await Subscription.findById(req.params.id);
+    if (!sub) return res.status(404).json({ message: "Subscription not found." });
+    if (sub.canceled || sub.status === "expired") return res.status(400).json({ message: "This subscription is already inactive." });
+    sub.canceled = true;
+    sub.cancellationReason = reason;
+    sub.cancellationStatus = "approved";
+    sub.cancellationApprovedDate = new Date();
+    sub.status = "expired";
+    await sub.save();
+    res.json({ subscription: sub, message: "Subscription terminated successfully." });
+  } catch (err) {
+    console.error("Admin subscription termination failed:", err);
+    res.status(500).json({ message: "Could not terminate subscription." });
+  }
+});
+
 // Admin: record a confirmed instalment against a user's latest subscription.
 router.post("/admin/users/:id/record-payment", authMiddleware, adminMiddleware, async (req, res) => {
   try {
