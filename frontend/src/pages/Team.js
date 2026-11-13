@@ -19,7 +19,7 @@ const perks = [
 ];
 
 const getInitials = (name = '') =>
-  name.trim().split(/\\s+/).filter(Boolean).slice(0, 2).map(part => part[0]).join('').toUpperCase() || 'A';
+  name.trim().split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]).join('').toUpperCase() || 'A';
 
 function Team() {
   const [isVisible, setIsVisible] = useState(false);
