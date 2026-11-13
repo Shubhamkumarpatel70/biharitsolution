@@ -48,6 +48,8 @@ const CareerApplication = require("../models/CareerApplication");
 const FundTransaction = require("../models/FundTransaction");
 const IDCard = require("../models/IDCard");
 const Agreement = require("../models/Agreement");
+const FounderProfile = require("../models/FounderProfile");
+const { uploadImageBuffer, uploadDataUri, deleteImageByUrl, moveInlineImagesToCloudinary } = require("../utils/cloudinary");
 const { sendEmail } = require("../utils/email");
 const { parsePlanDurationDays } = require("../utils/planDuration");
 const multer = require("multer");
@@ -594,10 +596,7 @@ router.post(
     // Convert payment image to base64 if provided
     let paymentImageBase64 = null;
     if (paymentImage) {
-      paymentImageBase64 = bufferToBase64(
-        paymentImage.buffer,
-        paymentImage.mimetype,
-      );
+      paymentImageBase64 = (await uploadImageBuffer(paymentImage.buffer, paymentImage.mimetype, "askc-technologies/payment-proofs")).url;
     }
 
     try {
@@ -1471,7 +1470,8 @@ router.post(
       const name = String(req.body?.name || "").trim();
       const role = String(req.body?.role || "").trim();
       const idNumber = String(req.body?.idNumber || "").trim().toUpperCase();
-      const photo = typeof req.body?.photo === "string" ? req.body.photo : "";
+      const photoInput = typeof req.body?.photo === "string" ? req.body.photo : "";
+      const photo = await uploadDataUri(photoInput, "askc-technologies/id-cards");
 
       if (!name || !role || !idNumber) {
         return res.status(400).json({ message: "Employee name, job position and ID number are required." });
@@ -2046,10 +2046,7 @@ router.post(
     // Convert payment image to base64 if provided
     let paymentImageBase64 = null;
     if (paymentImage) {
-      paymentImageBase64 = bufferToBase64(
-        paymentImage.buffer,
-        paymentImage.mimetype,
-      );
+      paymentImageBase64 = (await uploadImageBuffer(paymentImage.buffer, paymentImage.mimetype, "askc-technologies/payment-proofs")).url;
     }
 
     try {
@@ -3335,10 +3332,7 @@ router.post(
 
       // Add profile image if uploaded (convert to base64)
       if (req.file) {
-        teamMemberData.profileImage = bufferToBase64(
-          req.file.buffer,
-          req.file.mimetype,
-        );
+        teamMemberData.profileImage = (await uploadImageBuffer(req.file.buffer, req.file.mimetype, "askc-technologies/team")).url;
       }
 
       const teamMember = await TeamMember.create(teamMemberData);
@@ -3393,10 +3387,7 @@ router.put(
 
       // Add profile image if uploaded (convert to base64)
       if (req.file) {
-        updateData.profileImage = bufferToBase64(
-          req.file.buffer,
-          req.file.mimetype,
-        );
+        updateData.profileImage = (await uploadImageBuffer(req.file.buffer, req.file.mimetype, "askc-technologies/team")).url;
       }
 
       const teamMember = await TeamMember.findByIdAndUpdate(
@@ -3452,8 +3443,7 @@ router.get("/team", async (req, res) => {
   }
 });
 
-// Founder profile image: stored in MongoDB, not the ephemeral Render filesystem.
-const FounderProfile = require("../models/FounderProfile");
+// Founder profile image is hosted on Cloudinary; MongoDB stores only its secure URL.
 
 router.get("/founder-profile", async (req, res) => {
   try {
@@ -3477,7 +3467,7 @@ router.put(
       if (!allowedTypes.includes(req.file.mimetype)) {
         return res.status(400).json({ message: "Only JPG, PNG and WebP images are supported." });
       }
-      const image = bufferToBase64(req.file.buffer, req.file.mimetype);
+      const image = (await uploadImageBuffer(req.file.buffer, req.file.mimetype, "askc-technologies/founder")).url;
       const profile = await FounderProfile.findOneAndUpdate(
         { key: "founder" },
         { $set: { image, mimeType: req.file.mimetype, uploadedAt: new Date(), updatedBy: String(req.user?.id || "") } },
@@ -4476,6 +4466,7 @@ router.post(
           role: "user",
         }).select("name email");
       }
+      const cloudinaryHtmlContent = await moveInlineImagesToCloudinary(htmlContent);
       const agreement = await Agreement.create({
         clientUser: linkedUser?._id || null,
         clientName: linkedUser?.name || clientName,
@@ -4483,7 +4474,7 @@ router.post(
         clientCompany: clientCompany || "",
         documentType,
         documentTitle,
-        htmlContent,
+        htmlContent: cloudinaryHtmlContent,
         notes: notes || "",
         docCode: docCode || "",
         status: linkedUser ? "sent" : "draft",
@@ -4896,7 +4887,7 @@ router.post("/admin/client-work", authMiddleware, coAdminMiddleware, upload.sing
     if (!req.file) return res.status(400).json({ message: "Please upload a client logo." });
     const item = await ClientWork.create({
       name,
-      logo: bufferToBase64(req.file.buffer, req.file.mimetype),
+      logo: (await uploadImageBuffer(req.file.buffer, req.file.mimetype, "askc-technologies/client-logos")).url,
       websiteUrl: String(req.body.websiteUrl || "").trim(),
       order: Number.isFinite(Number(req.body.order)) ? Number(req.body.order) : 0,
       isActive: req.body.isActive !== "false",
@@ -4918,7 +4909,7 @@ router.put("/admin/client-work/:id", authMiddleware, coAdminMiddleware, upload.s
       order: Number.isFinite(Number(req.body.order)) ? Number(req.body.order) : 0,
       isActive: req.body.isActive !== "false",
     };
-    if (req.file) update.logo = bufferToBase64(req.file.buffer, req.file.mimetype);
+    if (req.file) update.logo = (await uploadImageBuffer(req.file.buffer, req.file.mimetype, "askc-technologies/client-logos")).url;
     const item = await ClientWork.findByIdAndUpdate(req.params.id, update, { new: true, runValidators: true });
     if (!item) return res.status(404).json({ message: "Client work item not found." });
     res.json({ clientWork: item, message: "Client work updated successfully." });
@@ -4978,7 +4969,7 @@ router.post("/admin/projects", authMiddleware, coAdminMiddleware, upload.single(
       projectUrl: String(req.body.projectUrl || "").trim(),
       icon: String(req.body.icon || "briefcase").trim(),
       color: /^#[0-9a-fA-F]{6}$/.test(String(req.body.color || "")) ? req.body.color : "#64748b",
-      image: req.file ? bufferToBase64(req.file.buffer, req.file.mimetype) : "",
+      image: req.file ? (await uploadImageBuffer(req.file.buffer, req.file.mimetype, "askc-technologies/projects")).url : "",
       order: Number.isFinite(Number(req.body.order)) ? Number(req.body.order) : 0,
       isActive: req.body.isActive !== "false"
     });
@@ -5008,7 +4999,7 @@ router.put("/admin/projects/:id", authMiddleware, coAdminMiddleware, upload.sing
       order: Number.isFinite(Number(req.body.order)) ? Number(req.body.order) : 0,
       isActive: req.body.isActive !== "false"
     };
-    if (req.file) update.image = bufferToBase64(req.file.buffer, req.file.mimetype);
+    if (req.file) update.image = (await uploadImageBuffer(req.file.buffer, req.file.mimetype, "askc-technologies/projects")).url;
     const project = await Project.findByIdAndUpdate(req.params.id, update, { new: true, runValidators: true });
     if (!project) return res.status(404).json({ message: "Project not found." });
     res.json({ project, message: "Project updated successfully." });
