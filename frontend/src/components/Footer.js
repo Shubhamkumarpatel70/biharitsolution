@@ -178,7 +178,7 @@ const Footer = () => {
               {[
                 { icon: 'mapPin', label: 'Address', value: 'Bihar, Patna, India' },
                 { icon: 'mail', label: 'Email', value: 'askctechnologies@gmail.com', link: 'mailto:askctechnologies@gmail.com' },
-                { icon: 'phone', label: 'Phone', value: '+91 79923 65197', link: 'tel:+91 79923 65197' },
+                { icon: 'phone', label: 'Phone', value: '+91 79923 65197', link: 'tel:+917992365197' },
                 { icon: 'clock', label: 'Hours', value: 'Mon–Fri: 11AM – 4PM' },
               ].map((item, idx) => (
                 <div key={idx} className="flex gap-3">
