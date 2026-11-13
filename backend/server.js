@@ -41,7 +41,6 @@ app.use(
         imgSrc: [
           "'self'",
           "data:",
-          "data:",
           "https://api.qrserver.com",
           "https://api.cashfree.com",
           "https://sandbox.cashfree.com",
