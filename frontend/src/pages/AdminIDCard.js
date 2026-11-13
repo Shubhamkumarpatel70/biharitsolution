@@ -112,7 +112,7 @@ const AdminIDCard = () => {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'ASKC Digital Web ID Card',
+          title: 'ASKC Technologies ID Card',
           text: `Digital ID Verification for ${selectedCard.name}`,
           url: shareUrl
         });
@@ -192,7 +192,7 @@ const AdminIDCard = () => {
         <div className="info-box">
           <span className="info-label">Digital Contact</span>
           <div className="info-text">
-            support@askcweb.in<br/>
+            askctechnologies@gmail.com<br/>
             www.askcweb.in
           </div>
         </div>
