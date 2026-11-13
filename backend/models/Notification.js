@@ -3,6 +3,9 @@ const mongoose = require('mongoose');
 const notificationSchema = new mongoose.Schema({
   message: { type: String, required: true },
   title: { type: String },
+  eventKey: { type: String, default: '' },
+  type: { type: String, enum: ['general', 'agreement', 'subscription', 'project'], default: 'general' },
+  link: { type: String, default: '' },
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null }, // null = global
   readBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   expiresAt: { 
