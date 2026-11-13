@@ -323,7 +323,7 @@ export default function AdminAgreements() {
                     <div className="text-3xl">{DOC_ICONS[doc.documentType] || '📄'}</div>
                     <div className="flex-1 min-w-0">
                       <h3 className="font-bold text-slate-900 truncate">{doc.documentTitle}</h3>
-                      <p className="text-xs text-slate-400 mt-0.5">{new Date(doc.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                      <p className="text-xs text-slate-400 mt-0.5">{new Date(doc.createdAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
                     </div>
                     {/* Status badge + changer */}
                     <div className="flex items-center gap-2">
