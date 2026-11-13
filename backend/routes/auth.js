@@ -849,8 +849,12 @@ router.get(
   adminMiddleware,
   async (req, res) => {
     try {
-      const users = await User.find().sort({ createdAt: -1 });
-      res.json({ users });
+      const users = await User.find().sort({ createdAt: -1 }).lean();
+      const ids = users.map(user => user._id);
+      const subscriptions = await Subscription.find({ user: { $in: ids } }).sort({ createdAt: -1 }).lean();
+      const latestByUser = new Map();
+      subscriptions.forEach(sub => { const key = String(sub.user); if (!latestByUser.has(key)) latestByUser.set(key, sub); });
+      res.json({ users: users.map(user => ({ ...user, latestSubscription: latestByUser.get(String(user._id)) || null })) });
     } catch (err) {
       res.status(500).json({ message: "Could not fetch users." });
     }
