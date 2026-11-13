@@ -20,10 +20,15 @@ const values = [
 function About() {
   const [isVisible, setIsVisible] = useState(false);
   const [founderProfile, setFounderProfile] = useState(null);
+  const [founderImageFailed, setFounderImageFailed] = useState(false);
+  const founderFallbackImage = 'https://res.cloudinary.com/df9m0nyqz/image/upload/v1794591643/askc-technologies/founder/sbfe3dsbxvtdgyf2i7uw.jpg';
 
   useEffect(() => {
     setIsVisible(true);
-    axios.get('/api/auth/founder-profile').then(response => setFounderProfile(response.data.profile || null)).catch(() => setFounderProfile(null));
+    axios.get('/api/auth/founder-profile', { params: { _t: Date.now() } }).then(response => {
+      setFounderProfile(response.data?.profile || null);
+      setFounderImageFailed(false);
+    }).catch(() => setFounderProfile(null));
   }, []);
 
   return (
@@ -106,7 +111,25 @@ function About() {
         <div className="container">
           <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-[260px_1fr] gap-8 md:gap-12 items-center rounded-3xl border border-gray-200 bg-white p-7 md:p-10 shadow-sm">
             <div className="mx-auto h-52 w-52 overflow-hidden rounded-3xl bg-gradient-to-br from-slate-100 to-blue-100 border border-slate-200 flex items-center justify-center">
-              {founderProfile?.image ? <img src={founderProfile.image} alt="Founder of ASKC TECHNOLOGIES" className="h-full w-full object-cover" /> : <Icon name="user" className="h-24 w-24 text-primary-700" strokeWidth={1.4} />}
+              {!founderImageFailed ? (
+                <img
+                  src={founderProfile?.image || founderFallbackImage}
+                  alt="Founder of ASKC TECHNOLOGIES"
+                  loading="lazy"
+                  decoding="async"
+                  referrerPolicy="no-referrer"
+                  onError={(event) => {
+                    if (event.currentTarget.src !== founderFallbackImage) {
+                      event.currentTarget.src = founderFallbackImage;
+                    } else {
+                      setFounderImageFailed(true);
+                    }
+                  }}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <Icon name="user" className="h-24 w-24 text-primary-700" strokeWidth={1.4} />
+              )}
             </div>
             <div>
               <p className="text-sm font-bold uppercase tracking-[0.18em] text-primary-600 mb-3">Meet Our Founder</p>
