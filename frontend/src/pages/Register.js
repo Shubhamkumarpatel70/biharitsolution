@@ -9,7 +9,7 @@ function Register() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [subscribeOffers, setSubscribeOffers] = useState(true);
+  const [subscribeOffers, setSubscribeOffers] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
@@ -62,9 +62,6 @@ function Register() {
       </div>
     );
   }
-
-  // Check if checkbox is checked to enable submit
-  const isCheckboxChecked = subscribeOffers === true;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 pt-24 sm:pt-28">
@@ -153,7 +150,7 @@ function Register() {
               </div>
             </div>
 
-            {/* Subscribe to offers checkbox - Required */}
+            {/* Optional marketing consent. Account creation never depends on this choice. */}
             <div className="flex items-start gap-3">
               <div className="flex items-center h-5">
                 <input
@@ -170,7 +167,7 @@ function Register() {
                   htmlFor="subscribeOffers"
                   className="font-medium text-text-main"
                 >
-                  I agree to receive updates and offers *
+                  I agree to receive updates and offers (optional)
                 </label>
                 <p className="text-text-muted">
                   Get notified about new services, special offers, and updates.
@@ -236,20 +233,14 @@ function Register() {
           <div>
             <button
               type="submit"
-              disabled={loading || !isCheckboxChecked}
-              className={`btn w-full justify-center py-3 rounded-xl text-base ${
-                !isCheckboxChecked
-                  ? "opacity-50 cursor-not-allowed bg-gray-400"
-                  : "btn-primary"
-              }`}
+              disabled={loading}
+              className="btn btn-primary w-full justify-center py-3 rounded-xl text-base"
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
                   <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
                   Registering...
                 </span>
-              ) : !isCheckboxChecked ? (
-                "Check the box to continue"
               ) : (
                 "Create Account"
               )}

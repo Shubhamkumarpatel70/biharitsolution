@@ -1495,18 +1495,21 @@ router.post("/newsletter/subscribe", async (req, res) => {
       email: normalizedEmail,
     });
     if (subscriber) {
-      if (subscriber.status === "subscribed") {
+      if (subscriber.status === "subscribed" && subscriber.consentedAt) {
         return res.status(400).json({ message: "Already subscribed." });
-      } else {
-        subscriber.status = "subscribed";
-        await subscriber.save();
-        return res.json({ message: "Subscribed successfully." });
       }
+      subscriber.status = "subscribed";
+      subscriber.consentedAt = new Date();
+      await subscriber.save();
+      await User.updateOne({ email: normalizedEmail }, { $set: { marketingConsent: true, marketingConsentAt: new Date(), subscribeOffers: true } });
+      return res.json({ message: "Subscribed successfully." });
     }
     subscriber = await NewsletterSubscriber.create({
       email: normalizedEmail,
       status: "subscribed",
+      consentedAt: new Date(),
     });
+    await User.updateOne({ email: normalizedEmail }, { $set: { marketingConsent: true, marketingConsentAt: new Date(), subscribeOffers: true } });
     res.status(201).json({ message: "Subscribed successfully." });
   } catch (err) {
     res.status(500).json({ message: "Could not subscribe." });
@@ -1529,14 +1532,18 @@ router.post("/newsletter/unsubscribe", async (req, res) => {
       await NewsletterSubscriber.create({
         email: normalizedEmail,
         status: "unsubscribed",
+        consentedAt: null,
       });
+      await User.updateOne({ email: normalizedEmail }, { $set: { marketingConsent: false, marketingConsentAt: null, subscribeOffers: false } });
       return res.json({ message: "Unsubscribed successfully." });
     }
     if (subscriber.status === "unsubscribed") {
       return res.json({ message: "Unsubscribed successfully." });
     }
     subscriber.status = "unsubscribed";
+    subscriber.consentedAt = null;
     await subscriber.save();
+    await User.updateOne({ email: normalizedEmail }, { $set: { marketingConsent: false, marketingConsentAt: null, subscribeOffers: false } });
     res.json({ message: "Unsubscribed successfully." });
   } catch (err) {
     res.status(500).json({ message: "Could not unsubscribe." });
@@ -2735,124 +2742,70 @@ router.post(
     try {
       const { email, emails, subject, message } = req.body || {};
       const suppliedEmails = Array.isArray(emails) ? emails : email ? [email] : [];
-      const emailList = [
-        ...new Set(
-          suppliedEmails
-            .map((value) => String(value || "").trim().toLowerCase())
-            .filter((value) =>
-              /^[a-z0-9.!#$%&'*+/=?^`{|}~-]+@[a-z0-9-]+(?:\.[a-z0-9-]+)+$/i.test(value)
-            )
-        ),
-      ];
-
+      const requestedEmails = [...new Set(suppliedEmails.map((value) => String(value || "").trim().toLowerCase()).filter((value) => /^[a-z0-9.!#$%&'*+/=?^`{|}~-]+@[a-z0-9-]+(?:\.[a-z0-9-]+)+$/i.test(value)))];
       const normalizedSubject = String(subject || "").trim();
       const normalizedMessage = String(message || "").trim();
 
+      if (!requestedEmails.length) return res.status(400).json({ message: "Enter at least one valid email address." });
+      if (requestedEmails.length > 100) return res.status(400).json({ message: "You can send one campaign to a maximum of 100 recipients at a time." });
+      if (!normalizedSubject) return res.status(400).json({ message: "Subject is required." });
+      if (!normalizedMessage) return res.status(400).json({ message: "Message is required." });
+
+      // Only send to addresses with a recorded, explicit opt-in. Legacy rows without
+      // consentedAt are deliberately excluded; manually entered addresses are checked too.
+      const consented = await NewsletterSubscriber.find({
+        email: { $in: requestedEmails },
+        status: "subscribed",
+        consentedAt: { $ne: null },
+      }).select("email").lean();
+      const emailList = consented.map((subscriber) => subscriber.email);
+      const skippedCount = requestedEmails.length - emailList.length;
       if (!emailList.length) {
-        return res.status(400).json({ message: "Enter at least one valid email address." });
-      }
-      if (emailList.length > 100) {
-        return res.status(400).json({ message: "You can send one campaign to a maximum of 100 recipients at a time." });
-      }
-      if (!normalizedSubject) {
-        return res.status(400).json({ message: "Subject is required." });
-      }
-      if (!normalizedMessage) {
-        return res.status(400).json({ message: "Message is required." });
+        return res.status(400).json({ message: "No recipients have active, recorded marketing consent. Ask users to opt in first.", successCount: 0, skippedCount });
       }
 
       const siteOrigin = getPublicSiteOrigin();
-      if (!siteOrigin) {
-        return res.status(503).json({
-          message: "Public website URL is not configured. Set PUBLIC_SITE_URL or FRONTEND_URL in the backend environment.",
-        });
-      }
+      if (!siteOrigin) return res.status(503).json({ message: "Public website URL is not configured. Set PUBLIC_SITE_URL or FRONTEND_URL in the backend environment." });
 
-      const escapeHtml = (value) =>
-        String(value)
-          .replace(/&/g, "&amp;")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;")
-          .replace(/"/g, "&quot;")
-          .replace(/'/g, "&#39;");
-
+      const escapeHtml = (value) => String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+      const safeSubject = escapeHtml(normalizedSubject);
+      const safeMessage = escapeHtml(normalizedMessage).replace(/\r?\n/g, "<br/>");
       let successCount = 0;
       const failedEmails = [];
       let firstFailureReason = "";
 
       for (const recipient of emailList) {
         try {
-          const unsubscribeUrl =
-            siteOrigin.replace(/\/+$/, "") +
-            "/unsubscribe-email?email=" +
-            encodeURIComponent(recipient);
+          const unsubscribeUrl = siteOrigin.replace(/\/+$/, "") + "/unsubscribe-email?email=" + encodeURIComponent(recipient);
+          const html = `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="x-apple-disable-message-reformatting"><title>${safeSubject}</title></head>
+<body style="margin:0;padding:0;background:#f3f6fb;font-family:Arial,Helvetica,sans-serif;color:#172033;">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#f3f6fb;padding:28px 12px;"><tr><td align="center">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:620px;background:#fff;border:1px solid #e5ebf3;border-radius:18px;overflow:hidden;">
+<tr><td style="background:#102b55;padding:28px 30px;"><div style="font-size:21px;font-weight:800;letter-spacing:.3px;color:#fff;">ASKC <span style="color:#8fc5ff;">TECHNOLOGIES</span></div><div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#c2d5ee;margin-top:7px;">Ideas to digital impact</div></td></tr>
+<tr><td style="padding:34px 30px 28px;"><div style="display:inline-block;padding:7px 11px;border-radius:20px;background:#edf5ff;color:#1756a2;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;">News & updates</div><h1 style="font-size:25px;line-height:1.3;color:#102b55;margin:18px 0 14px;">${safeSubject}</h1><div style="font-size:15px;line-height:1.85;color:#475569;">${safeMessage}</div>
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:24px 0 4px;"><tr><td style="border-radius:9px;background:#1756a2;"><a href="https://askctechnologies.in" style="display:inline-block;padding:13px 20px;color:#ffffff;text-decoration:none;font-size:13px;font-weight:700;">Explore ASKC Technologies</a></td></tr></table>
+<div style="margin-top:28px;padding:18px;background:#f6f9fd;border:1px solid #e3ebf5;border-radius:12px;"><p style="font-size:12px;line-height:1.7;color:#66758a;margin:0;">You're receiving this email because you explicitly opted in to receive updates and offers from ASKC TECHNOLOGIES.</p><p style="font-size:12px;margin:12px 0 0;"><a href="${unsubscribeUrl}" style="color:#1756a2;font-weight:700;text-decoration:underline;">Unsubscribe from promotional emails</a></p></div></td></tr>
+<tr><td style="padding:20px 30px;background:#f8fafc;border-top:1px solid #e8edf4;"><p style="font-size:11px;color:#748196;line-height:1.7;margin:0;">ASKC TECHNOLOGIES · <a href="https://askctechnologies.in" style="color:#1756a2;text-decoration:none;">askctechnologies.in</a><br/><a href="mailto:askctechnologies@gmail.com" style="color:#1756a2;text-decoration:none;">askctechnologies@gmail.com</a> · +91 79923 65197</p><p style="font-size:10px;color:#9aa5b4;margin:12px 0 0;">© ${new Date().getFullYear()} ASKC TECHNOLOGIES. All rights reserved.</p></td></tr>
+</table></td></tr></table></body></html>`;
 
-          const safeSubject = escapeHtml(normalizedSubject);
-          const safeMessage = escapeHtml(normalizedMessage).replace(/\r?\n/g, "<br/>");
-          const html = `<div style="margin:0;padding:24px;background:#f8fafc;font-family:Arial,Helvetica,sans-serif;color:#0f172a;">
-            <div style="max-width:620px;margin:0 auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;">
-              <div style="padding:20px 24px;background:linear-gradient(135deg,#0f172a,#1e293b);">
-                <div style="font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#94a3b8;font-weight:700;">ASKC TECHNOLOGIES</div>
-                <h2 style="margin:10px 0 0;font-size:22px;line-height:1.3;color:#ffffff;">${safeSubject}</h2>
-              </div>
-              <div style="padding:24px;">
-                <div style="font-size:15px;line-height:1.7;color:#334155;">${safeMessage}</div>
-                <div style="margin-top:24px;padding-top:16px;border-top:1px solid #e2e8f0;">
-                  <p style="font-size:12px;color:#64748b;margin:0 0 10px;">You received this email because you subscribed to updates from ASKC TECHNOLOGIES.</p>
-                  <a href="${unsubscribeUrl}" style="display:inline-block;padding:10px 14px;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:8px;color:#0f172a;text-decoration:none;font-size:12px;font-weight:700;">Unsubscribe</a>
-                </div>
-              </div>
-            </div>
-            <p style="max-width:620px;margin:12px auto 0;font-size:11px;color:#94a3b8;text-align:center;">Need help? Contact askctechnologies@gmail.com</p>
-          </div>`;
-
-          await sendEmail(
-            recipient,
-            normalizedSubject,
-            normalizedMessage,
-            html,
-            "ASKC TECHNOLOGIES <askctechnologies@gmail.com>"
-          );
-
-          // Keep the subscriber record available for the unsubscribe endpoint.
-          await NewsletterSubscriber.findOneAndUpdate(
-            { email: recipient },
-            { $setOnInsert: { email: recipient, status: "subscribed" } },
-            { upsert: true, new: true, setDefaultsOnInsert: true }
-          );
-
+          await sendEmail(recipient, normalizedSubject, normalizedMessage + "\n\nUnsubscribe: " + unsubscribeUrl, html, '"ASKC TECHNOLOGIES" <askctechnologies@gmail.com>');
           successCount += 1;
         } catch (emailError) {
           console.error("Promotional email delivery failed for recipient:", recipient, emailError);
-          if (!firstFailureReason) {
-            firstFailureReason = String(emailError?.message || "Email provider rejected the message.").slice(0, 300);
-          }
+          if (!firstFailureReason) firstFailureReason = String(emailError?.message || "Email provider rejected the message.").slice(0, 300);
           failedEmails.push(recipient);
         }
       }
 
-      if (successCount === 0) {
-        return res.status(502).json({
-          message: firstFailureReason
-            ? "No promotional emails were sent. " + firstFailureReason
-            : "No promotional emails could be delivered. Check the backend email provider configuration.",
-          successCount: 0,
-          failedEmails,
-        });
-      }
-
+      if (successCount === 0) return res.status(502).json({ message: firstFailureReason ? "No promotional emails were sent. " + firstFailureReason : "No promotional emails could be delivered.", successCount: 0, failedEmails, skippedCount });
       return res.status(200).json({
-        message: failedEmails.length
-          ? `Email sent to ${successCount} recipient(s); ${failedEmails.length} failed.`
-          : `Promotional email sent to ${successCount} recipient(s) successfully.`,
-        successCount,
-        failedEmails,
+        message: failedEmails.length ? `Email sent to ${successCount} recipient(s); ${failedEmails.length} failed.` : `Promotional email sent to ${successCount} recipient(s) successfully.`,
+        successCount, failedEmails, skippedCount,
       });
     } catch (error) {
       console.error("Promotional email endpoint error:", error);
-      return res.status(500).json({
-        message: "The promotional email request could not be processed. Check the backend logs for details.",
-      });
+      return res.status(500).json({ message: "The promotional email request could not be processed. Check the backend logs for details." });
     }
   }
 );

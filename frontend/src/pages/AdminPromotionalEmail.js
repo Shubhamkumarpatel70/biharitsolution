@@ -26,7 +26,7 @@ const AdminPromotionalEmail = () => {
       });
       // Filter only subscribed users
       const subscribed = (res.data.subscribers || []).filter(
-        (s) => s.status === "subscribed",
+        (s) => s.status === "subscribed" && s.consentedAt,
       );
       setNewsletterSubscribers(subscribed);
     } catch (err) {
@@ -119,8 +119,7 @@ const AdminPromotionalEmail = () => {
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="text-2xl font-bold text-slate-900">Promotional Email</h2>
         <p className="text-sm text-slate-500 mt-1">
-          Send promotional email to users with unsubscribe link included in
-          footer.
+          Send campaigns only to recipients with recorded, active marketing consent. Every email includes an unsubscribe link.
         </p>
       </div>
 
@@ -133,7 +132,7 @@ const AdminPromotionalEmail = () => {
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="block text-sm font-medium text-slate-700">
-                Newsletter Subscribers ({newsletterSubscribers.length})
+                Opted-in Subscribers ({newsletterSubscribers.length})
               </label>
               <button
                 type="button"
@@ -174,7 +173,7 @@ const AdminPromotionalEmail = () => {
         {/* Manual Email Input */}
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1.5">
-            Or Enter Emails (comma-separated)
+            Add opted-in email addresses (comma-separated)
           </label>
           <input
             type="text"
@@ -184,7 +183,7 @@ const AdminPromotionalEmail = () => {
             placeholder="email1@example.com, email2@example.com"
           />
           <p className="text-xs text-slate-500 mt-1">
-            Separate multiple emails with commas
+            Only addresses with an active, recorded opt-in will receive the campaign.
           </p>
         </div>
 
