@@ -377,3 +377,97 @@ button:focus-visible {
     width: min(100%, 320px);
   }
 }
+
+ 
+/* ASKC admin redesign system — consistent visual language across management pages */
+.admin-redesign-page {
+  --admin-ink: #e8eef8;
+  --admin-muted: #9aabc1;
+  --admin-border: rgba(148, 163, 184, .18);
+  --admin-accent: #38bdf8;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  color: var(--admin-ink);
+  padding: clamp(12px, 2vw, 28px);
+  border: 1px solid rgba(148, 163, 184, .12);
+  border-radius: 22px;
+  background: radial-gradient(ellipse at top right, rgba(56,189,248,.09), transparent 38%), linear-gradient(145deg, #111c2d 0%, #0f1726 58%, #111d30 100%);
+  box-shadow: 0 18px 45px rgba(2, 8, 23, .16);
+  overflow-wrap: anywhere;
+}
+.admin-redesign-page h1,
+.admin-redesign-page h2 {
+  color: #f8fafc !important;
+  letter-spacing: -.025em;
+  font-weight: 800;
+}
+.admin-redesign-page h3,
+.admin-redesign-page h4,
+.admin-redesign-page h5 { color: #e5edf8; font-weight: 700; }
+.admin-redesign-page p { color: inherit; }
+.admin-redesign-page :where(.bg-gray-800, .bg-gray-900) {
+  border: 1px solid var(--admin-border);
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(2, 8, 23, .12);
+}
+.admin-redesign-page :where(input:not([type=checkbox]):not([type=radio]), select, textarea) {
+  min-height: 44px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  padding: 10px 13px;
+  border: 1px solid rgba(148, 163, 184, .28) !important;
+  border-radius: 11px !important;
+  background: #101b2c !important;
+  color: #f1f5f9 !important;
+  outline: none;
+  transition: border-color .18s ease, box-shadow .18s ease;
+}
+.admin-redesign-page :where(input, select, textarea):focus {
+  border-color: var(--admin-accent) !important;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, .14);
+}
+.admin-redesign-page :where(button) {
+  min-height: 40px;
+  border-radius: 10px;
+  font-weight: 650;
+  transition: transform .16s ease, filter .16s ease, box-shadow .16s ease;
+}
+.admin-redesign-page :where(button:hover) { filter: brightness(1.08); box-shadow: 0 6px 16px rgba(2, 8, 23, .18); }
+.admin-redesign-page :where(button:active) { transform: translateY(1px); }
+.admin-redesign-page :where(table) {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  color: #e5edf8;
+  background: rgba(15, 27, 44, .62);
+  border: 1px solid var(--admin-border);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.admin-redesign-page :where(thead th) {
+  background: #22334b;
+  color: #dbeafe;
+  font-size: .75rem;
+  font-weight: 750;
+  letter-spacing: .045em;
+  text-transform: uppercase;
+}
+.admin-redesign-page :where(th, td) { padding: 12px 14px; border-bottom: 1px solid rgba(148, 163, 184, .13); vertical-align: middle; }
+.admin-redesign-page :where(tbody tr:hover) { background: rgba(56, 189, 248, .055); }
+.admin-redesign-page :where(label) { color: #cbd5e1; font-size: .875rem; font-weight: 600; }
+.admin-redesign-page :where(.text-gray-400, .text-gray-500) { color: #9aabc1; }
+.admin-redesign-page :where(.border-gray-700, .border-gray-600) { border-color: var(--admin-border); }
+.admin-redesign-page :where(.overflow-x-auto) { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+@media (max-width: 640px) {
+  .admin-redesign-page { padding: 12px; border-radius: 16px; }
+  .admin-redesign-page :where(table) { display: block; overflow-x: auto; white-space: nowrap; }
+  .admin-redesign-page :where(th, td) { padding: 10px 11px; }
+  .admin-redesign-page :where(form .flex, .flex.items-center) { flex-wrap: wrap; }
+  .admin-redesign-page :where(button) { max-width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .admin-redesign-page :where(button, input, select, textarea) { transition: none; }
+}
