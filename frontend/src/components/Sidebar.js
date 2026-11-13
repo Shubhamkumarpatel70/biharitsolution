@@ -8,7 +8,7 @@ const navItems = [
   { to: '/dashboard/project-requirement', label: 'Project', iconName: 'briefcase', end: false },
   { to: '/dashboard/support', label: 'Help', iconName: 'chat', end: false },
   { to: '/dashboard/subscription', label: 'Subscription', iconName: 'creditCard', end: false },
-  { to: '/dashboard/agreements', label: 'Agreements', iconName: 'fileText', end: false },
+  { to: '/dashboard/agreements', label: 'Agreements', iconName: 'document', end: false },
   { to: '/dashboard/purchases', label: 'Purchases', iconName: 'cart', end: false },
   { to: '/dashboard/notifications', label: 'Notifications', iconName: 'bell', end: false },
   { to: '/dashboard/privacy', label: 'Privacy Centre', iconName: 'shield', end: false },
@@ -17,7 +17,7 @@ const navItems = [
 const mobileNavItems = [
   { to: '/dashboard', label: 'Home', iconName: 'home', end: true },
   { to: '/dashboard/project-requirement', label: 'Project', iconName: 'briefcase', end: false },
-  { to: '/dashboard/agreements', label: 'Agreements', iconName: 'fileText', end: false },
+  { to: '/dashboard/agreements', label: 'Agreements', iconName: 'document', end: false },
   { to: '/dashboard/subscription', label: 'Plan', iconName: 'creditCard', end: false },
   { to: '/dashboard/notifications', label: 'Alerts', iconName: 'bell', end: false },
 ];
