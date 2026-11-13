@@ -641,8 +641,9 @@ router.post("/user-subscriptions/:id/payment-request", authMiddleware, async (re
     const amount = Number(req.body?.amount);
     if (!Number.isFinite(amount) || amount <= 0) return res.status(400).json({ message: "Enter a valid payment amount." });
     const confirmed = (sub.paymentEntries || []).filter(p => p.status === "confirmed").reduce((sum, p) => sum + Number(p.amount || 0), 0);
-    const balance = Math.max(0, Number(sub.totalAmount || 0) - confirmed);
-    if (amount > balance + 0.01) return res.status(400).json({ message: "Payment request exceeds the outstanding balance." });
+    const pending = (sub.paymentEntries || []).filter(p => p.status === "pending").reduce((sum, p) => sum + Number(p.amount || 0), 0);
+    const balance = Math.max(0, Number(sub.totalAmount || 0) - confirmed - pending);
+    if (amount > balance + 0.01) return res.status(400).json({ message: "Payment request exceeds the unallocated outstanding balance." });
     sub.paymentEntries.push({ amount, method: "user-submitted", reference: String(req.body?.reference || "").slice(0, 120), note: "Payment submitted by user; verify receipt before confirming.", status: "pending", recordedAt: new Date() });
     await sub.save();
     res.status(201).json({ message: "Payment details submitted for admin verification.", subscription: sub });
