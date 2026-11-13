@@ -18,8 +18,6 @@ import AdminRenewalRequests from './AdminRenewalRequests';
 import AdminNewsletter from './AdminNewsletter';
 import AdminCoupons from './AdminCoupons';
 import AdminTeam from './AdminTeam';
-import AdminFeatures from './AdminFeatures';
-import AdminServices from './AdminServices';
 import AdminPaymentOptions from './AdminPaymentOptions';
 import AdminCareers from './AdminCareers';
 import AdminCareerApplications from './AdminCareerApplications';
@@ -95,8 +93,6 @@ const AdminDashboard = () => {
       case 'promotional-unsubscribed': return <AdminPromotionalUnsubscribed />;
       case 'renewal-requests': return <AdminRenewalRequests />;
       case 'team': return <AdminTeam />;
-      case 'features': return <AdminFeatures />;
-      case 'services': return <AdminServices />;
       case 'payment-options': return <AdminPaymentOptions />;
       case 'coupons': return <AdminCoupons />;
       case 'careers': return <AdminCareers />;
@@ -193,7 +189,7 @@ const AdminDashboard = () => {
                 Admin workspace
               </span>
             </div>
-            <section key={activeTab} className="min-w-0 animate-[fadeInUp_.22s_ease-out]">
+            <section key={activeTab} className="admin-dashboard-content min-w-0 animate-[fadeInUp_.22s_ease-out]">
               {renderContent()}
             </section>
           </div>

@@ -17,8 +17,6 @@ export const adminNavItems = [
   { id: 'agreements', label: 'Agreements', iconName: 'document', category: 'customers' },
   { id: 'plans', label: 'Plans', iconName: 'folder', category: 'website' },
   { id: 'team', label: 'Team', iconName: 'users', category: 'website' },
-  { id: 'features', label: 'Features', iconName: 'sparkles', category: 'website' },
-  { id: 'services', label: 'Services', iconName: 'wrench', category: 'website' },
   { id: 'client-work', label: 'Client Work', iconName: 'briefcase', category: 'website' },
   { id: 'projects-content', label: 'Latest Projects', iconName: 'folder', category: 'website' },
   { id: 'contacts', label: 'Contacts', iconName: 'mail', category: 'communication' },
