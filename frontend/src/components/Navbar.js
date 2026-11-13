@@ -132,7 +132,7 @@ function Navbar() {
               to="/"
               className="flex items-center no-underline z-[1100] min-w-0 shrink"
               aria-label="Home"
-              title="ASKC Digital Web"
+              title="ASKC TECHNOLOGIES"
             >
               <Logo showText={!isMobileMenuOpen} size="default" />
             </Link>

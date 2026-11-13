@@ -76,7 +76,7 @@ const Footer = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 lg:gap-10 mb-14 lg:mb-16">
           {/* Column 1 — Company */}
           <div className="lg:pr-8 xl:pr-10">
-            <div title="ASKC Digital Web">
+            <div title="ASKC TECHNOLOGIES">
               <Logo showText={true} size="large" theme="dark" />
             </div>
             <p className="text-white/85 text-sm leading-relaxed mt-5 max-w-md">
@@ -107,7 +107,7 @@ const Footer = () => {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-white/10 hover:bg-accent-500 text-white border border-white/10 hover:border-accent-400 transition-all duration-300 hover:scale-105"
-                aria-label="ASKC Digital Web on Instagram"
+                aria-label="ASKC TECHNOLOGIES on Instagram"
                 title="Instagram @askc_digitalweb"
               >
                 <Icon name="instagram" className="w-5 h-5" />
@@ -177,8 +177,8 @@ const Footer = () => {
             <div className="space-y-4 max-w-md">
               {[
                 { icon: 'mapPin', label: 'Address', value: 'Bihar, Patna, India' },
-                { icon: 'mail', label: 'Email', value: 'contact@askcweb.in', link: 'mailto:contact@askcweb.in' },
-                { icon: 'phone', label: 'Phone', value: '+91 9027880288', link: 'tel:+919027880288' },
+                { icon: 'mail', label: 'Email', value: 'askctechnologies@gmail.com', link: 'mailto:askctechnologies@gmail.com' },
+                { icon: 'phone', label: 'Phone', value: '+91 79923 65197', link: 'tel:+917992365197' },
                 { icon: 'clock', label: 'Hours', value: 'Mon–Fri: 11AM – 4PM' },
               ].map((item, idx) => (
                 <div key={idx} className="flex gap-3">
@@ -278,7 +278,7 @@ const Footer = () => {
 
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2 border-t border-white/10">
           <p className="text-white/55 text-sm text-center sm:text-left">
-            © {currentYear} ASKC Digital Web. All rights reserved.
+            © {currentYear} ASKC TECHNOLOGIES. All rights reserved.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm">
             <Link to="/privacy" className="text-white/70 hover:text-white transition-colors">

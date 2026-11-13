@@ -6,20 +6,20 @@ import axios from '../axios';
 const contactMethods = [
   {
     title: 'Email',
-    content: 'contact@askcweb.in',
-    link: 'mailto:contact@askcweb.in',
+    content: 'askctechnologies@gmail.com',
+    link: 'mailto:askctechnologies@gmail.com',
     icon: 'mail'
   },
   {
     title: 'Phone',
-    content: '+91 9027880288',
-    link: 'tel:+919027880288',
+    content: '+91 79923 65197',
+    link: 'tel:+917992365197',
     icon: 'phone'
   },
   {
     title: 'WhatsApp',
-    content: '+91 9027880288',
-    link: 'https://wa.me/919027880288',
+    content: '+91 79923 65197',
+    link: 'https://wa.me/917992365197',
     icon: 'chat'
   },
   {
@@ -337,11 +337,11 @@ function Contact() {
               Let's discuss your requirements and create something amazing together.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <a href="mailto:contact@askcweb.in" className="btn btn-primary">
+              <a href="mailto:askctechnologies@gmail.com" className="btn btn-primary">
                 Email Us Now
                 <span className="transition-transform duration-300 group-hover:translate-x-1">→</span>
               </a>
-              <a href="tel:+919027880288" className="btn btn-secondary">
+              <a href="tel:+917992365197" className="btn btn-secondary">
                 Call Us Now
               </a>
             </div>

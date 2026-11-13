@@ -16,14 +16,14 @@ const Logo = ({ className = '', showText = true, size = 'default', theme = 'ligh
       {/* Logo Image */}
       <img
         src="/askclogonew.jpeg"
-        alt="ASKC Digital Web logo"
+        alt="ASKC TECHNOLOGIES logo"
         className={`${sizeClasses[size]} object-contain rounded-xl border-2 border-primary-200 shadow-sm`}
       />
 
       {/* Text */}
       {showText && (
         <span className={textClass}>
-          ASKC Digital Web
+          ASKC TECHNOLOGIES
         </span>
       )}
     </div>

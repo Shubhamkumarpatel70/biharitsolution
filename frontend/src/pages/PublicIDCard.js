@@ -48,7 +48,7 @@ const PublicIDCard = () => {
       <div className="w-full max-w-4xl space-y-12">
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold text-slate-900 mb-2">Digital ID Verification</h1>
-          <p className="text-slate-500">Official digital identification card issued by ASKC Digital Web</p>
+          <p className="text-slate-500">Official digital identification card issued by ASKC TECHNOLOGIES</p>
         </div>
 
         <div className="flex flex-col md:flex-row items-center justify-center gap-8 md:gap-16">
@@ -118,7 +118,7 @@ const PublicIDCard = () => {
               <div className="space-y-1.5 p-4 bg-slate-50 rounded-2xl border border-slate-100">
                 <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest">Digital Contact</p>
                 <div className="space-y-1">
-                  <p className="text-xs font-bold text-slate-800">support@askcweb.in</p>
+                  <p className="text-xs font-bold text-slate-800">askctechnologies@gmail.com</p>
                   <p className="text-xs font-bold text-slate-800">www.askcweb.in</p>
                 </div>
               </div>
@@ -153,7 +153,7 @@ const PublicIDCard = () => {
 
         <div className="text-center pt-8">
           <p className="text-slate-400 text-xs">Scan the barcode to verify credentials on our official portal.</p>
-          <p className="text-slate-400 text-xs mt-1">© {new Date().getFullYear()} ASKC Digital Web. All rights reserved.</p>
+          <p className="text-slate-400 text-xs mt-1">© {new Date().getFullYear()} ASKC TECHNOLOGIES. All rights reserved.</p>
         </div>
       </div>
     </div>
