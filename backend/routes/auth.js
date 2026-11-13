@@ -42,6 +42,7 @@ const Project = require("../models/Project");
 const Feature = require("../models/Feature");
 const Service = require("../models/Service");
 const PaymentOption = require("../models/PaymentOption");
+const PaymentMode = require("../models/PaymentMode");
 const ProjectRequirement = require("../models/ProjectRequirement");
 const Career = require("../models/Career");
 const CareerApplication = require("../models/CareerApplication");
@@ -122,6 +123,11 @@ async function createUserNotification(userId, title, message, type = "general", 
     console.error("Could not create user event notification:", notificationError?.message);
     return null;
   }
+}
+
+async function getCheckoutPaymentMode() {
+  const settings = await PaymentMode.findOne({ key: "checkout" }).lean();
+  return settings?.mode === "manual" ? "manual" : "cashfree";
 }
 
 function generateProjectSubmissionId() {
@@ -346,6 +352,9 @@ router.post("/cashfree/webhook", async (req, res) => {
 
 router.post("/cashfree/create-order", authMiddleware, async (req, res) => {
   try {
+    if (await getCheckoutPaymentMode() !== "cashfree") {
+      return res.status(403).json({ message: "Online checkout is currently disabled. Please use the payment method configured by ASKC Technologies." });
+    }
     const { plan, phone, couponCode } = req.body || {};
     const cleanPhone = String(phone || "").replace(/\D/g, "").slice(-10);
     if (!plan || !/^\d{10}$/.test(cleanPhone)) {
@@ -529,6 +538,10 @@ router.post(
   authMiddleware,
   upload.single("paymentImage"),
   async (req, res) => {
+    // Manual receipt submissions are accepted only when the server-side checkout mode is manual.
+    if (await getCheckoutPaymentMode() !== "manual") {
+      return res.status(403).json({ message: "Manual payment submissions are disabled. Complete payment through the configured online gateway." });
+    }
     // Get data from FormData (req.body) or JSON (req.body)
     let { plan, transactionId, method } = req.body;
     const paymentImage = req.file;
@@ -3846,6 +3859,50 @@ router.get("/services", async (req, res) => {
   }
 });
 
+// Checkout mode settings: only a full admin can switch the live payment workflow.
+router.get("/admin/payment-settings", authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const settings = await PaymentMode.findOne({ key: "checkout" }).lean();
+    res.set("Cache-Control", "no-store");
+    res.json({
+      mode: settings?.mode === "manual" ? "manual" : "cashfree",
+      updatedAt: settings?.updatedAt || null,
+      gatewayReady: Boolean(process.env.CASHFREE_APP_ID && process.env.CASHFREE_SECRET_KEY),
+      environment: process.env.CASHFREE_ENVIRONMENT === "production" ? "production" : "sandbox"
+    });
+  } catch (err) {
+    console.error("Error fetching admin payment settings:", err);
+    res.status(500).json({ message: "Could not fetch payment settings." });
+  }
+});
+
+router.put("/admin/payment-settings", authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const mode = String(req.body?.mode || "").trim().toLowerCase();
+    if (!["manual", "cashfree"].includes(mode)) {
+      return res.status(400).json({ message: "Choose either manual or cashfree payment mode." });
+    }
+    const settings = await PaymentMode.findOneAndUpdate(
+      { key: "checkout" },
+      { $set: { mode, updatedBy: req.user.id } },
+      { new: true, upsert: true, setDefaultsOnInsert: true, runValidators: true }
+    );
+    res.set("Cache-Control", "no-store");
+    return res.json({
+      message: mode === "cashfree"
+        ? "Cashfree checkout enabled. Successful verified payments will activate automatically."
+        : "Manual payment enabled. Receipt submissions will require admin verification.",
+      mode: settings.mode,
+      updatedAt: settings.updatedAt,
+      gatewayReady: Boolean(process.env.CASHFREE_APP_ID && process.env.CASHFREE_SECRET_KEY),
+      environment: process.env.CASHFREE_ENVIRONMENT === "production" ? "production" : "sandbox"
+    });
+  } catch (err) {
+    console.error("Error updating checkout payment mode:", err);
+    return res.status(500).json({ message: "Could not update payment mode." });
+  }
+});
+
 // Payment Options Management Routes
 router.get("/admin/payment-options", authMiddleware, coAdminMiddleware, async (req, res) => {
   try {
@@ -3920,10 +3977,25 @@ router.delete("/admin/payment-options/:id", authMiddleware, coAdminMiddleware, a
   }
 });
 
-// Public endpoint used by agreement templates; expose only active payment instructions.
+// Public checkout mode is read-only; all payment enforcement happens again on the server.
+router.get("/payment-settings", async (req, res) => {
+  try {
+    const mode = await getCheckoutPaymentMode();
+    res.set("Cache-Control", "no-store");
+    res.json({ mode, gatewayReady: Boolean(process.env.CASHFREE_APP_ID && process.env.CASHFREE_SECRET_KEY) });
+  } catch (err) {
+    console.error("Error fetching checkout settings:", err);
+    res.status(503).json({ message: "Payment settings are temporarily unavailable." });
+  }
+});
+
+// Public endpoint used by agreement templates; expose active instructions only for manual checkout.
 router.get("/payment-options", async (req, res) => {
   try {
-    const paymentOptions = await PaymentOption.find({ isActive: true }).sort({ order: 1 }).select("name upiId qrCode description paymentType accountName accountNumber ifscCode bankName branch");
+    const mode = await getCheckoutPaymentMode();
+    const paymentOptions = mode === "manual"
+      ? await PaymentOption.find({ isActive: true }).sort({ order: 1 }).select("name upiId qrCode description paymentType accountName accountNumber ifscCode bankName branch")
+      : [];
     res.json({ paymentOptions });
   } catch (err) {
     console.error("Error fetching public payment options:", err);
