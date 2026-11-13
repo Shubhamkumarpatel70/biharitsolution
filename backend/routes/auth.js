@@ -49,13 +49,13 @@ const FundTransaction = require("../models/FundTransaction");
 const IDCard = require("../models/IDCard");
 const Agreement = require("../models/Agreement");
 const FounderProfile = require("../models/FounderProfile");
-const { uploadImageBuffer, uploadDataUri, deleteImageByUrl, moveInlineImagesToCloudinary } = require("../utils/cloudinary");
+const { uploadImageBuffer, uploadDataUri, moveInlineImagesToCloudinary } = require("../utils/cloudinary");
 const { sendEmail } = require("../utils/email");
 const { parsePlanDurationDays } = require("../utils/planDuration");
 const multer = require("multer");
 const path = require("path");
 
-// Configure multer for memory storage (to convert to base64)
+// Configure multer memory storage; image buffers are sent to Cloudinary.
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
@@ -3330,7 +3330,7 @@ router.post(
         socialLinks: parsedSocialLinks || {},
       };
 
-      // Add profile image if uploaded (convert to base64)
+      // Upload profile image to Cloudinary.
       if (req.file) {
         teamMemberData.profileImage = (await uploadImageBuffer(req.file.buffer, req.file.mimetype, "askc-technologies/team")).url;
       }
