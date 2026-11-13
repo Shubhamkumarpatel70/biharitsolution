@@ -785,6 +785,63 @@ router.patch(
   },
 );
 
+// Admin: assign a plan and price directly to a user.
+router.post("/admin/users/:id/assign-plan", authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const { planName, totalAmount, durationDays, note } = req.body || {};
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: "User not found." });
+    const amount = Number(totalAmount);
+    if (!String(planName || "").trim() || !Number.isFinite(amount) || amount < 0) {
+      return res.status(400).json({ message: "Enter a plan name and valid amount." });
+    }
+    const days = Math.max(1, Math.min(3650, Number(durationDays) || 30));
+    const uniqueId = "ASKC-ADM-" + Date.now() + "-" + require("crypto").randomBytes(3).toString("hex").toUpperCase();
+    const sub = await Subscription.create({
+      user: user._id,
+      plan: "starter",
+      planName: String(planName).trim(),
+      totalAmount: amount,
+      amountPaid: 0,
+      paymentStatus: amount === 0 ? "paid" : "pending",
+      durationDays: days,
+      status: "active",
+      uniqueId,
+      expiresAt: new Date(Date.now() + days * 86400000),
+      paymentEntries: [],
+      adminNote: String(note || "").slice(0, 500)
+    });
+    res.status(201).json({ subscription: sub, message: "Plan assigned successfully." });
+  } catch (err) {
+    console.error("Admin plan assignment failed:", err);
+    res.status(500).json({ message: "Could not assign plan." });
+  }
+});
+
+// Admin: record a confirmed instalment against a user's latest subscription.
+router.post("/admin/users/:id/record-payment", authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const { amount, method, reference, note } = req.body || {};
+    const paid = Number(amount);
+    if (!Number.isFinite(paid) || paid <= 0) return res.status(400).json({ message: "Enter a payment amount greater than zero." });
+    const sub = await Subscription.findOne({ user: req.params.id }).sort({ createdAt: -1 });
+    if (!sub) return res.status(404).json({ message: "Assign a plan before recording a payment." });
+    const confirmed = (sub.paymentEntries || []).filter(p => p.status === "confirmed").reduce((sum, p) => sum + Number(p.amount || 0), 0);
+    const legacyPaid = sub.totalAmount > 0 ? 0 : Number(sub.amountPaid || 0);
+    const balance = Math.max(0, Number(sub.totalAmount || 0) - confirmed - legacyPaid);
+    if (paid > balance + 0.01) return res.status(400).json({ message: "Payment cannot exceed the outstanding balance." });
+    sub.paymentEntries.push({ amount: paid, method: String(method || "manual"), reference: String(reference || "").slice(0,120), note: String(note || "").slice(0,300), status: "confirmed", recordedBy: req.user.id, recordedAt: new Date() });
+    const newPaid = confirmed + legacyPaid + paid;
+    sub.amountPaid = newPaid;
+    sub.paymentStatus = newPaid >= Number(sub.totalAmount || 0) ? "paid" : "partial";
+    await sub.save();
+    res.json({ subscription: sub, balanceDue: Math.max(0, Number(sub.totalAmount || 0) - newPaid), message: "Payment recorded." });
+  } catch (err) {
+    console.error("Payment ledger update failed:", err);
+    res.status(500).json({ message: "Could not record payment." });
+  }
+});
+
 // Admin: Get all users
 router.get(
   "/admin/users",
@@ -4189,6 +4246,23 @@ router.get("/public/agreements/:id/view", async (req, res) => {
     res.send(agreement.htmlContent);
   } catch (err) {
     res.status(500).send("<p>Server error. Please try again later.</p>");
+  }
+});
+
+// User: only return agreements addressed to the authenticated account.
+router.get("/user-agreements", authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("name email");
+    if (!user) return res.status(404).json({ message: "User not found." });
+    const agreements = await Agreement.find({
+      $or: [
+        { clientEmail: { $regex: new RegExp("^" + String(user.email).replace(/[.*+?^${}()|[\\]\\]/g, "\\// Get all agreements (grouped by client)") + "$", "i") } },
+        { clientName: { $regex: new RegExp("^" + String(user.name).replace(/[.*+?^${}()|[\\]\\]/g, "\\// Get all agreements (grouped by client)") + "$", "i") } }
+      ]
+    }).select("-htmlContent").sort({ createdAt: -1 }).lean();
+    res.json({ agreements });
+  } catch (err) {
+    res.status(500).json({ message: "Could not load your agreements." });
   }
 });
 
