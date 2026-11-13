@@ -4287,27 +4287,6 @@ router.get("/user-agreements/:id", authMiddleware, async (req, res) => {
   } catch (err) { res.status(500).json({ message: "Could not open agreement." }); }
 });
 
-// Get all agreements (grouped by client)") + "$", "i") } },
-        { clientName: { $regex: new RegExp("^" + String(user.name).replace(/[.*+?^${}()|[\\]\\]/g, "\\// Get all agreements (grouped by client)") + "$", "i") } }
-      ]
-    });
-    if (!agreement) return res.status(404).json({ message: "Agreement not found." });
-    res.json({ agreement });
-  } catch (err) {
-    res.status(500).json({ message: "Could not open agreement." });
-  }
-});
-
-// Get all agreements (grouped by client)") + "$", "i") } },
-        { clientName: { $regex: new RegExp("^" + String(user.name).replace(/[.*+?^${}()|[\\]\\]/g, "\\// Get all agreements (grouped by client)") + "$", "i") } }
-      ]
-    }).select("-htmlContent").sort({ createdAt: -1 }).lean();
-    res.json({ agreements });
-  } catch (err) {
-    res.status(500).json({ message: "Could not load your agreements." });
-  }
-});
-
 // Get all agreements (grouped by client)
 router.get(
   "/admin/agreements",
