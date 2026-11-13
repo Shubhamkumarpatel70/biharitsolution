@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import PageHero from '../components/PageHero';
 import { Icon } from '../components/icons';
 import axios from '../axios';
 
