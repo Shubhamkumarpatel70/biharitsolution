@@ -19,6 +19,7 @@ export const adminNavItems = [
   { id: 'team', label: 'Team', iconName: 'users', category: 'content' },
   { id: 'features', label: 'Features', iconName: 'sparkles', category: 'content' },
   { id: 'services', label: 'Services', iconName: 'wrench', category: 'content' },
+  { id: 'client-work', label: 'Client Work', iconName: 'briefcase', category: 'content' },
   { id: 'contacts', label: 'Contacts', iconName: 'mail', category: 'communication' },
   { id: 'careers', label: 'Careers', iconName: 'briefcase', category: 'careers' },
   { id: 'career-applications', label: 'Career Applications', iconName: 'document', category: 'careers' },
