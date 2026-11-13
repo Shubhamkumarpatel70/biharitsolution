@@ -72,6 +72,8 @@ app.use(
           "'self'",
           "https://askctechnologies.in",
           "https://www.askctechnologies.in",
+          "https://askcweb.in",
+          "https://www.askcweb.in",
           "https://custom-web-frontend.onrender.com",
           "https://custom-web-app.onrender.com",
           "https://biharitsolution.onrender.com",
@@ -107,6 +109,8 @@ const allowedOrigins = new Set([
   "http://localhost:3000",
   "https://askctechnologies.in",
   "https://www.askctechnologies.in",
+  "https://askcweb.in",
+  "https://www.askcweb.in",
   "https://biharitsolution.onrender.com",
   process.env.CLIENT_URL
 ].filter(Boolean));
@@ -377,6 +381,8 @@ const io = new Server(server, {
       "https://custom-web-app.onrender.com",
       "https://askctechnologies.in",
       "https://www.askctechnologies.in",
+      "https://askcweb.in",
+      "https://www.askcweb.in",
       "https://biharitsolution.onrender.com",
       "https://capitalcove.me",
       "https://www.capitalcove.me",
