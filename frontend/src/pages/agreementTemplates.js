@@ -83,8 +83,8 @@ const ftr = (docCode) => `<footer>
 <div class="dc">${docCode || ''}</div>
 </footer>`;
 
-const ctrl = (label) => `<div class="controls" style="position:fixed;top:18px;right:20px;z-index:1000;">
-<button onclick="window.print()" style="background:#061d4b;color:#fff;border:none;padding:10px 22px;font-weight:700;border-radius:8px;cursor:pointer;font-size:13px;">🖨 ${label}</button></div>`;
+const ctrl = (label) => `<div class="controls" style="position:relative;z-index:2;width:210mm;max-width:calc(100% - 24px);margin:0 auto 12px;display:flex;justify-content:flex-end;">
+<button onclick="window.print()" style="background:#061d4b;color:#fff;border:none;padding:10px 22px;font-weight:700;border-radius:8px;cursor:pointer;font-size:13px;white-space:nowrap;">🖨 ${label}</button></div>`;
 
 const officialStampText = () => `<div class="sig-stamp-text">ASKC TECHNOLOGIES OFFICIAL STAMP</div>`;
 
