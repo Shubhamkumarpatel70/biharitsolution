@@ -100,7 +100,7 @@ function AdminCareerApplications() {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-slate-500 whitespace-nowrap text-xs">
-                      {a.createdAt ? new Date(a.createdAt).toLocaleString() : '—'}
+                      {a.createdAt ? new Date(a.createdAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
                     </td>
                   </tr>
                 );
