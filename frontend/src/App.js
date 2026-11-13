@@ -14,6 +14,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import DashboardHome from './pages/DashboardHome';
+import UserAgreements from './pages/UserAgreements';
 import HelpAndSupport from './pages/Help & Support';
 import SupportChat from './pages/SupportChat';
 import Subscription from './pages/Subscription';
@@ -101,6 +102,7 @@ function AppContent() {
             <Route path='project-requirement' element={<ProjectRequirement />} />
             <Route path='support' element={<HelpAndSupport />} />
             <Route path='subscription' element={<Subscription />} />
+            <Route path='agreements' element={<UserAgreements />} />
             <Route path='purchases' element={<MyPurchases />} />
             <Route path='notifications' element={<Notifications />} />
             <Route path='privacy' element={<PrivacyCenter />} />
