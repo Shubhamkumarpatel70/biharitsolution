@@ -11,6 +11,11 @@ export default function AdminPaymentOptions() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState({ type: '', text: '' });
+  const [paymentMode, setPaymentMode] = useState('cashfree');
+  const [modeLoading, setModeLoading] = useState(true);
+  const [modeSaving, setModeSaving] = useState(false);
+  const [gatewayReady, setGatewayReady] = useState(false);
+  const [gatewayEnvironment, setGatewayEnvironment] = useState('sandbox');
 
   const load = async () => {
     setLoading(true);
@@ -21,7 +26,33 @@ export default function AdminPaymentOptions() {
     } catch (e) { setNotice({ type: 'error', text: e.response?.data?.message || 'Unable to load payment methods.' }); }
     finally { setLoading(false); }
   };
-  useEffect(() => { load(); }, []);
+  const loadPaymentMode = async () => {
+    setModeLoading(true);
+    try {
+      const r = await axios.get('/api/auth/admin/payment-settings');
+      setPaymentMode(r.data.mode === 'manual' ? 'manual' : 'cashfree');
+      setGatewayReady(Boolean(r.data.gatewayReady));
+      setGatewayEnvironment(r.data.environment || 'sandbox');
+    } catch (e) {
+      setNotice({ type: 'error', text: e.response?.data?.message || 'Unable to load checkout mode. Only the primary admin can manage this setting.' });
+    } finally { setModeLoading(false); }
+  };
+  const savePaymentMode = async () => {
+    if (!window.confirm(paymentMode === 'cashfree'
+      ? 'Enable Cashfree? New payments will be gateway-only and successful verified payments will activate automatically. Manual receipt submissions will be blocked.'
+      : 'Enable manual payments? New customers must submit a transaction reference and receipt for admin verification. Cashfree order creation will be blocked.')) return;
+    setModeSaving(true);
+    try {
+      const r = await axios.put('/api/auth/admin/payment-settings', { mode: paymentMode });
+      setGatewayReady(Boolean(r.data.gatewayReady));
+      setGatewayEnvironment(r.data.environment || 'sandbox');
+      setNotice({ type: 'success', text: r.data.message || 'Checkout mode updated.' });
+    } catch (e) {
+      setNotice({ type: 'error', text: e.response?.data?.message || 'Could not update checkout mode. Only the primary admin can manage this setting.' });
+      await loadPaymentMode();
+    } finally { setModeSaving(false); }
+  };
+  useEffect(() => { load(); loadPaymentMode(); }, []);
 
   const change = e => setForm(p => ({ ...p, [e.target.name]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
   const reset = () => { setForm(EMPTY); setEditingId(null); };
@@ -80,6 +111,38 @@ export default function AdminPaymentOptions() {
         <span className="rounded-full bg-emerald-400/15 px-3 py-1.5 text-emerald-200">{items.filter(x => x.isActive).length} active</span>
       </div>
     </header>
+
+    <section className="rounded-2xl border border-indigo-100 bg-white p-4 shadow-sm sm:p-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-wide text-indigo-600">Checkout control · Primary admin only</p>
+          <h2 className="mt-1 text-lg font-extrabold text-slate-900">How should customers pay?</h2>
+          <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">This setting controls the entire new-plan checkout. The server enforces the selected mode; hiding a button in the browser is not the security control.</p>
+        </div>
+        <span className={`inline-flex w-fit rounded-full px-3 py-1.5 text-xs font-bold ${paymentMode === 'cashfree' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>{paymentMode === 'cashfree' ? 'Gateway mode' : 'Manual mode'}</span>
+      </div>
+      {modeLoading ? <p className="mt-4 text-sm text-slate-500">Loading checkout configuration…</p> : <>
+        <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2">
+          <button type="button" onClick={() => setPaymentMode('manual')} className={`rounded-xl border p-4 text-left transition ${paymentMode === 'manual' ? 'border-amber-400 bg-amber-50 ring-2 ring-amber-100' : 'border-slate-200 hover:border-slate-300'}`}>
+            <span className="block font-bold text-slate-900">Manual payment</span>
+            <span className="mt-1 block text-sm text-slate-600">UPI / QR / bank instructions, transaction ID and receipt upload. Admin must verify before activation.</span>
+          </button>
+          <button type="button" onClick={() => setPaymentMode('cashfree')} className={`rounded-xl border p-4 text-left transition ${paymentMode === 'cashfree' ? 'border-emerald-400 bg-emerald-50 ring-2 ring-emerald-100' : 'border-slate-200 hover:border-slate-300'}`}>
+            <span className="block font-bold text-slate-900">Cashfree payment gateway</span>
+            <span className="mt-1 block text-sm text-slate-600">Secure hosted checkout. Verified successful payments activate subscriptions automatically; no manual receipt approval.</span>
+          </button>
+        </div>
+        <div className="mt-4 flex flex-col gap-3 rounded-xl bg-slate-50 p-3 text-xs text-slate-600 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-1">
+            <p>Cashfree credentials: <b className={gatewayReady ? 'text-emerald-700' : 'text-red-700'}>{gatewayReady ? 'Configured' : 'Missing on backend'}</b></p>
+            <p>Environment: <b className="uppercase">{gatewayEnvironment}</b></p>
+            {!gatewayReady && paymentMode === 'cashfree' && <p className="font-semibold text-red-700">Do not switch to Cashfree until CASHFREE_APP_ID and CASHFREE_SECRET_KEY are set in Render.</p>}
+          </div>
+          <button type="button" disabled={modeSaving || (paymentMode === 'cashfree' && !gatewayReady)} onClick={savePaymentMode} className="shrink-0 rounded-xl bg-slate-900 px-5 py-3 text-sm font-bold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50">{modeSaving ? 'Saving…' : 'Save checkout mode'}</button>
+        </div>
+        <p className="mt-3 text-xs leading-5 text-slate-500">Switching modes affects new checkout attempts. Already-created Cashfree orders can still complete through verified webhook/status checks. Existing manual submissions remain in the admin approval queue.</p>
+      </>}
+    </section>
 
     {notice.text && <div role="status" className={`rounded-xl border px-4 py-3 text-sm font-semibold ${notice.type === 'error' ? 'border-red-200 bg-red-50 text-red-700' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}`}>{notice.text}</div>}
 
