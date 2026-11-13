@@ -61,11 +61,11 @@ const Footer = () => {
   const currentYear = new Date().getFullYear();
 
   const colTitleClass =
-    'text-sm font-bold uppercase tracking-widest text-accent-400 mb-5 flex items-center gap-2';
+    'text-sm font-bold uppercase tracking-widest text-[#d6b56d] mb-5 flex items-center gap-2';
 
   return (
-    <footer className="relative bg-primary-700 text-white overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-b from-primary-600/40 via-transparent to-primary-900/30 pointer-events-none" />
+    <footer className="relative overflow-hidden bg-[#151a20] text-[#f5f3ee]">
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/[0.035] via-transparent to-black/25" />
       <div
         className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent-400/60 to-transparent"
         aria-hidden
@@ -116,7 +116,7 @@ const Footer = () => {
           </div>
 
           {/* Column 2 — Explore & services */}
-          <div className="lg:px-8 xl:px-10 lg:border-x lg:border-white/10 grid sm:grid-cols-2 lg:grid-cols-1 gap-10 sm:gap-12">
+          <div className="grid gap-10 sm:grid-cols-2 sm:gap-12 lg:grid-cols-1 lg:border-x lg:border-white/10 lg:px-8 xl:px-10">
             <div>
               <h3 className={colTitleClass}>
                 <span className="h-px w-6 bg-accent-500/80 rounded-full shrink-0" aria-hidden />
@@ -222,7 +222,7 @@ const Footer = () => {
               />
               <button
                 type="submit"
-                className="btn btn-primary px-8 py-3.5 whitespace-nowrap rounded-xl font-bold shadow-lg"
+                className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#d6b56d] px-8 py-3.5 font-bold text-[#17191c] shadow-lg transition-all hover:-translate-y-0.5 hover:bg-[#e4c985] disabled:cursor-not-allowed disabled:opacity-60"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? (
