@@ -206,7 +206,7 @@ const DashboardHome = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="text-2xl font-bold text-primary-600 mb-1">
-                      {planDisplayNames[current.plan] || current.plan}
+                      {current.planName || planDisplayNames[current.plan] || current.plan}
                     </div>
                     <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
                       current.status === 'active' 
