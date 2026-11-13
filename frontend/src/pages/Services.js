@@ -74,10 +74,7 @@ function Services() {
                 <h3 className="relative text-lg font-extrabold tracking-tight text-slate-900 transition-colors group-hover:text-sky-700">{item.title}</h3>
                 <p className="relative mt-2 flex-1 text-sm leading-6 text-slate-600">{item.description}</p>
                 <div className="relative mt-6 flex items-center justify-between border-t border-slate-100 pt-4">
-                  <span className="text-xs font-semibold text-slate-400">ASKC Technologies</span>
-                  <Link to="/contact" aria-label={`Enquire about ${item.title}`} className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition duration-300 group-hover:border-sky-500 group-hover:bg-sky-500 group-hover:text-white focus:outline-none focus:ring-2 focus:ring-sky-400">
-                    <span aria-hidden="true">↗</span>
-                  </Link>
+                  <span className="text-xs font-semibold uppercase tracking-[0.12em] text-sky-700">Explore this service</span>
                 </div>
               </article>
             ))}
