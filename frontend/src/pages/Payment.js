@@ -86,8 +86,14 @@ const Payment = () => {
           setPaymentOptions([]);
         }
       } catch (err) {
-        console.error('Error fetching payment page data:', err);
-        setError(err.response?.data?.message || 'Unable to load this plan. Please refresh and try again.');
+        console.error('Error fetching payment page data:', {
+          message: err.message,
+          url: err.config?.url,
+          status: err.response?.status,
+          response: err.response?.data
+        });
+        const apiMessage = err.response?.data?.message;
+        setError(apiMessage || err.message || 'Unable to load payment configuration. Please try again.');
       } finally {
         setLoadingPlan(false);
       }
