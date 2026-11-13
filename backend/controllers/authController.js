@@ -98,83 +98,108 @@ exports.verifyRegisterOtp = async (req, res) => {
 
 // Send OTP for forgot password
 exports.sendForgotOtp = async (req, res) => {
+  let normalizedEmail = "";
+  let generatedOtp = "";
   try {
-    console.log("sendForgotOtp requested for:", req.body.email);
-    const { email } = req.body;
-    if (!email) return res.status(400).json({ message: "Email is required." });
+    normalizedEmail = String(req.body?.email || "").trim().toLowerCase();
+    if (!normalizedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      return res.status(400).json({ message: "Please enter a valid email address." });
+    }
 
-    console.log("Checking if user exists...");
-    const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ message: "User not found." });
+    // Match legacy accounts whose email may have been stored with different casing.
+    const escapedEmail = normalizedEmail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const user = await User.findOne({
+      email: { $regex: new RegExp(`^${escapedEmail}$`, "i") },
+    }).select("_id email");
 
-    console.log("Generating OTP...");
-    const otp = generateOtp();
+    if (!user) {
+      return res.status(404).json({ message: "No account was found with this email address." });
+    }
+
+    generatedOtp = crypto.randomInt(100000, 1000000).toString();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-    console.log("Saving OTP to database...");
-    await Otp.deleteMany({ email, purpose: "forgot" });
-    const savedOtp = await Otp.create({
-      email,
-      otp,
+    // Replace older reset codes, and persist this code before attempting delivery.
+    await Otp.deleteMany({ email: normalizedEmail, purpose: "forgot" });
+    await Otp.create({
+      email: normalizedEmail,
+      otp: generatedOtp,
       purpose: "forgot",
       expiresAt,
     });
-    console.log("SUCCESS: OTP stored in database! Record:", savedOtp);
 
     const html = generateOtpEmailHtml(
-      otp,
+      generatedOtp,
       "Reset your Password",
       "We received a request to reset your password. Please use the verification code below to proceed.",
     );
 
-    console.log("Attempting to send email via SMTP...");
-    console.log("Before sending email");
+    // Uses the same configured Resend/SMTP delivery service as registration OTP.
     await sendEmail(
-      email,
-      "Your Password Reset Code",
-      `Your OTP is: ${otp}`,
+      normalizedEmail,
+      "Your ASKC TECHNOLOGIES Password Reset Code",
+      `Your password reset OTP is: ${generatedOtp}. It expires in 10 minutes.`,
       html,
     );
-    console.log("After sending email");
 
-    console.log("==================================================");
-    console.log("SUCCESS: OTP EMAIL SENT SUCCESSFULLY!");
-    console.log("==================================================");
-
-    res.json({ message: "OTP sent to email." });
+    console.info("Forgot-password OTP email accepted by provider:", {
+      recipient: normalizedEmail,
+      provider: process.env.RESEND_API_KEY ? "resend" : (process.env.SMTP_USER ? "smtp" : "not-configured"),
+    });
+    return res.json({ message: "OTP sent to your email address." });
   } catch (err) {
-    console.log("==================================================");
-    console.error("FAILURE: OTP EMAIL FAILED TO SEND!");
-    console.error("Error details:", err.message);
-    console.log("==================================================");
-    res.status(500).json({ message: "Could not send OTP." });
+    console.error("Forgot-password OTP delivery failed:", {
+      recipient: normalizedEmail || "not-provided",
+      name: err?.name,
+      message: err?.message,
+      code: err?.code,
+      responseCode: err?.responseCode,
+    });
+
+    // Do not leave an unusable code active when the email provider rejects delivery.
+    if (normalizedEmail && generatedOtp) {
+      try {
+        await Otp.deleteOne({ email: normalizedEmail, otp: generatedOtp, purpose: "forgot" });
+      } catch (cleanupError) {
+        console.error("Could not remove undelivered forgot-password OTP:", cleanupError?.message);
+      }
+    }
+
+    return res.status(500).json({
+      message: "We couldn't send the password reset OTP. Please try again shortly.",
+    });
   }
 };
 
 // Verify OTP for forgot password
 exports.verifyForgotOtp = async (req, res) => {
   try {
-    const { email, otp } = req.body;
-    if (!email || !otp)
+    const email = String(req.body?.email || "").trim().toLowerCase();
+    const otp = String(req.body?.otp || "").trim();
+    if (!email || !otp) {
       return res.status(400).json({ message: "Email and OTP required." });
+    }
+
     const record = await Otp.findOne({ email, otp, purpose: "forgot" });
     if (!record || record.expiresAt < new Date()) {
       return res.status(400).json({ message: "Invalid or expired OTP." });
     }
+
+    const user = await User.findOne({
+      $expr: { $eq: [{ $toLower: "$email" }, email] },
+    });
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
     await Otp.deleteMany({ email, purpose: "forgot" });
-
-    const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ message: "User not found." });
-
-    res.json({
+    return res.json({
       message: "OTP verified.",
-      user: {
-        name: user.name,
-        email: user.email,
-      },
+      user: { name: user.name, email: user.email },
     });
   } catch (err) {
-    res.status(500).json({ message: "Could not verify OTP." });
+    console.error("Forgot-password OTP verification failed:", err?.message);
+    return res.status(500).json({ message: "Could not verify OTP." });
   }
 };
 
