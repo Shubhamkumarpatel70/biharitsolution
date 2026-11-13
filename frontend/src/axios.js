@@ -1,9 +1,13 @@
 import axios from "axios";
 
 const instance = axios.create({
-  // Use relative URLs by default so CRA `proxy` works in dev
-  // and production works on the same origin.
-  baseURL: process.env.REACT_APP_API_URL || "",
+  // Production serves the React build and /api routes from the same Render
+  // service. Always use same-origin API requests there; this prevents stale
+  // legacy domains (for example askcweb.in) from breaking checkout/auth flows.
+  // In development, keep the optional override and CRA proxy support.
+  baseURL: process.env.NODE_ENV === "development"
+    ? (process.env.REACT_APP_API_URL || "")
+    : "",
   timeout: 30000, // Increased timeout to 30 seconds
   headers: {
     "Content-Type": "application/json",
