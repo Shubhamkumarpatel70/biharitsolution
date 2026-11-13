@@ -90,7 +90,7 @@ const Hero = () => {
               className="inline-block px-4 py-1.5 mb-6 rounded-full bg-white border border-gray-200 text-primary-800 text-sm font-semibold tracking-wide shadow-sm"
               aria-label="Brand"
             >
-              ASKC DIGITAL WEB
+              ASKC TECHNOLOGIES
             </div>
 
             {/* Main Title */}
@@ -99,7 +99,7 @@ const Hero = () => {
               id="hero-title"
             >
               Welcome to
-              <span className="text-primary-600 block mt-2">ASKC Digital Web</span>
+              <span className="text-primary-600 block mt-2">ASKC TECHNOLOGIES</span>
             </h1>
 
             {/* Subtitle */}
