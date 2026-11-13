@@ -128,42 +128,44 @@ export default function AdminAgreements() {
     setViewLoading(true);
     try {
       const r = await axios.get(`/api/auth/admin/agreements/${id}`, { headers });
-      let html = r.data.agreement.htmlContent;
+      // Normalize legacy generated documents at view/print time as well as new templates.
+      let html = String(r.data.agreement.htmlContent || '')
+        .replace(/ASKC DIGITAL WEB|ASKC WEB/gi, 'ASKC TECHNOLOGIES')
+        .replace(/www\\.askcweb\\.in|askcweb\\.in/gi, 'askctechnologies.in');
       if (addStamp) {
         const stampColors = {
-          APPROVED:  { border: '#16a34a', text: '#16a34a' },
-          SIGNED:    { border: '#2563eb', text: '#2563eb' },
-          VERIFIED:  { border: '#7c3aed', text: '#7c3aed' },
-          PAID:      { border: '#0891b2', text: '#0891b2' },
-          CANCELLED: { border: '#dc2626', text: '#dc2626' },
+          APPROVED:  { border: '#15803d', text: '#15803d' },
+          SIGNED:    { border: '#1d4ed8', text: '#1d4ed8' },
+          VERIFIED:  { border: '#6d28d9', text: '#6d28d9' },
+          PAID:      { border: '#0e7490', text: '#0e7490' },
+          CANCELLED: { border: '#b91c1c', text: '#b91c1c' },
         };
-        const c = stampColors[stampText] || stampColors.APPROVED;
+        const safeStamp = Object.prototype.hasOwnProperty.call(stampColors, stampText) ? stampText : 'APPROVED';
+        const c = stampColors[safeStamp];
         const stampHtml = `
           <style>
             #askc-stamp {
-              position: fixed;
-              top: 50%;
-              left: 50%;
+              position: fixed; top: 50%; left: 50%;
               transform: translate(-50%, -50%) rotate(-22deg);
-              font-family: 'Arial Black', sans-serif;
-              font-size: 64px;
-              font-weight: 900;
-              color: ${c.text};
-              opacity: 0.22;
-              border: 10px solid ${c.border};
-              border-radius: 12px;
-              padding: 16px 40px;
-              text-transform: uppercase;
-              letter-spacing: 6px;
-              pointer-events: none;
-              z-index: 99999;
-              user-select: none;
+              width: min(78vw, 520px); min-height: 150px;
+              display: flex; flex-direction: column; align-items: center; justify-content: center;
+              gap: 7px; padding: 20px 24px; text-align: center;
+              border: 7px double ${c.border}; border-radius: 18px;
+              color: ${c.text}; opacity: .20; z-index: 99999;
+              font-family: Arial, sans-serif; pointer-events: none; user-select: none;
+              box-sizing: border-box;
             }
-            @media print { #askc-stamp { position: fixed !important; opacity: 0.20 !important; } }
+            #askc-stamp strong { font-size: clamp(25px, 5vw, 48px); line-height: 1.05; font-weight: 900; letter-spacing: 3px; }
+            #askc-stamp span { font-size: 11px; font-weight: 800; letter-spacing: 2px; }
+            #askc-stamp small { font-size: 9px; font-weight: 700; letter-spacing: 1.5px; }
+            @media print { #askc-stamp { position: fixed !important; opacity: .18 !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; } }
           </style>
-          <div id="askc-stamp">${stampText}</div>
+          <div id="askc-stamp" aria-label="ASKC Technologies digital document stamp">
+            <span>ASKC TECHNOLOGIES</span>
+            <strong>${safeStamp}</strong>
+            <small>OFFICIAL DIGITAL DOCUMENT · askctechnologies.in</small>
+          </div>
         `;
-        // Inject before </body>
         html = html.replace('</body>', stampHtml + '</body>');
       }
       const w = window.open('', '_blank');
@@ -319,64 +321,46 @@ export default function AdminAgreements() {
               <button onClick={() => setShowGen(true)} className="mt-4 px-5 py-2 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-700">Generate First Document</button>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="grid grid-cols-1 gap-4">
               {folderDocs.map(doc => {
                 const sc = STATUS_COLORS[doc.status] || STATUS_COLORS.draft;
                 return (
-                  <div key={doc._id} className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm flex items-center gap-4 flex-wrap">
-                    <div className="text-3xl">{DOC_ICONS[doc.documentType] || '📄'}</div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-bold text-slate-900 truncate">{doc.documentTitle}</h3>
-                      <p className="text-xs text-slate-400 mt-0.5">{new Date(doc.createdAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                  <article key={doc._id} className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+                    <div className="grid grid-cols-[44px_minmax(0,1fr)] gap-3 sm:grid-cols-[56px_minmax(0,1fr)] sm:gap-4">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-50 text-2xl sm:h-14 sm:w-14 sm:text-3xl">{DOC_ICONS[doc.documentType] || '📄'}</div>
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <h3 className="min-w-0 flex-1 break-words text-sm font-extrabold leading-6 text-slate-900 sm:text-base">{doc.documentTitle}</h3>
+                          <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold ${sc.bg} ${sc.text}`}>
+                            <span className={`h-1.5 w-1.5 rounded-full ${sc.dot}`} />{doc.status}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-xs font-medium leading-5 text-slate-600">
+                          Created {new Date(doc.createdAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                        {doc.clientEmail && <p className="mt-1 break-all text-xs text-slate-500">{doc.clientEmail}</p>}
+                      </div>
                     </div>
-                    {/* Status badge + changer */}
-                    <div className="flex items-center gap-2">
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${sc.bg} ${sc.text}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${sc.dot}`} />
-                        {doc.status}
-                      </span>
-                      <select
-                        value={doc.status}
-                        onChange={e => handleStatus(doc._id, e.target.value)}
-                        className="text-xs border border-slate-200 rounded-lg px-2 py-1 text-slate-600 bg-slate-50 focus:outline-none focus:ring-1 focus:ring-indigo-300"
-                      >
-                        {['draft','sent','signed','archived'].map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase()+s.slice(1)}</option>)}
-                      </select>
+                    <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-[minmax(150px,220px)_1fr] sm:items-center">
+                      <label className="block text-xs font-semibold text-slate-700">
+                        Document status
+                        <select value={doc.status} onChange={e => handleStatus(doc._id, e.target.value)} className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                          {['draft','sent','signed','archived'].map(status => <option key={status} value={status}>{status.charAt(0).toUpperCase()+status.slice(1)}</option>)}
+                        </select>
+                      </label>
+                      <div className="flex min-w-0 flex-wrap items-center gap-2">
+                        <button onClick={() => handleSendEmail(doc)} disabled={sendingEmail === doc._id || !doc.clientEmail} title={doc.clientEmail ? `Send to ${doc.clientEmail}` : 'No client email available'} className={`inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-xs font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none ${doc.clientEmail ? 'bg-emerald-600 text-white hover:bg-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                          {sendingEmail === doc._id ? 'Sending…' : '✉ Send Email'}
+                        </button>
+                        <button onClick={() => handleView(doc)} disabled={viewLoading} className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-50 sm:flex-none">
+                          <Icon name="eye" className="h-4 w-4" /> View
+                        </button>
+                        <button onClick={() => handleDelete(doc._id)} aria-label="Delete document" title="Delete document" className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-red-100 text-red-500 hover:bg-red-50 hover:text-red-700">
+                          <Icon name="close" className="h-4 w-4" />
+                        </button>
+                      </div>
                     </div>
-                    {/* Actions */}
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => handleSendEmail(doc)}
-                        disabled={sendingEmail === doc._id}
-                        title={doc.clientEmail ? `Send to ${doc.clientEmail}` : 'No client email — set one when generating'}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-colors disabled:opacity-50
-                          ${doc.clientEmail
-                            ? 'bg-emerald-600 text-white hover:bg-emerald-700'
-                            : 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                          }`}
-                      >
-                        {sendingEmail === doc._id
-                          ? <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                          : <span>✉</span>
-                        }
-                        {sendingEmail === doc._id ? 'Sending…' : 'Send Email'}
-                      </button>
-                      <button
-                        onClick={() => handleView(doc)}
-                        disabled={viewLoading}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
-                      >
-                        <Icon name="eye" className="w-3.5 h-3.5" /> View
-                      </button>
-                      <button
-                        onClick={() => handleDelete(doc._id)}
-                        className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Delete"
-                      >
-                        <Icon name="close" className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
+                  </article>
                 );
               })}
             </div>
