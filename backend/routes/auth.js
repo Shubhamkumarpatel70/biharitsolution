@@ -2587,14 +2587,14 @@ router.post(
           const html = `<div style="margin:0;padding:24px;background:#f8fafc;font-family:Arial,Helvetica,sans-serif;color:#0f172a;">
             <div style="max-width:620px;margin:0 auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;">
               <div style="padding:20px 24px;background:linear-gradient(135deg,#0f172a,#1e293b);">
-                <div style="font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#94a3b8;font-weight:700;">ASKC Digital Web</div>
+                <div style="font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#94a3b8;font-weight:700;">ASKC Technologies</div>
                 <h2 style="margin:10px 0 0 0;font-size:22px;line-height:1.3;color:#ffffff;">${escapedSubject}</h2>
               </div>
               <div style="padding:24px;">
                 <div style="font-size:15px;line-height:1.7;color:#334155;">${escapedMessage}</div>
                 <div style="margin-top:24px;padding-top:16px;border-top:1px solid #e2e8f0;">
                   <p style="font-size:12px;color:#64748b;margin:0 0 10px 0;">
-                    You received this email because you have subscribed to updates from ASKC Digital Web.
+                    You received this email because you have subscribed to updates from ASKC Technologies.
                   </p>
                   <a href="${unsubscribeUrl}" style="display:inline-block;padding:10px 14px;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:8px;color:#0f172a;text-decoration:none;font-size:12px;font-weight:700;">
                     Unsubscribe
@@ -2603,7 +2603,7 @@ router.post(
               </div>
             </div>
             <p style="max-width:620px;margin:12px auto 0 auto;font-size:11px;color:#94a3b8;text-align:center;">
-              Need help? Contact support@askcweb.in
+              Need help? Contact askctechnologies@gmail.com
             </p>
           </div>`;
 
@@ -2612,7 +2612,7 @@ router.post(
             normalizedSubject,
             normalizedMessage,
             html,
-            "ASKC Digital Web <info@askcweb.in>",
+            "ASKC Technologies <askctechnologies@gmail.com>",
           );
 
           successCount++;
@@ -2665,14 +2665,14 @@ router.post(
         <div style="margin:0;padding:24px;background:#f8fafc;font-family:Arial,Helvetica,sans-serif;color:#0f172a;">
           <div style="max-width:620px;margin:0 auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;">
             <div style="padding:20px 24px;background:linear-gradient(135deg,#0f172a,#1e293b);">
-              <div style="font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#94a3b8;font-weight:700;">ASKC Digital Web</div>
+              <div style="font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#94a3b8;font-weight:700;">ASKC Technologies</div>
               <h2 style="margin:10px 0 0 0;font-size:22px;line-height:1.3;color:#ffffff;">${escapedSubject}</h2>
             </div>
             <div style="padding:24px;">
               <div style="font-size:15px;line-height:1.7;color:#334155;">${escapedMessage}</div>
               <div style="margin-top:24px;padding-top:16px;border-top:1px solid #e2e8f0;">
                 <p style="font-size:12px;color:#64748b;margin:0 0 10px 0;">
-                  You received this email because you have subscribed to updates from ASKC Digital Web.
+                  You received this email because you have subscribed to updates from ASKC Technologies.
                 </p>
                 <a href="${unsubscribeUrl}" style="display:inline-block;padding:10px 14px;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:8px;color:#0f172a;text-decoration:none;font-size:12px;font-weight:700;">
                   Unsubscribe
@@ -2681,7 +2681,7 @@ router.post(
             </div>
           </div>
           <p style="max-width:620px;margin:12px auto 0 auto;font-size:11px;color:#94a3b8;text-align:center;">
-            Need help? Contact support@askcweb.in
+            Need help? Contact askctechnologies@gmail.com
           </p>
         </div>
       `;
@@ -2691,7 +2691,7 @@ router.post(
         normalizedSubject,
         normalizedMessage,
         html,
-        "ASKC Digital Web <info@askcweb.in>",
+        "ASKC Technologies <askctechnologies@gmail.com>",
       );
 
       res.json({ message: "Promotional email sent successfully." });
@@ -4078,7 +4078,7 @@ router.get("/public/agreements/:id/view", async (req, res) => {
         h2{color:#0f172a;}p{color:#64748b;}</style></head>
         <body><div class="box"><h2>Document Not Found</h2>
         <p>This document may have been removed or the link has expired.</p>
-        <p style="margin-top:20px;font-size:12px;">ASKC Digital Web &mdash; support@askcweb.in</p></div></body></html>
+        <p style="margin-top:20px;font-size:12px;">ASKC Technologies &mdash; askctechnologies@gmail.com</p></div></body></html>
       `);
     }
     res.setHeader("Content-Type", "text/html; charset=utf-8");
@@ -4220,7 +4220,7 @@ router.post(
         nda: "Non-Disclosure Agreement",
         quotation: "Project Proposal & Quotation",
         invoice: "Tax Invoice",
-        welcome: "Welcome to ASKC Digital Web",
+        welcome: "Welcome to ASKC Technologies",
         handover: "Project Handover Document",
         change_request: "Change Request Form",
         questionnaire: "Client Questionnaire",
@@ -4230,14 +4230,14 @@ router.post(
         nda: `We are pleased to share your <strong>Non-Disclosure Agreement (NDA)</strong> as part of our secure project engagement process. Please review the attached document carefully before proceeding.`,
         quotation: `Thank you for your interest in our services! We have prepared a detailed <strong>Project Proposal & Quotation</strong> tailored specifically for your requirements. Please review it and let us know if you have any questions.`,
         invoice: `Please find your <strong>Tax Invoice</strong> for the services rendered. Kindly process the payment at your earliest convenience to ensure uninterrupted project progress.`,
-        welcome: `<strong>Welcome aboard! 🎉</strong> We are absolutely thrilled to have you as part of the ASKC Digital Web family. This letter outlines everything you need to know to get started on your digital journey with us.`,
+        welcome: `<strong>Welcome aboard! 🎉</strong> We are absolutely thrilled to have you as part of the ASKC Technologies family. This letter outlines everything you need to know to get started on your digital journey with us.`,
         handover: `We are delighted to inform you that your project has been <strong>successfully completed</strong>! This Handover Document contains all the deliverables, access credentials, and support information for your reference.`,
         change_request: `We have received your <strong>Change Request</strong> and our team is reviewing it carefully. The attached document outlines the proposed changes and their impact on scope, timeline, and cost.`,
         questionnaire: `To better understand your needs and craft the perfect digital solution for you, please fill out the attached <strong>Client Questionnaire</strong>. Your inputs will help us tailor our services specifically to your goals.`,
       };
 
       const subject = docTypeLabels[agreement.documentType] || agreement.documentTitle;
-      const greeting = greetings[agreement.documentType] || `Please find your document — <strong>${agreement.documentTitle}</strong> — from ASKC Digital Web.`;
+      const greeting = greetings[agreement.documentType] || `Please find your document — <strong>${agreement.documentTitle}</strong> — from ASKC Technologies.`;
 
       // Public view link — use the base URL from env or a default
       const baseUrl = process.env.CLIENT_URL
@@ -4278,7 +4278,7 @@ router.post(
             <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:20px;margin-bottom:28px;">
               <p style="font-size:12px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;font-weight:700;margin:0 0 8px;">Document Details</p>
               <p style="font-size:15px;color:#0f172a;font-weight:800;margin:0 0 4px;">${agreement.documentTitle}</p>
-              <p style="font-size:12px;color:#64748b;margin:0;">Prepared by ASKC Digital Web &bull; ${new Date(agreement.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}</p>
+              <p style="font-size:12px;color:#64748b;margin:0;">Prepared by ASKC Technologies &bull; ${new Date(agreement.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}</p>
             </div>
 
             <!-- CTA Button -->
@@ -4294,16 +4294,16 @@ router.post(
             </table>
 
             <p style="font-size:13px;color:#64748b;line-height:1.7;margin:0 0 8px;">If you have any questions or require clarification, please do not hesitate to contact us. We are committed to ensuring a seamless experience for you.</p>
-            <p style="font-size:13px;color:#64748b;margin:0;">Warm regards,<br><strong style="color:#0f172a;">Shubham Kumar</strong><br>Founder & Senior Web Engineer, ASKC Digital Web</p>
+            <p style="font-size:13px;color:#64748b;margin:0;">Warm regards,<br><strong style="color:#0f172a;">Shubham Kumar</strong><br>Founder & Senior Web Engineer, ASKC Technologies</p>
           </td>
         </tr>
 
         <!-- Footer -->
         <tr>
           <td style="background:#061d4b;border-radius:0 0 16px 16px;padding:20px 40px;text-align:center;">
-            <p style="color:#94a3b8;font-size:11px;margin:0 0 6px;">📧 shubham@askcweb.in &nbsp;|&nbsp; 🌐 www.askcweb.in &nbsp;|&nbsp; 📞 +91 62626 92632</p>
+            <p style="color:#94a3b8;font-size:11px;margin:0 0 6px;">📧 askctechnologies@gmail.com &nbsp;|&nbsp; 🌐 www.askcweb.in &nbsp;|&nbsp; 📞 +91 7992365197</p>
             <p style="color:#475569;font-size:10px;margin:0;">Bihar IT Solution, Main Road, Near City Center, Patna, Bihar - 800001</p>
-            <p style="color:#334155;font-size:10px;margin:8px 0 0;">© ${new Date().getFullYear()} ASKC Digital Web. All rights reserved.</p>
+            <p style="color:#334155;font-size:10px;margin:8px 0 0;">© ${new Date().getFullYear()} ASKC Technologies. All rights reserved.</p>
           </td>
         </tr>
 
@@ -4315,10 +4315,10 @@ router.post(
 
       await sendEmail(
         agreement.clientEmail,
-        `${subject} — ASKC Digital Web`,
-        `Dear ${agreement.clientName},\n\nPlease review your document: ${agreement.documentTitle}\n\nView it here: ${viewLink}\n\nRegards,\nShubham Kumar\nASKC Digital Web`,
+        `${subject} — ASKC Technologies`,
+        `Dear ${agreement.clientName},\n\nPlease review your document: ${agreement.documentTitle}\n\nView it here: ${viewLink}\n\nRegards,\nShubham Kumar\nASKC Technologies`,
         htmlEmail,
-        `"Shubham Kumar | ASKC Digital Web" <shubham@askcweb.in>`
+        `"Shubham Kumar | ASKC Technologies" <askctechnologies@gmail.com>`
       );
 
       // Update status to 'sent'
