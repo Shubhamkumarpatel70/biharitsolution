@@ -29,7 +29,7 @@ const AdminIDCard = () => {
   const generateDynamicID = () => {
     const randomNum = Math.floor(1000 + Math.random() * 9000);
     const year = new Date().getFullYear();
-    setIdNumber(`ASKCDW${year}${randomNum}`);
+    setIdNumber(`ASKCT${year}${randomNum}`);
   };
 
   const fetchIDCards = async () => {
@@ -161,7 +161,7 @@ const AdminIDCard = () => {
           
           <div className="id-section">
             <p className="id-label">ID Number</p>
-            <div className="id-number-text">{cardData.idNumber || idNumber || "ASKCDW20267062"}</div>
+            <div className="id-number-text">{cardData.idNumber || idNumber || "ASKCT20267062"}</div>
           </div>
         </div>
 
@@ -176,7 +176,7 @@ const AdminIDCard = () => {
     <div className="id-card-wrapper" ref={reference}>
       <div className="id-back">
         <div className="back-logo-section">
-          <div className="back-logo-text">ASKC <span>Digital Web</span></div>
+          <div className="back-logo-text">ASKC <span>TECHNOLOGIES</span></div>
           <div className="back-logo-sub">Verified Institution</div>
         </div>
         
@@ -193,35 +193,35 @@ const AdminIDCard = () => {
           <span className="info-label">Digital Contact</span>
           <div className="info-text">
             askctechnologies@gmail.com<br/>
-            www.askcweb.in
+            askctechnologies.in
           </div>
         </div>
 
         <div className="barcode-section">
           <div className="barcode-wrapper">
             <Barcode 
-              value={cardData.idNumber || idNumber || "ASKCDW20267062"} 
+              value={cardData.idNumber || idNumber || "ASKCT20267062"} 
               height={40} 
               width={1.2} 
               displayValue={false}
               background="transparent"
             />
           </div>
-          <div className="barcode-number">{cardData.idNumber || idNumber || "ASKCDW20267062"}</div>
+          <div className="barcode-number">{cardData.idNumber || idNumber || "ASKCT20267062"}</div>
         </div>
       </div>
     </div>
   );
 
   return (
-    <div className="admin-redesign-page id-card-generator p-6 w-full max-w-7xl mx-auto">
+    <div className="id-card-generator p-4 sm:p-6 w-full max-w-7xl mx-auto">
       <style>{`
         .id-card-generator {
           display: flex;
           flex-direction: column;
           align-items: center;
           font-family: 'Inter', sans-serif;
-          color: white;
+          color: #0f172a;
           box-sizing: border-box;
         }
 
@@ -242,7 +242,9 @@ const AdminIDCard = () => {
         }
 
         .form-container {
-          background: #1e293b;
+          background: #ffffff;
+          color: #0f172a;
+          border: 1px solid #e2e8f0;
           padding: 25px;
           border-radius: 12px;
           width: 320px;
@@ -253,7 +255,7 @@ const AdminIDCard = () => {
           display: block;
           margin-bottom: 8px;
           font-size: 13px;
-          color: #94a3b8;
+          color: #334155;
         }
 
         .form-container input {
@@ -261,9 +263,9 @@ const AdminIDCard = () => {
           padding: 12px;
           margin-bottom: 15px;
           border-radius: 6px;
-          border: 1px solid #334155;
-          background: #0f172a;
-          color: white;
+          border: 1px solid #cbd5e1;
+          background: #ffffff;
+          color: #0f172a;
           outline: none;
           box-sizing: border-box;
           font-family: 'Inter', sans-serif;
@@ -695,7 +697,7 @@ const AdminIDCard = () => {
         }
       `}</style>
 
-      <h1 className="generator-title font-bold text-slate-100 flex items-center gap-3">
+      <h1 className="generator-title font-bold text-slate-900 flex items-center gap-3">
         <span className="p-2 bg-blue-500/20 rounded-lg">
           <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm5 3a2 2 0 100-4 2 2 0 000 4z" />
@@ -725,7 +727,7 @@ const AdminIDCard = () => {
           <label>Employee ID No.</label>
           <input 
             type="text" 
-            placeholder="e.g. ASKCDW2025001" 
+            placeholder="e.g. ASKCT2026001" 
             value={idNumber} 
             onChange={(e) => setIdNumber(e.target.value)} 
           />
