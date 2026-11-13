@@ -46,15 +46,18 @@ td{padding:9px 10px;border-bottom:1px solid #e2e8f0;}
 .tr{display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px;}
 .tr.grand{font-size:16px;font-weight:800;color:#165ebc;border-top:1px solid #e2e8f0;padding-top:8px;margin-top:6px;}
 .sig-block{display:flex;justify-content:space-between;margin-top:auto;padding-top:28px;}
-.sig-col{width:44%;}
+.sig-col{width:38%;}
+.sig-stamp-text{width:20%;align-self:center;text-align:center;font-size:9px;line-height:1.5;font-weight:800;letter-spacing:.7px;color:#334155;text-transform:uppercase;}
+.official-stamp-footer{text-align:center;padding:12px 20px 5px;font-size:9px;font-weight:800;letter-spacing:1px;color:#334155;text-transform:uppercase;}
+.payment-panel{margin-top:22px;border:1px solid #cbd5e1;border-radius:8px;padding:14px 16px;page-break-inside:avoid;}
+.payment-panel h3{font-size:12px;color:#061d4b;font-weight:800;margin-bottom:9px;text-transform:uppercase;letter-spacing:.5px;}
+.payment-method{display:flex;gap:14px;justify-content:space-between;align-items:flex-start;border-top:1px solid #e2e8f0;padding:10px 0;font-size:10px;line-height:1.6;}
+.payment-method:first-of-type{border-top:0;}
+.payment-method img{width:90px;height:90px;object-fit:contain;border:1px solid #e2e8f0;border-radius:6px;padding:4px;}
+.payment-method-details{flex:1;min-width:0;overflow-wrap:anywhere;}
+.payment-note{font-size:9px;color:#64748b;margin-top:8px;}
 .sig-line{border-top:1px solid #334155;margin-top:45px;padding-top:4px;font-size:10px;font-weight:700;text-transform:uppercase;text-align:center;}
-.company-seal-area{height:142px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;margin:10px auto 0;page-break-inside:avoid;}
-.seal-circle{width:112px;height:112px;border:2px dashed #64748b;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:#475569;box-sizing:border-box;padding:8px;}
-.seal-circle strong{font-size:19px;letter-spacing:1.5px;line-height:1.1;color:#1e3a8a;}
-.seal-circle span{font-size:9px;font-weight:800;letter-spacing:1px;margin-top:3px;}
-.seal-circle small{font-size:7px;font-weight:700;letter-spacing:1px;margin-top:4px;}
-.company-seal-area p{font-size:8px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.5px;text-align:center;margin:0;}
-@media print{.seal-circle{border-style:dashed;}}
+
 footer{background:#061d4b;padding:0 45px;height:58px;display:flex;align-items:center;justify-content:center;gap:35px;position:relative;margin-top:auto;}
 footer::before{content:'';position:absolute;left:0;top:0;height:100%;width:200px;background:#334155;clip-path:polygon(0 0,100% 0,85% 100%,0 100%);}
 .fi{display:flex;align-items:center;gap:7px;color:#e2e8f0;font-size:11px;z-index:2;}
@@ -83,25 +86,43 @@ const ftr = (docCode) => `<footer>
 const ctrl = (label) => `<div class="controls" style="position:fixed;top:18px;right:20px;z-index:1000;">
 <button onclick="window.print()" style="background:#061d4b;color:#fff;border:none;padding:10px 22px;font-weight:700;border-radius:8px;cursor:pointer;font-size:13px;">🖨 ${label}</button></div>`;
 
-const companySealPlaceholder = () => `<div class="company-seal-area" aria-label="Physical company stamp area">
-  <div class="seal-circle"><strong>ASKC</strong><span>TECHNOLOGIES</span><small>COMPANY SEAL</small></div>
-  <p>Affix Physical Company Stamp Here</p>
-</div>`;
+const officialStampText = () => `<div class="sig-stamp-text">ASKC TECHNOLOGIES<br>OFFICIAL STAMP</div>`;
+
+const paymentBlock = (options = []) => {
+  const methods = (options || []).filter(option => option && (option.upiId || option.accountNumber || option.qrCode));
+  if (!methods.length) return '';
+  return `<section class="payment-panel">
+    <h3>Payment Options</h3>
+    ${methods.map(option => `<div class="payment-method"><div class="payment-method-details">
+      <strong>${option.name || (option.paymentType === 'BANK_TRANSFER' ? 'Bank Transfer' : 'Payment')}</strong><br>
+      ${option.upiId ? `UPI ID: ${option.upiId}<br>` : ''}
+      ${option.accountName ? `Account Name: ${option.accountName}<br>` : ''}
+      ${option.accountNumber ? `Account Number: ${option.accountNumber}<br>` : ''}
+      ${option.bankName ? `Bank: ${option.bankName}${option.branch ? ` · ${option.branch}` : ''}<br>` : ''}
+      ${option.ifscCode ? `IFSC: ${option.ifscCode}<br>` : ''}
+      ${option.description ? `<span class="payment-note">${option.description}</span>` : ''}
+    </div>${option.qrCode ? `<img src="${option.qrCode}" alt="Scan to pay QR code">` : ''}</div>`).join('')}
+  </section>`;
+}
 
 const dcBadge = (docCode) => docCode ? `<div style="background:#f1f5f9;border:1px solid #cbd5e1;border-radius:6px;padding:8px 14px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;"><span style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.8px;">Document Reference</span><span style="font-family:monospace;font-size:13px;font-weight:800;color:#061d4b;letter-spacing:1px;">${docCode}</span></div>` : '';
 
 export function generateTemplate(type, data) {
   const today = new Date().toLocaleDateString("en-IN",{day:"numeric",month:"long",year:"numeric"});
+  let html;
   switch(type) {
-    case "nda": return tNDA({...data,today});
-    case "quotation": return tQuotation({...data,today});
-    case "invoice": return tInvoice({...data,today});
-    case "welcome": return tWelcome({...data,today});
-    case "handover": return tHandover({...data,today});
-    case "change_request": return tChangeRequest({...data,today});
-    case "questionnaire": return tQuestionnaire({...data,today});
+    case "nda": html = tNDA({...data,today}); break;
+    case "quotation": html = tQuotation({...data,today}); break;
+    case "invoice": html = tInvoice({...data,today}); break;
+    case "welcome": html = tWelcome({...data,today}); break;
+    case "handover": html = tHandover({...data,today}); break;
+    case "change_request": html = tChangeRequest({...data,today}); break;
+    case "questionnaire": html = tQuestionnaire({...data,today}); break;
     default: return "<p>Unknown template</p>";
   }
+  // Every generated document carries a simple text-only physical-stamp label.
+  if (type !== "nda") html = html.replace('</div><footer>', '</div><div class="official-stamp-footer">ASKC TECHNOLOGIES OFFICIAL STAMP</div><footer>');
+  return html;
 }
 
 function tNDA({clientName,clientCompany,docCode,today}) {
@@ -118,11 +139,11 @@ ${dcBadge(docCode)}
 <div class="clause"><strong>5. Governing Law:</strong> Obligations survive indefinitely beyond any service contract termination and are governed by applicable local jurisdictional legislations.</div>
 <div class="sig-block">
 <div class="sig-col"><p style="font-size:10px;margin-bottom:6px;"><strong>For Disclosing Party:</strong></p><p style="font-size:12px;font-weight:700;">${clientName}</p><div class="sig-line">Authorized Client Signature & Date</div></div>
-<div class="sig-col"><p style="font-size:10px;margin-bottom:6px;"><strong>For ${CO}:</strong></p><p style="font-size:12px;font-weight:700;">Shubham Kumar</p>${companySealPlaceholder()}<div class="sig-line">Authorized Signatory Signature & Date</div></div>
+<div class="sig-col"><p style="font-size:10px;margin-bottom:6px;"><strong>For ${CO}:</strong></p><p style="font-size:12px;font-weight:700;">Shubham Kumar</p> ${officialStampText()}<div class="sig-line">Authorized Signatory Signature & Date</div></div>
 </div></div>${ftr(docCode)}</div></body></html>`;
 }
 
-function tQuotation({clientName,clientCompany,docCode,projectDesc,designCost,devCost,infraCost,addonDesc,addonCost,validDays,today}) {
+function tQuotation({clientName,clientCompany,docCode,projectDesc,designCost,devCost,infraCost,addonDesc,addonCost,validDays,today,paymentOptions}) {
   const dc=parseFloat(designCost)||0, dv=parseFloat(devCost)||0, ic=parseFloat(infraCost)||0, ac=parseFloat(addonCost)||0;
   const sub=dc+dv+ic+ac, gst=sub*.18, tot=sub+gst;
   const fmt=(n)=>`₹ ${n.toFixed(2)}`;
@@ -151,11 +172,12 @@ ${addonDesc||ac>0?`<tr><td><strong>Add-ons</strong></td><td>${addonDesc||'Additi
 <div class="tr grand"><span>Total:</span><span>${fmt(tot)}</span></div>
 </div>
 <p style="font-size:10px;margin-top:22px;color:#64748b;line-height:1.5;">*This is a professional scope projection. Final execution cost will be bound within the final Client Agreement. Acceptance enables drafting of the binding Master Service Agreement (MSA).</p>
+${paymentBlock(paymentOptions)}
 <div style="margin-top:22px;text-align:center;"><span style="font-size:11px;font-weight:700;color:#061d4b;border-top:1px solid #cbd5e1;padding:8px 35px;display:inline-block;">Client Authorization Signature: _________________________</span></div>
 </div>${ftr(docCode)}</div></body></html>`;
 }
 
-function tInvoice({clientName,clientCompany,docCode,serviceDesc,amount,gstRate,paymentNote,today}) {
+function tInvoice({clientName,clientCompany,docCode,serviceDesc,amount,gstRate,paymentNote,today,paymentOptions}) {
   const invNo=`INV-${Date.now().toString().slice(-6)}`;
   const amt=parseFloat(amount)||0, gr=parseFloat(gstRate)||18;
   const gst=amt*gr/100, tot=amt+gst;
@@ -179,9 +201,8 @@ ${dcBadge(docCode)}
 </div>
 <div style="margin-top:25px;font-size:11px;line-height:1.8;color:#475569;">
 <strong style="color:#061d4b">Payment Details:</strong><br>
-Account Name: ASKC TECHNOLOGIES<br>
-Payment method: As agreed in the project invoice / payment instructions<br>
-${paymentNote?`<br><em>${paymentNote}</em>`:''}
+${paymentNote?`<em>${paymentNote}</em>`:'Please use one of the payment methods listed below.'}
+${paymentBlock(paymentOptions)}
 </div>
 </div>${ftr(docCode)}</div></body></html>`;
 }
