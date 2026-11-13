@@ -8,7 +8,9 @@ const userSchema = new mongoose.Schema(
     password: { type: String, select: false }, // Hide password by default
     role: { type: String, enum: ["user", "admin", "coadmin"], default: "user" },
     image: { type: String },
-    subscribeOffers: { type: Boolean, default: true },
+    subscribeOffers: { type: Boolean, default: false },
+    marketingConsent: { type: Boolean, default: false },
+    marketingConsentAt: { type: Date, default: null },
   },
   {
     timestamps: true,
