@@ -20,6 +20,7 @@ export const adminNavItems = [
   { id: 'features', label: 'Features', iconName: 'sparkles', category: 'content' },
   { id: 'services', label: 'Services', iconName: 'wrench', category: 'content' },
   { id: 'client-work', label: 'Client Work', iconName: 'briefcase', category: 'content' },
+  { id: 'projects-content', label: 'Latest Projects', iconName: 'folder', category: 'content' },
   { id: 'contacts', label: 'Contacts', iconName: 'mail', category: 'communication' },
   { id: 'careers', label: 'Careers', iconName: 'briefcase', category: 'careers' },
   { id: 'career-applications', label: 'Career Applications', iconName: 'document', category: 'careers' },
