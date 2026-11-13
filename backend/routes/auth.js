@@ -4396,6 +4396,12 @@ router.post(
       if (clientUserId) {
         linkedUser = await User.findById(clientUserId).select("name email");
         if (!linkedUser) return res.status(404).json({ message: "Selected client account was not found." });
+      } else if (clientEmail) {
+        const normalizedClientEmail = String(clientEmail).trim().toLowerCase();
+        linkedUser = await User.findOne({
+          $expr: { $eq: [{ $toLower: "$email" }, normalizedClientEmail] },
+          role: "user",
+        }).select("name email");
       }
       const agreement = await Agreement.create({
         clientUser: linkedUser?._id || null,
