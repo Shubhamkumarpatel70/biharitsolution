@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link, useSearchParams, useLocation } from 'react-router-dom';
 import axios from '../axios';
-import { UserContext } from '../UserContext';
 
 const Payment = () => {
   const { plan } = useParams();
@@ -170,8 +169,10 @@ const Payment = () => {
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      if (!file.type.startsWith('image/')) { setError('Please select a valid image file.'); return; }
       if (file.size > 5 * 1024 * 1024) {
         setError('Image size should be less than 5MB');
+        e.target.value = '';
         return;
       }
       setPaymentImage(file);
@@ -196,7 +197,7 @@ const Payment = () => {
     setError('');
     try {
       const response = await axios.post('/api/auth/cashfree/create-order', {
-        plan: planObj.name, phone: phone.replace(/\D/g, '').slice(-10)
+        plan: planObj.name, phone: phone.replace(/\D/g, '').slice(-10), couponCode: discount > 0 ? coupon.trim().toUpperCase() : ''
       }, { headers: { Authorization: `Bearer ${token}` } });
       const loadCashfree = () => new Promise((resolve, reject) => {
         if (window.Cashfree) return resolve();
@@ -304,7 +305,7 @@ const Payment = () => {
     }
   };
 
-  const totalAmount = Math.max(0, amount - discount);
+  const totalAmount = Math.max(0, Number(amount || 0) - Number(discount || 0));
 
   // Generate UPI deep link for QR and intents
   const generateUPIQR = () => {
@@ -388,15 +389,13 @@ const Payment = () => {
                 <p className="text-sm text-slate-600 mb-4">UPI, cards, net banking and supported methods. Your subscription activates automatically after Cashfree confirms payment.</p>
                 <label className="block text-sm font-medium text-slate-700 mb-2" htmlFor="cashfree-phone">Mobile number</label>
                 <input id="cashfree-phone" type="tel" inputMode="numeric" maxLength={10} value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0,10))} placeholder="10-digit mobile number" className="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
-                <button type="button" onClick={handleCashfreePayment} disabled={status === 'processing' || phone.length !== 10} className="mt-4 w-full rounded-xl bg-blue-700 px-4 py-3 font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50">{status === 'processing' ? 'Connecting to Cashfree…' : `Pay ₹${amount} securely`}</button>
+                <button type="button" onClick={handleCashfreePayment} disabled={status === 'processing' || phone.length !== 10} className="mt-4 w-full rounded-xl bg-blue-700 px-4 py-3 font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50">{status === 'processing' ? 'Connecting to Cashfree…' : `Pay ₹${totalAmount} securely`}</button>
               </div>
             )}
 
-            {paymentMethod !== 'cashfree' && (
-            <>
             {/* Coupon Section */}
             <div className="mb-6">
-              <div className="flex gap-2 mb-2">
+              <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 mb-2 w-full">
                 <input
                   type="text"
                   placeholder="Coupon code"
@@ -406,7 +405,7 @@ const Payment = () => {
                     setCouponMsg('');
                     setDiscount(0);
                   }}
-                  className="flex-1 bg-blue-50 border border-slate-200 rounded-lg px-4 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="min-w-0 w-full bg-blue-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   disabled={applyingCoupon || discount > 0}
                 />
                 {discount > 0 ? (
@@ -416,7 +415,7 @@ const Payment = () => {
                       setDiscount(0);
                       setCouponMsg('');
                     }}
-                    className="bg-red-600 hover:bg-red-700 text-slate-900 px-4 py-2 rounded-lg font-medium transition-all duration-300 hover:scale-105 transform hover:shadow-lg"
+                    className="shrink-0 whitespace-nowrap bg-red-600 hover:bg-red-700 text-white px-3 sm:px-4 py-2 rounded-lg font-medium"
                   >
                     Remove
                   </button>
@@ -424,7 +423,7 @@ const Payment = () => {
                   <button
                     onClick={handleApplyCoupon}
                     disabled={applyingCoupon || !coupon}
-                    className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:opacity-50 text-slate-900 px-4 py-2 rounded-lg font-medium transition-all duration-300 hover:scale-105 transform hover:shadow-lg disabled:hover:scale-100"
+                    className="shrink-0 whitespace-nowrap bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:opacity-50 text-white px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors"
                   >
                     {applyingCoupon ? '...' : 'Apply'}
                   </button>
@@ -441,8 +440,6 @@ const Payment = () => {
                 </div>
               )}
             </div>
-            </>
-            )}
 
             {paymentMethod !== 'cashfree' && (
             <>
@@ -618,7 +615,6 @@ const Payment = () => {
               <div className="mt-4 text-red-400 text-center text-sm">
                 {error}
               </div>
-            )}
             )}
             </>
             )}
