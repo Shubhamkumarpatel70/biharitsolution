@@ -4254,27 +4254,25 @@ router.get("/user-agreements", authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select("name email");
     if (!user) return res.status(404).json({ message: "User not found." });
-    const escapeRegex = value => String(value || "").replace(/[.*+?^${}()|[\\]\\]/g, "\\$&");
     const agreements = await Agreement.find({
-      $or: [
-        { clientEmail: { $regex: new RegExp("^" + escapeRegex(user.email) + "$", "i") } },
-        { clientName: { $regex: new RegExp("^" + escapeRegex(user.name) + "$", "i") } }
-      ]
+      $or: [{ clientEmail: new RegExp("^" + String(user.email).replace(/[.*+?^${}()|[\\]\\]/g, "\\$&") + "$", "i") }, { clientName: new RegExp("^" + String(user.name).replace(/[.*+?^${}()|[\\]\\]/g, "\\$&") + "$", "i") }]
     }).select("-htmlContent").sort({ createdAt: -1 }).lean();
     res.json({ agreements });
-  } catch (err) {
-    res.status(500).json({ message: "Could not load your agreements." });
-  }
+  } catch (err) { res.status(500).json({ message: "Could not load your agreements." }); }
 });
 
 router.get("/user-agreements/:id", authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select("name email");
-    if (!user) return res.status(404).json({ message: "User not found." });
-    const agreement = await Agreement.findOne({
-      _id: req.params.id,
-      $or: [
-        { clientEmail: { $regex: new RegExp("^" + String(user.email).replace(/[.*+?^${}()|[\\]\\]/g, "\\// Get all agreements (grouped by client)") + "$", "i") } },
+    const agreement = await Agreement.findById(req.params.id);
+    if (!user || !agreement || (String(agreement.clientEmail).toLowerCase() !== String(user.email).toLowerCase() && String(agreement.clientName).toLowerCase() !== String(user.name).toLowerCase())) {
+      return res.status(404).json({ message: "Agreement not found." });
+    }
+    res.json({ agreement });
+  } catch (err) { res.status(500).json({ message: "Could not open agreement." }); }
+});
+
+// Get all agreements (grouped by client)") + "$", "i") } },
         { clientName: { $regex: new RegExp("^" + String(user.name).replace(/[.*+?^${}()|[\\]\\]/g, "\\// Get all agreements (grouped by client)") + "$", "i") } }
       ]
     });
