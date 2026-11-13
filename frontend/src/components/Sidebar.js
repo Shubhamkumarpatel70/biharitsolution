@@ -19,6 +19,7 @@ const mobileNavItems = [
   { to: '/dashboard/support', label: 'Help', iconName: 'chat', end: false },
   { to: '/dashboard/subscription', label: 'Plan', iconName: 'creditCard', end: false },
   { to: '/dashboard/purchases', label: 'Shop', iconName: 'cart', end: false },
+  { to: '/dashboard/privacy', label: 'Privacy', iconName: 'shield', end: false },
 ];
 
 const MobileBottomNav = ({ user, onLogout }) => {
