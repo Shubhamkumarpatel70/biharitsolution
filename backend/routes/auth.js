@@ -3554,7 +3554,7 @@ router.post("/admin/payment-options", authMiddleware, coAdminMiddleware, async (
       if (existing) return res.status(400).json({ message: "UPI ID already exists." });
     }
     const paymentOption = await PaymentOption.create({
-      name: name.trim(), upiId: upiId?.trim() || "", description, paymentType: type,
+      name: name.trim(), upiId: upiId?.trim() || `BANK-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, description, paymentType: type,
       order: Number(order) || 0, accountName, accountNumber, ifscCode, bankName, branch, qrCode: qrCode || null
     });
     res.status(201).json({ paymentOption, message: "Payment option added successfully." });
@@ -3578,7 +3578,7 @@ router.put("/admin/payment-options/:id", authMiddleware, coAdminMiddleware, asyn
       if (existing) return res.status(400).json({ message: "UPI ID already exists." });
     }
     const update = {
-      name: name.trim(), upiId: upiId?.trim() || "", description, paymentType: type,
+      name: name.trim(), upiId: upiId?.trim() || `BANK-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, description, paymentType: type,
       order: Number(order) || 0, isActive: isActive !== undefined ? isActive : true,
       accountName, accountNumber, ifscCode, bankName, branch
     };
