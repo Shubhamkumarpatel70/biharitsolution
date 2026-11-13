@@ -1,0 +1,10 @@
+.askc-navbar{transition:background .28s ease,box-shadow .28s ease,border-color .28s ease,transform .28s ease!important}
+.askc-navbar .nav-more-menu [role=menu],.askc-navbar .nav-user-menu>div:not(button){animation:askc-menu-in .2s cubic-bezier(.2,.8,.2,1) both;transform-origin:top right}
+@keyframes askc-menu-in{from{opacity:0;transform:translateY(-7px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+.askc-mobile-overlay{transition:opacity .32s ease,visibility .32s ease!important}
+.askc-mobile-panel{transition:transform .42s cubic-bezier(.22,.8,.25,1)!important;will-change:transform;overscroll-behavior:contain}
+.askc-mobile-panel a{transition:background .2s ease,color .2s ease,transform .2s ease!important}
+.askc-mobile-panel a:active{transform:scale(.985)}
+.askc-navbar button:focus-visible,.askc-navbar a:focus-visible{outline:3px solid rgba(49,94,251,.45);outline-offset:3px}
+@media(max-width:767px){.askc-mobile-panel{padding-top:max(5rem,env(safe-area-inset-top) + 4rem);padding-bottom:max(2rem,env(safe-area-inset-bottom))}}
+@media(prefers-reduced-motion:reduce){.askc-navbar *, .askc-mobile-overlay,.askc-mobile-panel{animation:none!important;transition-duration:.01ms!important}}
