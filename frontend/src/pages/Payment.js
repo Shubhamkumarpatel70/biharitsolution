@@ -23,6 +23,7 @@ const Payment = () => {
   const [applyingCoupon, setApplyingCoupon] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showQR, setShowQR] = useState(false);
+  const [paymentMode, setPaymentMode] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState('cashfree');
   const [paymentOptions, setPaymentOptions] = useState([]);
   const [selectedPaymentOption, setSelectedPaymentOption] = useState(null);
@@ -63,7 +64,17 @@ const Payment = () => {
           console.warn('Pricing plan lookup failed:', { requestedPlan: plan, selectedPlanId, availablePlans: availablePlans.map(p => ({ id: p._id, name: p.name })) });
         }
 
-        // Fetch payment options
+        // Read the server-controlled checkout mode before exposing either payment flow.
+        const settingsRes = await axios.get('/api/auth/payment-settings', { headers: { 'Cache-Control': 'no-cache' } });
+        const configuredMode = settingsRes.data?.mode;
+        if (!['manual', 'cashfree'].includes(configuredMode)) throw new Error('Payment mode is not configured.');
+        if (configuredMode === 'cashfree' && settingsRes.data?.gatewayReady !== true) {
+          throw new Error('Cashfree is selected by the administrator but gateway credentials are not configured. Please contact support.');
+        }
+        setPaymentMode(configuredMode);
+        setPaymentMethod(configuredMode === 'manual' ? 'upi' : 'cashfree');
+
+        // Fetch payment options only for manual payment.
         try {
           const paymentRes = await axios.get('/api/auth/payment-options');
           const options = Array.isArray(paymentRes.data?.paymentOptions) ? paymentRes.data.paymentOptions : [];
@@ -119,6 +130,18 @@ const Payment = () => {
         <div className="text-center" role="status" aria-live="polite">
           <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
           <p className="text-sm font-medium text-slate-600">Loading your selected plan…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!paymentMode) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="w-full max-w-md rounded-2xl border border-amber-200 bg-white p-6 text-center shadow-lg">
+          <h2 className="text-xl font-bold text-slate-900">Payment temporarily unavailable</h2>
+          <p className="mt-2 text-sm text-slate-600">{error || 'Payment configuration could not be loaded. Please try again later.'}</p>
+          <button type="button" onClick={() => window.location.reload()} className="mt-4 rounded-lg bg-blue-700 px-4 py-2 font-semibold text-white">Retry</button>
         </div>
       </div>
     );
@@ -188,6 +211,7 @@ const Payment = () => {
 
 
   const handleCashfreePayment = async () => {
+    if (paymentMode !== 'cashfree') { setError('Cashfree checkout is disabled by the administrator.'); return; }
     const token = localStorage.getItem('token');
     if (!token) { navigate('/login'); return; }
     if (!/^\d{10}$/.test(phone.replace(/\D/g, '').slice(-10))) {
@@ -242,6 +266,7 @@ const Payment = () => {
   };
 
   const handlePayment = async () => {
+    if (paymentMode !== 'manual') { setError('Manual payment is disabled. Please use the configured online gateway.'); return; }
     if (!transactionId) {
       setError('Please enter your transaction ID.');
       return;
@@ -375,14 +400,20 @@ const Payment = () => {
               )}
             </div>
 
-            {/* Payment Method Selection */}
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold text-slate-900 mb-3">Choose a payment method</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <button type="button" onClick={() => setPaymentMethod('cashfree')} className={`rounded-xl border px-4 py-3 text-sm font-semibold ${paymentMethod === 'cashfree' ? 'border-blue-600 bg-blue-50 text-blue-800' : 'border-slate-200 bg-white text-slate-600'}`}>Cashfree · Secure</button>
-                <button type="button" onClick={() => setPaymentMethod('upi')} className={`rounded-xl border px-4 py-3 text-sm font-semibold ${paymentMethod === 'upi' ? 'border-blue-600 bg-blue-50 text-blue-800' : 'border-slate-200 bg-white text-slate-600'}`}>Manual UPI</button>
-                <button type="button" onClick={() => setPaymentMethod('qr')} className={`rounded-xl border px-4 py-3 text-sm font-semibold ${paymentMethod === 'qr' ? 'border-blue-600 bg-blue-50 text-blue-800' : 'border-slate-200 bg-white text-slate-600'}`}>Manual QR</button>
-              </div>
+            {/* The payment route is selected centrally by the administrator. Customers cannot switch modes. */}
+            <div className="mb-6 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+              <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Payment method configured by ASKC Technologies</p>
+              {paymentMode === 'cashfree' ? (
+                <div className="mt-2 flex items-center gap-2 text-sm font-semibold text-emerald-700"><span>●</span> Cashfree secure online checkout · Automatic confirmation</div>
+              ) : (
+                <>
+                  <div className="mt-2 text-sm font-semibold text-slate-800">Manual payment · Admin verification required</div>
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    <button type="button" onClick={() => setPaymentMethod('upi')} className={`rounded-lg border px-3 py-2.5 text-sm font-semibold ${paymentMethod === 'upi' ? 'border-blue-600 bg-blue-50 text-blue-800' : 'border-slate-200 bg-white text-slate-600'}`}>Manual UPI</button>
+                    <button type="button" onClick={() => setPaymentMethod('qr')} className={`rounded-lg border px-3 py-2.5 text-sm font-semibold ${paymentMethod === 'qr' ? 'border-blue-600 bg-blue-50 text-blue-800' : 'border-slate-200 bg-white text-slate-600'}`}>Manual QR</button>
+                  </div>
+                </>
+              )}
             </div>
             {paymentMethod === 'cashfree' && (
               <div className="rounded-xl border border-blue-100 bg-blue-50 p-5 mb-6">
