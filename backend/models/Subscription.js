@@ -20,7 +20,7 @@ const subscriptionSchema = new mongoose.Schema({
   // Payment fields
   transactionId: { type: String },
   paymentMethod: { type: String, enum: ['upi', 'card', 'netbanking', 'cashfree'], default: 'upi' },
-  paymentImage: { type: String }, // Base64 encoded image
+  paymentImage: { type: String }, // Cloudinary secure URL
   cashfreeOrderId: { type: String, unique: true, sparse: true },
   paymentStatus: { type: String, default: 'pending' },
   amountPaid: { type: Number },
