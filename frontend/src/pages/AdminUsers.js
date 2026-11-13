@@ -357,7 +357,8 @@ const AdminUsers = () => {
                   const selected = existingPlans.find(p => p._id === value);
                   if (selected) {
                     const price = Number(String(selected.price || '').replace(/[^0-9.]/g, ''));
-                    const duration = Number(String(selected.duration || '').match(/\d+/)?.[0] || 30);
+                    const durationParts = String(selected.duration || '').match(/[0-9]+/g) || ['30'];
+                    const duration = Number(durationParts[durationParts.length - 1]);
                     setPlanForm(v => ({...v, planName: selected.name, totalAmount: Number.isFinite(price) ? String(price) : '0', durationDays: String(duration)}));
                   }
                 }} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 font-normal">
