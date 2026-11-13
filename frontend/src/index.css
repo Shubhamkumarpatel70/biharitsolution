@@ -477,3 +477,41 @@ button:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .admin-redesign-page :where(button, input, select, textarea) { transition: none; }
 }
+
+
+/* Agreements & Documents — light, high-contrast card system */
+.agreements-admin-page {
+  width: 100%;
+  min-width: 0;
+  color: #0f172a;
+  overflow-wrap: anywhere;
+}
+.agreements-admin-page :where(button, select, input, textarea) { font-family: inherit; }
+.agreements-admin-page article {
+  color: #0f172a;
+  background: #fff;
+  border-color: #dbe3ee;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, .07);
+}
+.agreements-admin-page article h3 { color: #0f172a !important; opacity: 1 !important; }
+.agreements-admin-page article p { opacity: 1; }
+.agreements-admin-page article .agreement-action {
+  min-height: 44px;
+  line-height: 1.2;
+  letter-spacing: .01em;
+  -webkit-tap-highlight-color: transparent;
+}
+.agreements-admin-page article .agreement-action:disabled { box-shadow: none; cursor: not-allowed; }
+.agreements-admin-page article select {
+  color: #0f172a;
+  background-color: #fff;
+  border-color: #cbd5e1;
+  font-weight: 700;
+}
+.agreements-admin-page article select option { color: #0f172a; background: #fff; }
+@media (max-width: 639px) {
+  .agreements-admin-page article .agreement-action { min-height: 46px; font-size: .8125rem; }
+  .agreements-admin-page article .agreement-action:last-child {
+    width: 46px; min-width: 46px; flex: 0 0 46px;
+  }
+}
