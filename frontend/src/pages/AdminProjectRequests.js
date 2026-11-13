@@ -9,6 +9,13 @@ const statusLabels = {
   finished: { label: 'Finished', color: 'text-green-600 bg-green-100', icon: '✅' },
 };
 
+function formatDateTime(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+}
+
 function formatDateOnly(iso) {
   if (!iso) return '—';
   const d = new Date(iso);
@@ -239,7 +246,11 @@ const AdminProjectRequests = () => {
                       </div>
                       <div className="mb-2">
                         <span className="text-gray-400 text-sm">Submitted:</span>
-                        <span className="text-gray-300 ml-2 text-sm">{formatDateOnly(project.createdAt)}</span>
+                        <span className="text-gray-300 ml-2 text-sm">{formatDateTime(project.createdAt)}</span>
+                      </div>
+                      <div className="mb-2">
+                        <span className="text-gray-400 text-sm">Last updated:</span>
+                        <span className="text-gray-300 ml-2 text-sm">{formatDateTime(project.updatedAt)}</span>
                       </div>
                       {project.estimatedCompletionDate && (
                         <div className="mb-2">
