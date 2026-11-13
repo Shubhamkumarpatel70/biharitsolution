@@ -95,7 +95,7 @@ const paymentBlock = (options = []) => {
     <h3>Payment Options</h3>
     ${methods.map(option => `<div class="payment-method"><div class="payment-method-details">
       <strong>${option.name || (option.paymentType === 'BANK_TRANSFER' ? 'Bank Transfer' : 'Payment')}</strong><br>
-      ${option.upiId ? `UPI ID: ${option.upiId}<br>` : ''}
+      ${option.upiId && option.paymentType !== 'BANK_TRANSFER' ? `UPI ID: ${option.upiId}<br>` : ''}
       ${option.accountName ? `Account Name: ${option.accountName}<br>` : ''}
       ${option.accountNumber ? `Account Number: ${option.accountNumber}<br>` : ''}
       ${option.bankName ? `Bank: ${option.bankName}${option.branch ? ` · ${option.branch}` : ''}<br>` : ''}
