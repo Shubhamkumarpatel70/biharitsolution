@@ -14,6 +14,7 @@ export default function UserAgreements() {
   const [amount, setAmount] = useState('');
   const [reference, setReference] = useState('');
   const [saving, setSaving] = useState(false);
+  const [respondingId, setRespondingId] = useState(null);
   const [notice, setNotice] = useState('');
 
   const headers = () => ({ Authorization: 'Bearer ' + localStorage.getItem('token') });
@@ -37,6 +38,52 @@ export default function UserAgreements() {
       setSelected(r.data.agreement);
     } catch (e) { setError(e.response?.data?.message || 'Could not open this agreement.'); }
   };
+  const getLivePlace = () => new Promise((resolve, reject) => {
+    if (!navigator.geolocation) return reject(new Error('This browser does not support live location.'));
+    navigator.geolocation.getCurrentPosition(async position => {
+      const latitude = position.coords.latitude;
+      const longitude = position.coords.longitude;
+      try {
+        const response = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`);
+        const placeData = await response.json();
+        const place = [placeData.locality || placeData.city, placeData.principalSubdivision, placeData.countryName].filter(Boolean).join(', ');
+        resolve({ place: place || `GPS ${latitude.toFixed(5)}, ${longitude.toFixed(5)}`, latitude, longitude });
+      } catch {
+        resolve({ place: `GPS ${latitude.toFixed(5)}, ${longitude.toFixed(5)}`, latitude, longitude });
+      }
+    }, reject, { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 });
+  });
+
+  const respondToAgreement = async (doc, action) => {
+    if (doc.responseStatus === 'accepted' || doc.responseStatus === 'declined') return;
+    let payload = { action };
+    if (action === 'accept') {
+      if (!window.confirm('To record your acceptance, ASKC will request your current location and record your name, place, date and India time in the agreement. Continue?')) return;
+      try {
+        payload = { ...payload, ...(await getLivePlace()) };
+      } catch (locationError) {
+        const manualPlace = window.prompt('Live location is unavailable or permission was denied. Enter your current city / place to continue accepting the agreement:');
+        if (!manualPlace || !manualPlace.trim()) {
+          setError('Location is required for acceptance. You can allow location access or enter your place manually.');
+          return;
+        }
+        payload.place = manualPlace.trim();
+      }
+    } else {
+      if (!window.confirm('Are you sure you want to decline this agreement?')) return;
+      payload.reason = window.prompt('Optional reason for declining:') || '';
+    }
+    setRespondingId(doc._id); setError(''); setNotice('');
+    try {
+      const response = await axios.post('/api/auth/user-agreements/' + doc._id + '/respond', payload, { headers: headers() });
+      setAgreements(prev => prev.map(item => item._id === doc._id ? { ...item, ...response.data.agreement, htmlContent: undefined } : item));
+      setNotice(response.data.message || 'Your response has been recorded.');
+      if (selected?._id === doc._id) setSelected(response.data.agreement);
+    } catch (e) {
+      setError(e.response?.data?.message || 'Could not submit your agreement response.');
+    } finally { setRespondingId(null); }
+  };
+
   const submitPayment = async e => {
     e.preventDefault(); if (!paymentFor) return;
     setSaving(true); setNotice(''); setError('');
@@ -81,7 +128,11 @@ export default function UserAgreements() {
 
     <section className="space-y-3">
       <div><h2 className="text-xl font-extrabold text-slate-900">My agreements</h2><p className="text-sm text-slate-500">Documents shared by ASKC Technologies for your account.</p></div>
-      {agreements.length === 0 ? <div className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-500">No agreements found for this account yet. Make sure the admin used the same registered email address or exact account name while generating the document.</div> : agreements.map(doc => <article key={doc._id} className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between"><div className="min-w-0"><h3 className="break-words font-bold text-slate-900">{doc.documentTitle}</h3><p className="mt-1 text-xs text-slate-500">{doc.docCode || 'No document ID'} · {dateTime(doc.createdAt)}</p><span className="mt-2 inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold capitalize text-slate-700">{doc.status}</span></div><button onClick={() => openAgreement(doc)} className="shrink-0 rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-bold text-slate-800 hover:bg-slate-50">View agreement</button></article>)}
+      {agreements.length === 0 ? <div className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-500">No agreements found for this account yet. Ask ASKC to generate the agreement using your registered account email.</div> : agreements.map(doc => {
+        const responseStatus = doc.responseStatus || (doc.status === 'accepted' ? 'accepted' : doc.status === 'declined' ? 'declined' : 'pending');
+        const responded = responseStatus === 'accepted' || responseStatus === 'declined';
+        return <article key={doc._id} className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between"><div className="min-w-0"><h3 className="break-words font-bold text-slate-900">{doc.documentTitle}</h3><p className="mt-1 text-xs text-slate-500">{doc.docCode || 'No document ID'} · {dateTime(doc.createdAt)}</p><span className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-bold capitalize ${responseStatus === 'accepted' ? 'bg-emerald-100 text-emerald-800' : responseStatus === 'declined' ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'}`}>{responseStatus}</span>{doc.acceptedAtIST && <p className="mt-1 text-xs text-emerald-700">Accepted by {doc.acceptedByName} · {doc.acceptedPlace} · {doc.acceptedAtIST}</p>}{doc.declinedAt && <p className="mt-1 text-xs text-red-700">Declined by {doc.declinedByName} · {dateTime(doc.declinedAt)}</p>}</div><div className="flex flex-wrap gap-2 sm:justify-end"><button onClick={() => openAgreement(doc)} className="rounded-xl border border-slate-300 px-3 py-2.5 text-sm font-bold text-slate-800 hover:bg-slate-50">View agreement</button><button disabled={responded || respondingId === doc._id} onClick={() => respondToAgreement(doc, 'accept')} className="rounded-xl bg-emerald-700 px-3 py-2.5 text-sm font-bold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-40">{respondingId === doc._id ? 'Saving…' : 'Accept agreement'}</button><button disabled={responded || respondingId === doc._id} onClick={() => respondToAgreement(doc, 'decline')} className="rounded-xl border border-red-300 px-3 py-2.5 text-sm font-bold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40">Decline agreement</button></div></article>;
+      })}
     </section>
 
     {selected && <div className="fixed inset-0 z-[500] flex items-center justify-center bg-slate-950/70 p-2 sm:p-5" onClick={() => setSelected(null)}><div className="flex h-[94dvh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white" onClick={e => e.stopPropagation()}><div className="flex items-center justify-between border-b p-3"><div className="min-w-0"><p className="truncate text-sm font-bold text-slate-900">{selected.documentTitle}</p><p className="text-xs text-slate-500">{selected.docCode}</p></div><div className="flex gap-2"><button onClick={() => {const w=window.open('','_blank');if(w){w.document.write(selected.htmlContent);w.document.close();}}} className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-bold text-white">Print / Open</button><button onClick={() => setSelected(null)} className="rounded-lg border px-3 py-2 text-xs font-bold">Close</button></div></div><iframe title="Agreement preview" sandbox="" srcDoc={selected.htmlContent} className="min-h-0 flex-1 bg-white"/></div></div>}
