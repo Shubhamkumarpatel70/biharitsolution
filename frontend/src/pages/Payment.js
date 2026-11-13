@@ -337,10 +337,11 @@ const Payment = () => {
                 <p className="text-sm text-slate-600 mb-4">UPI, cards, net banking and supported methods. Your subscription activates automatically after Cashfree confirms payment.</p>
                 <label className="block text-sm font-medium text-slate-700 mb-2" htmlFor="cashfree-phone">Mobile number</label>
                 <input id="cashfree-phone" type="tel" inputMode="numeric" maxLength={10} value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0,10))} placeholder="10-digit mobile number" className="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
-                <button type="button" onClick={handleCashfreePayment} disabled={status === 'processing' || phone.length !== 10} className="mt-4 w-full rounded-xl bg-blue-700 px-4 py-3 font-semibold text-slate-900 transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50">{status === 'processing' ? 'Connecting to Cashfree…' : `Pay ₹${totalAmount} securely`}</button>
+                <button type="button" onClick={handleCashfreePayment} disabled={status === 'processing' || phone.length !== 10} className="mt-4 w-full rounded-xl bg-blue-700 px-4 py-3 font-semibold text-slate-900 transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50">{status === 'processing' ? 'Connecting to Cashfree…' : `Pay ₹${amount} securely`}</button>
               </div>
             )}
 
+            {paymentMethod !== 'cashfree' && (
             {/* Coupon Section */}
             <div className="mb-6">
               <div className="flex gap-2 mb-2">
@@ -388,6 +389,8 @@ const Payment = () => {
                 </div>
               )}
             </div>
+
+            )}
 
             {paymentMethod !== 'cashfree' && (
             {/* Payment Instructions */}
