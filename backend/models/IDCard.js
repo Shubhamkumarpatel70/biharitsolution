@@ -15,7 +15,7 @@ const idCardSchema = new mongoose.Schema(
       required: true,
     },
     photo: {
-      type: String, // Base64 string
+      type: String, // Cloudinary secure URL
     },
   },
   { timestamps: true }
