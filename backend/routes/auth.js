@@ -845,7 +845,17 @@ router.post("/admin/users/:id/record-payment", authMiddleware, adminMiddleware, 
     const legacyPaid = sub.totalAmount > 0 ? 0 : Number(sub.amountPaid || 0);
     const balance = Math.max(0, Number(sub.totalAmount || 0) - confirmed - legacyPaid);
     if (paid > balance + 0.01) return res.status(400).json({ message: "Payment cannot exceed the outstanding balance." });
-    sub.paymentEntries.push({ amount: paid, method: String(method || "manual"), reference: String(reference || "").slice(0,120), note: String(note || "").slice(0,300), status: "confirmed", recordedBy: req.user.id, recordedAt: new Date() });
+    const cleanReference = String(reference || "").trim().slice(0,120);
+    const pendingEntry = (sub.paymentEntries || []).find(entry => entry.status === "pending" && Number(entry.amount) === paid && (!cleanReference || String(entry.reference || "").trim() === cleanReference));
+    if (pendingEntry) {
+      pendingEntry.status = "confirmed";
+      pendingEntry.method = String(method || "manual");
+      pendingEntry.recordedBy = req.user.id;
+      pendingEntry.recordedAt = new Date();
+      pendingEntry.note = String(note || "Verified by ASKC admin").slice(0,300);
+    } else {
+      sub.paymentEntries.push({ amount: paid, method: String(method || "manual"), reference: cleanReference, note: String(note || "").slice(0,300), status: "confirmed", recordedBy: req.user.id, recordedAt: new Date() });
+    }
     const newPaid = confirmed + legacyPaid + paid;
     sub.amountPaid = newPaid;
     sub.paymentStatus = newPaid >= Number(sub.totalAmount || 0) ? "paid" : "partial";
