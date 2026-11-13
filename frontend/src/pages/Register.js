@@ -150,6 +150,11 @@ function Register() {
               </div>
             </div>
 
+            <p className="text-xs text-gray-500">
+              By creating an account, you acknowledge that ASKC TECHNOLOGIES will use the information you provide to create and operate your account and deliver requested services. Read our{" "}
+              <Link to="/privacy" className="text-primary-600 underline">Privacy Notice</Link>. Promotional emails are optional and controlled separately below.
+            </p>
+
             {/* Optional marketing consent. Account creation never depends on this choice. */}
             <div className="flex items-start gap-3">
               <div className="flex items-center h-5">
