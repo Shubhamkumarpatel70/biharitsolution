@@ -214,7 +214,7 @@ const AdminIDCard = () => {
   );
 
   return (
-    <div className="id-card-generator p-6 w-full max-w-7xl mx-auto">
+    <div className="admin-redesign-page id-card-generator p-6 w-full max-w-7xl mx-auto">
       <style>{`
         .id-card-generator {
           display: flex;
