@@ -4275,13 +4275,19 @@ router.post(
   coAdminMiddleware,
   async (req, res) => {
     try {
-      const { clientName, clientEmail, clientCompany, documentType, documentTitle, htmlContent, notes, docCode } = req.body;
+      const { clientUserId, clientName, clientEmail, clientCompany, documentType, documentTitle, htmlContent, notes, docCode } = req.body;
       if (!clientName || !documentType || !htmlContent || !documentTitle) {
         return res.status(400).json({ message: "Missing required fields." });
       }
+      let linkedUser = null;
+      if (clientUserId) {
+        linkedUser = await User.findById(clientUserId).select("name email");
+        if (!linkedUser) return res.status(404).json({ message: "Selected client account was not found." });
+      }
       const agreement = await Agreement.create({
-        clientName,
-        clientEmail: clientEmail || "",
+        clientUser: linkedUser?._id || null,
+        clientName: linkedUser?.name || clientName,
+        clientEmail: linkedUser?.email || clientEmail || "",
         clientCompany: clientCompany || "",
         documentType,
         documentTitle,
@@ -4325,7 +4331,7 @@ router.get("/user-agreements", authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select("name email");
     if (!user) return res.status(404).json({ message: "User not found." });
-    const agreements = await Agreement.find({ $or: [{ $expr: { $eq: [{ $toLower: "$clientEmail" }, String(user.email).toLowerCase()] } }, { $expr: { $eq: [{ $toLower: "$clientName" }, String(user.name).toLowerCase()] } }] }).select("-htmlContent").sort({ createdAt: -1 }).lean();
+    const agreements = await Agreement.find({ $or: [{ clientUser: user._id }, { $expr: { $eq: [{ $toLower: "$clientEmail" }, String(user.email).toLowerCase()] } }, { $expr: { $eq: [{ $toLower: "$clientName" }, String(user.name).toLowerCase()] } }] }).select("-htmlContent").sort({ createdAt: -1 }).lean();
     res.json({ agreements });
   } catch (err) { res.status(500).json({ message: "Could not load your agreements." }); }
 });
@@ -4334,7 +4340,7 @@ router.get("/user-agreements/:id", authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select("name email");
     const agreement = await Agreement.findById(req.params.id);
-    if (!user || !agreement || (String(agreement.clientEmail || "").toLowerCase() !== String(user.email || "").toLowerCase() && String(agreement.clientName || "").toLowerCase() !== String(user.name || "").toLowerCase())) return res.status(404).json({ message: "Agreement not found." });
+    if (!user || !agreement || (String(agreement.clientUser || "") !== String(user._id) && String(agreement.clientEmail || "").toLowerCase() !== String(user.email || "").toLowerCase() && String(agreement.clientName || "").toLowerCase() !== String(user.name || "").toLowerCase())) return res.status(404).json({ message: "Agreement not found." });
     res.json({ agreement });
   } catch (err) { res.status(500).json({ message: "Could not open agreement." }); }
 });
