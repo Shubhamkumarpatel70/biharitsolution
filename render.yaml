@@ -17,8 +17,6 @@ services:
         sync: false
       - key: GOOGLE_CLIENT_SECRET
         sync: false
-      - key: REACT_APP_API_URL
-        value: https://askcweb.in
       - key: CLIENT_URL
         value: https://askctechnologies.in
       - key: CASHFREE_APP_ID
