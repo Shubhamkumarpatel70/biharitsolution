@@ -11,14 +11,14 @@ const Terms = () => {
           
           <h2 className="text-xl font-semibold text-gray-900 mt-8 mb-4">1. Agreement to Terms</h2>
           <p>
-            By accessing or using ASKC Digital Web's services, you agree to be bound by these Terms and Conditions. 
+            By accessing or using ASKC TECHNOLOGIES's services, you agree to be bound by these Terms and Conditions. 
             If you disagree with any part of the terms, you may not access our services.
           </p>
 
           <h2 className="text-xl font-semibold text-gray-900 mt-8 mb-4">2. Intellectual Property</h2>
           <p>
             The Service and its original content, features, and functionality are and will remain the exclusive property of 
-            ASKC Digital Web and its licensors. Our services are protected by copyright, trademark, and other laws.
+            ASKC TECHNOLOGIES and its licensors. Our services are protected by copyright, trademark, and other laws.
           </p>
 
           <h2 className="text-xl font-semibold text-gray-900 mt-8 mb-4">3. User Accounts</h2>
@@ -29,7 +29,7 @@ const Terms = () => {
 
           <h2 className="text-xl font-semibold text-gray-900 mt-8 mb-4">4. Limitation of Liability</h2>
           <p>
-            In no event shall ASKC Digital Web, nor its directors, employees, partners, agents, suppliers, or affiliates, be liable 
+            In no event shall ASKC TECHNOLOGIES, nor its directors, employees, partners, agents, suppliers, or affiliates, be liable 
             for any indirect, incidental, special, consequential or punitive damages, including without limitation, loss of profits, 
             data, use, goodwill, or other intangible losses.
           </p>
@@ -42,7 +42,7 @@ const Terms = () => {
           <h2 className="text-xl font-semibold text-gray-900 mt-8 mb-4">6. Contact Us</h2>
           <p>
             If you have any questions about these Terms, please contact us at:{' '}
-            <a href="mailto:contact@askcweb.in" className="text-primary-600 hover:text-primary-700">contact@askcweb.in</a>
+            <a href="mailto:askctechnologies@gmail.com" className="text-primary-600 hover:text-primary-700">askctechnologies@gmail.com</a>
           </p>
         </div>
       </div>
