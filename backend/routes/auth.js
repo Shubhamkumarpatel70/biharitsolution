@@ -817,7 +817,7 @@ router.post("/admin/users/:id/assign-plan", authMiddleware, adminMiddleware, asy
       if (!sourcePlan) return res.status(404).json({ message: "Selected existing plan was not found." });
       resolvedName = sourcePlan.name;
       resolvedAmount = Number(String(sourcePlan.price || "").replace(/[^0-9.]/g, ""));
-      resolvedDays = Number(String(sourcePlan.duration || "").match(/\d+/)?.[0] || 30);
+      resolvedDays = parsePlanDurationDays(sourcePlan.duration);
     }
     if (!resolvedName || !Number.isFinite(resolvedAmount) || resolvedAmount < 0) {
       return res.status(400).json({ message: "Select a valid existing plan or enter a custom plan name and amount." });
