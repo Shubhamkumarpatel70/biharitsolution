@@ -11,7 +11,7 @@ const Refund = () => {
           
           <h2 className="text-xl font-semibold text-gray-900 mt-8 mb-4">1. Digital Products and Services</h2>
           <p>
-            Due to the nature of our digital services and web development products, ASKC Digital Web does not offer refunds 
+            Due to the nature of our digital services and web development products, ASKC Technologies does not offer refunds 
             once a project has commenced or a digital product has been delivered, except as explicitly stated in a signed 
             project contract.
           </p>
@@ -38,7 +38,7 @@ const Refund = () => {
           <h2 className="text-xl font-semibold text-gray-900 mt-8 mb-4">5. Contact Us</h2>
           <p>
             To request a cancellation or discuss a refund, please contact us at:{' '}
-            <a href="mailto:contact@askcweb.in" className="text-primary-600 hover:text-primary-700">contact@askcweb.in</a>
+            <a href="mailto:askctechnologies@gmail.com" className="text-primary-600 hover:text-primary-700">askctechnologies@gmail.com</a>
           </p>
         </div>
       </div>
