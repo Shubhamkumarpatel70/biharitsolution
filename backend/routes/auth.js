@@ -4267,6 +4267,24 @@ router.get("/user-agreements", authMiddleware, async (req, res) => {
   }
 });
 
+router.get("/user-agreements/:id", authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("name email");
+    if (!user) return res.status(404).json({ message: "User not found." });
+    const agreement = await Agreement.findOne({
+      _id: req.params.id,
+      $or: [
+        { clientEmail: { $regex: new RegExp("^" + String(user.email).replace(/[.*+?^${}()|[\\]\\]/g, "\\// Get all agreements (grouped by client)") + "$", "i") } },
+        { clientName: { $regex: new RegExp("^" + String(user.name).replace(/[.*+?^${}()|[\\]\\]/g, "\\// Get all agreements (grouped by client)") + "$", "i") } }
+      ]
+    });
+    if (!agreement) return res.status(404).json({ message: "Agreement not found." });
+    res.json({ agreement });
+  } catch (err) {
+    res.status(500).json({ message: "Could not open agreement." });
+  }
+});
+
 // Get all agreements (grouped by client)") + "$", "i") } },
         { clientName: { $regex: new RegExp("^" + String(user.name).replace(/[.*+?^${}()|[\\]\\]/g, "\\// Get all agreements (grouped by client)") + "$", "i") } }
       ]
