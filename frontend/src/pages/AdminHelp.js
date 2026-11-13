@@ -54,7 +54,7 @@ const AdminHelp = () => {
   };
 
   return (
-    <div style={{ color: '#E5E7EB', maxWidth: 900, margin: '0 auto' }}>
+    <div className="admin-redesign-page" style={{ color: '#E5E7EB', maxWidth: 900, margin: '0 auto' }}>
       <h2 style={{ color: '#2ECC71', fontWeight: 700, fontSize: '1.7rem', marginBottom: '1.2rem' }}>User Complaints</h2>
       {loading ? <div>Loading...</div> : error ? <div style={{ color: '#FF6B35' }}>{error}</div> : (
         <div style={{ background: '#23272F', borderRadius: '1rem', padding: '2rem', boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}>
