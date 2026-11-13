@@ -365,52 +365,6 @@ const DashboardHome = () => {
         </div>
       </div>
 
-      {/* Quick actions — wide tiles on small screens to prevent label overlap */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 sm:p-6">
-        <h2 className="text-xl font-bold text-slate-900 mb-4 sm:mb-6">Quick actions</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <Link
-            to="/dashboard/subscription"
-            className="flex flex-col items-center text-center p-4 sm:p-5 rounded-xl border border-slate-200 bg-white hover:border-amber-400/70 hover:bg-amber-50/40 transition-all duration-200 group min-w-0"
-          >
-            <div className="w-12 h-12 sm:w-14 sm:h-14 bg-amber-50 rounded-xl flex items-center justify-center mb-2 sm:mb-3 group-hover:scale-[1.03] transition-transform text-amber-900 border border-amber-100 shrink-0">
-              <Icon name="creditCard" className="w-6 h-6 sm:w-7 sm:h-7" strokeWidth={2} />
-            </div>
-            <h3 className="text-sm font-semibold text-slate-900 mb-1 w-full px-1 leading-snug break-words">Subscription</h3>
-            <p className="text-xs text-slate-500 leading-snug px-1">Manage your plan</p>
-          </Link>
-          <Link
-            to="/dashboard/purchases"
-            className="flex flex-col items-center text-center p-4 sm:p-5 rounded-xl border border-slate-200 bg-white hover:border-sky-400/70 hover:bg-sky-50/40 transition-all duration-200 group min-w-0"
-          >
-            <div className="w-12 h-12 sm:w-14 sm:h-14 bg-sky-50 rounded-xl flex items-center justify-center mb-2 sm:mb-3 group-hover:scale-[1.03] transition-transform text-sky-800 border border-sky-100 shrink-0">
-              <Icon name="cart" className="w-6 h-6 sm:w-7 sm:h-7" strokeWidth={2} />
-            </div>
-            <h3 className="text-sm font-semibold text-slate-900 mb-1 w-full px-1 leading-snug break-words">My purchases</h3>
-            <p className="text-xs text-slate-500 leading-snug px-1">Order history</p>
-          </Link>
-          <Link
-            to="/dashboard/support"
-            className="flex flex-col items-center text-center p-4 sm:p-5 rounded-xl border border-slate-200 bg-white hover:border-emerald-400/70 hover:bg-emerald-50/40 transition-all duration-200 group min-w-0"
-          >
-            <div className="w-12 h-12 sm:w-14 sm:h-14 bg-emerald-50 rounded-xl flex items-center justify-center mb-2 sm:mb-3 group-hover:scale-[1.03] transition-transform text-emerald-800 border border-emerald-100 shrink-0">
-              <Icon name="chat" className="w-6 h-6 sm:w-7 sm:h-7" strokeWidth={2} />
-            </div>
-            <h3 className="text-sm font-semibold text-slate-900 mb-1 w-full px-1 leading-snug break-words">Support</h3>
-            <p className="text-xs text-slate-500 leading-snug px-1">Get help</p>
-          </Link>
-          <Link
-            to="/plans"
-            className="flex flex-col items-center text-center p-4 sm:p-5 rounded-xl border border-slate-200 bg-white hover:border-violet-400/70 hover:bg-violet-50/40 transition-all duration-200 group min-w-0"
-          >
-            <div className="w-12 h-12 sm:w-14 sm:h-14 bg-violet-50 rounded-xl flex items-center justify-center mb-2 sm:mb-3 group-hover:scale-[1.03] transition-transform text-violet-800 border border-violet-100 shrink-0">
-              <Icon name="clipboard" className="w-6 h-6 sm:w-7 sm:h-7" strokeWidth={2} />
-            </div>
-            <h3 className="text-sm font-semibold text-slate-900 mb-1 w-full px-1 leading-snug break-words">Browse plans</h3>
-            <p className="text-xs text-slate-500 leading-snug px-1">See pricing</p>
-          </Link>
-        </div>
-      </div>
     </div>
   );
 };
