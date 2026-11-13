@@ -6,6 +6,10 @@ const AdminTeam = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [founderImage, setFounderImage] = useState(null);
+  const [founderPreview, setFounderPreview] = useState('');
+  const [founderLoading, setFounderLoading] = useState(false);
+  const [founderSaving, setFounderSaving] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingMember, setEditingMember] = useState(null);
   const [formData, setFormData] = useState({
@@ -26,7 +30,32 @@ const AdminTeam = () => {
 
   useEffect(() => {
     fetchTeamMembers();
+    fetchFounderProfile();
   }, []);
+
+  const fetchFounderProfile = async () => {
+    try {
+      setFounderLoading(true);
+      const response = await axios.get('/api/auth/founder-profile');
+      setFounderPreview(response.data.profile?.image || '');
+    } catch (err) {
+      setFounderPreview('');
+    } finally { setFounderLoading(false); }
+  };
+
+  const saveFounderImage = async (e) => {
+    e.preventDefault();
+    if (!founderImage) { setError('Please choose a founder image first.'); return; }
+    try {
+      setFounderSaving(true); setError('');
+      const data = new FormData(); data.append('founderImage', founderImage);
+      const token = localStorage.getItem('token');
+      const response = await axios.put('/api/auth/admin/founder-profile', data, { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } });
+      setFounderPreview(response.data.profile?.image || ''); setFounderImage(null);
+      setSuccess('Founder image updated. The About page now uses this image.');
+    } catch (err) { setError(err.response?.data?.message || 'Could not upload founder image.'); }
+    finally { setFounderSaving(false); }
+  };
 
   const fetchTeamMembers = async () => {
     try {
@@ -221,6 +250,28 @@ const AdminTeam = () => {
             + Add Team Member
           </button>
         </div>
+
+        <section className="mb-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+          <div className="mb-4">
+            <h2 className="text-xl font-bold text-slate-900">Founder Profile Image</h2>
+            <p className="mt-1 text-sm text-slate-600">Upload or replace the photo shown in the public About page. JPG, PNG or WebP up to 5 MB.</p>
+          </div>
+          <form onSubmit={saveFounderImage} className="flex flex-col gap-4 sm:flex-row sm:items-center">
+            <div className="flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
+              {founderPreview ? <img src={founderPreview} alt="Current founder" className="h-full w-full object-cover" /> : <span className="text-xs text-slate-500">No image</span>}
+            </div>
+            <div className="min-w-0 flex-1 space-y-3">
+              <input type="file" accept="image/jpeg,image/png,image/webp" onChange={e => setFounderImage(e.target.files?.[0] || null)} className="block w-full rounded-xl border border-slate-300 p-2 text-sm" />
+              <div className="flex flex-wrap items-center gap-2">
+                <button type="submit" disabled={!founderImage || founderSaving} className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50">{founderSaving ? 'Uploading…' : 'Upload founder image'}</button>
+                <span className="text-xs text-slate-500">{founderLoading ? 'Loading current image…' : founderImage ? founderImage.name : founderPreview ? 'Current image is active' : 'No founder image uploaded'}</span>
+              </div>
+            </div>
+          </form>
+          <div className="mt-4 rounded-xl bg-slate-50 p-3 text-xs leading-5 text-slate-600">
+            <strong>Storage:</strong> The uploaded image is converted to a Base64 data URL and saved in the MongoDB database (FounderProfile collection). It is not saved in the GitHub repository or Render filesystem, so it remains available after redeploys.
+          </div>
+        </section>
 
         {/* Error Message */}
         {error && (
