@@ -153,11 +153,11 @@ const AdminDashboard = () => {
               <div className="flex items-center gap-2 text-[11px] sm:text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
                 <span className="hidden sm:inline">ASKC Technologies</span>
                 <span className="hidden sm:inline text-slate-300">/</span>
-                <span className="text-indigo-600">Control Center</span>
+                <span className="text-sky-700">Control Center</span>
               </div>
               <div className="flex items-center gap-2 mt-0.5 min-w-0">
                 <h1 className="text-lg sm:text-xl font-bold text-slate-900 truncate">{activeLabel}</h1>
-                <span className="hidden sm:inline-flex rounded-full border border-indigo-100 bg-indigo-50 px-2.5 py-1 text-[10px] font-bold tracking-wide text-indigo-700">{roleLabel}</span>
+                <span className="hidden sm:inline-flex rounded-full border border-slate-200 bg-slate-100 px-2.5 py-1 text-[10px] font-bold tracking-wide text-slate-600">{roleLabel}</span>
               </div>
             </div>
 
@@ -170,12 +170,12 @@ const AdminDashboard = () => {
                 <p className="text-xs font-bold text-slate-800 leading-tight">{roleLabel}</p>
                 <p className="text-[10px] text-slate-400 mt-1">Workspace</p>
               </div>
-              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 text-white flex items-center justify-center shadow-md shadow-indigo-200">
+              <div className="h-10 w-10 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center border border-slate-200">
                 <Icon name="shield" className="w-5 h-5" />
               </div>
             </div>
           </div>
-          <div className="lg:hidden h-[3px] bg-gradient-to-r from-indigo-500 via-violet-500 to-cyan-400" />
+          <div className="lg:hidden h-px bg-slate-200" />
         </header>
 
         <main className="flex-1 min-w-0">
