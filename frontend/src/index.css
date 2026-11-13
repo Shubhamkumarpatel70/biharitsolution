@@ -330,8 +330,14 @@ button:focus-visible {
   .admin-dashboard-content :where(form) {
     min-width: 0;
   }
-  .admin-dashboard-content :where(input, select, textarea) {
+  .admin-dashboard-content :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
     width: 100%;
+  }
+  /* Keep compact controls compact inside flex rows (e.g. privacy checklist). */
+  .admin-dashboard-content :where(input[type="checkbox"], input[type="radio"]) {
+    width: auto;
+    max-width: none;
+    flex: 0 0 auto;
   }
 }
 
