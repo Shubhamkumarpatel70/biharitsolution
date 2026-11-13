@@ -804,14 +804,28 @@ router.patch(
 // Admin: assign a plan and price directly to a user.
 router.post("/admin/users/:id/assign-plan", authMiddleware, adminMiddleware, async (req, res) => {
   try {
-    const { planName, totalAmount, durationDays, note } = req.body || {};
+    const { planId, planName, totalAmount, durationDays, note } = req.body || {};
     const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ message: "User not found." });
-    const amount = Number(totalAmount);
-    if (!String(planName || "").trim() || !Number.isFinite(amount) || amount < 0) {
-      return res.status(400).json({ message: "Enter a plan name and valid amount." });
+
+    let resolvedName = String(planName || "").trim();
+    let resolvedAmount = Number(totalAmount);
+    let resolvedDays = Number(durationDays);
+    let sourcePlan = null;
+    if (planId) {
+      sourcePlan = await Plan.findById(planId);
+      if (!sourcePlan) return res.status(404).json({ message: "Selected existing plan was not found." });
+      resolvedName = sourcePlan.name;
+      resolvedAmount = Number(String(sourcePlan.price || "").replace(/[^0-9.]/g, ""));
+      resolvedDays = Number(String(sourcePlan.duration || "").match(/\d+/)?.[0] || 30);
     }
-    const days = Math.max(1, Math.min(3650, Number(durationDays) || 30));
+    if (!resolvedName || !Number.isFinite(resolvedAmount) || resolvedAmount < 0) {
+      return res.status(400).json({ message: "Select a valid existing plan or enter a custom plan name and amount." });
+    }
+    if (!Number.isInteger(resolvedDays) || resolvedDays < 1 || resolvedDays > 3650) {
+      return res.status(400).json({ message: "Plan validity must be between 1 and 3650 days." });
+    }
+
     const now = new Date();
     await Subscription.updateMany(
       { user: user._id, status: "active", canceled: { $ne: true } },
@@ -821,14 +835,15 @@ router.post("/admin/users/:id/assign-plan", authMiddleware, adminMiddleware, asy
     const sub = await Subscription.create({
       user: user._id,
       plan: "starter",
-      planName: String(planName).trim(),
-      totalAmount: amount,
+      sourcePlan: sourcePlan?._id || null,
+      planName: resolvedName,
+      totalAmount: resolvedAmount,
       amountPaid: 0,
-      paymentStatus: amount === 0 ? "paid" : "pending",
-      durationDays: days,
+      paymentStatus: resolvedAmount === 0 ? "paid" : "pending",
+      durationDays: resolvedDays,
       status: "active",
       uniqueId,
-      expiresAt: new Date(Date.now() + days * 86400000),
+      expiresAt: new Date(now.getTime() + resolvedDays * 86400000),
       paymentEntries: [],
       adminNote: String(note || "").slice(0, 500)
     });
