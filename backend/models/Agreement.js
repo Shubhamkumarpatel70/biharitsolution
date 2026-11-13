@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 
 const agreementSchema = new mongoose.Schema(
   {
+    clientUser: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
     clientName: {
       type: String,
       required: true,
