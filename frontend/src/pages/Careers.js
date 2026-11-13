@@ -19,7 +19,7 @@ function careerShareUrl(job) {
 
 function careerShareMessage(job) {
   const url = careerShareUrl(job);
-  return `askc digital web opening positions for ${job.title}\n\n${url}`;
+  return `ASKC Technologies opening positions for ${job.title}\n\n${url}`;
 }
 
 function Careers() {
@@ -75,10 +75,10 @@ function Careers() {
 
   const openNativeShare = async (job) => {
     const url = careerShareUrl(job);
-    const text = `askc digital web opening positions for ${job.title}`;
+    const text = `ASKC Technologies opening positions for ${job.title}`;
     try {
       if (navigator.share) {
-        await navigator.share({ title: 'ASKC Digital Web — Careers', text, url });
+        await navigator.share({ title: 'ASKC Technologies — Careers', text, url });
         setShareJob(null);
       }
     } catch (e) {
@@ -260,7 +260,7 @@ function Careers() {
               <div>
                 <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Message</p>
                 <div className="rounded-xl border border-gray-200 bg-slate-50 px-3 py-3 text-sm text-slate-800 whitespace-pre-wrap break-words">
-                  {`askc digital web opening positions for ${shareJob.title}`}
+                  {`ASKC Technologies opening positions for ${shareJob.title}`}
                 </div>
               </div>
               <div>
