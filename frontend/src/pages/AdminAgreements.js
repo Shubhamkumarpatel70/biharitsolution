@@ -38,7 +38,6 @@ export default function AdminAgreements() {
   const [loading, setLoading]         = useState(true);
   const [saving, setSaving]           = useState(false);
   const [sendingEmail, setSendingEmail] = useState(null); // stores doc._id being emailed
-  const [stampModal, setStampModal]   = useState(null);  // doc metadata for stamp picker
   const [showGen, setShowGen]         = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [viewLoading, setViewLoading] = useState(false);
@@ -124,61 +123,26 @@ export default function AdminAgreements() {
   };
 
   // ── View Document (opens new tab) ────────────────────────────────
-  const openDocument = async (id, addStamp = false, stampText = 'APPROVED') => {
+  const openDocument = async (id) => {
     setViewLoading(true);
     try {
       const r = await axios.get(`/api/auth/admin/agreements/${id}`, { headers });
-      // Normalize legacy generated documents at view/print time as well as new templates.
-      let html = String(r.data.agreement.htmlContent || '')
+      // Normalize legacy generated documents before opening for print/signature.
+      const html = String(r.data.agreement.htmlContent || '')
         .replace(/ASKC DIGITAL WEB|ASKC WEB/gi, 'ASKC TECHNOLOGIES')
         .replace(/www\\.askcweb\\.in|askcweb\\.in/gi, 'askctechnologies.in');
-      if (addStamp) {
-        const stampColors = {
-          APPROVED:  { border: '#15803d', text: '#15803d' },
-          SIGNED:    { border: '#1d4ed8', text: '#1d4ed8' },
-          VERIFIED:  { border: '#6d28d9', text: '#6d28d9' },
-          PAID:      { border: '#0e7490', text: '#0e7490' },
-          CANCELLED: { border: '#b91c1c', text: '#b91c1c' },
-        };
-        const safeStamp = Object.prototype.hasOwnProperty.call(stampColors, stampText) ? stampText : 'APPROVED';
-        const c = stampColors[safeStamp];
-        const stampHtml = `
-          <style>
-            #askc-stamp {
-              position: fixed; top: 50%; left: 50%;
-              transform: translate(-50%, -50%) rotate(-22deg);
-              width: min(78vw, 520px); min-height: 150px;
-              display: flex; flex-direction: column; align-items: center; justify-content: center;
-              gap: 7px; padding: 20px 24px; text-align: center;
-              border: 7px double ${c.border}; border-radius: 18px;
-              color: ${c.text}; opacity: .20; z-index: 99999;
-              font-family: Arial, sans-serif; pointer-events: none; user-select: none;
-              box-sizing: border-box;
-            }
-            #askc-stamp strong { font-size: clamp(25px, 5vw, 48px); line-height: 1.05; font-weight: 900; letter-spacing: 3px; }
-            #askc-stamp span { font-size: 11px; font-weight: 800; letter-spacing: 2px; }
-            #askc-stamp small { font-size: 9px; font-weight: 700; letter-spacing: 1.5px; }
-            @media print { #askc-stamp { position: fixed !important; opacity: .18 !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; } }
-          </style>
-          <div id="askc-stamp" aria-label="ASKC Technologies digital document stamp">
-            <span>ASKC TECHNOLOGIES</span>
-            <strong>${safeStamp}</strong>
-            <small>OFFICIAL DIGITAL DOCUMENT · askctechnologies.in</small>
-          </div>
-        `;
-        html = html.replace('</body>', stampHtml + '</body>');
-      }
       const w = window.open('', '_blank');
+      if (!w) {
+        showToast('Allow pop-ups to view and print this document', 'error');
+        return;
+      }
       w.document.write(html);
       w.document.close();
     } catch { showToast('Failed to load document', 'error'); }
-    finally { setViewLoading(false); setStampModal(null); }
+    finally { setViewLoading(false); }
   };
 
-  const handleView = (doc) => {
-    // Show stamp picker modal first
-    setStampModal(doc);
-  };
+  const handleView = (doc) => openDocument(doc._id);
 
   // ── Delete ────────────────────────────────────────────────────────
   const handleDelete = async (id) => {
@@ -472,48 +436,7 @@ export default function AdminAgreements() {
         </div>
       )}
 
-      {/* ── STAMP PICKER MODAL ───────────────────────── */}
-      {stampModal && (
-        <div className="fixed inset-0 z-[300] bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-indigo-900 to-slate-900 px-6 py-5 flex items-center justify-between">
-              <div>
-                <p className="text-indigo-300 text-xs font-bold uppercase tracking-wider mb-1">Document Viewer</p>
-                <h3 className="text-white font-bold text-lg leading-tight truncate">{DOC_ICONS[stampModal.documentType] || '📄'} {stampModal.documentTitle?.split('—')[0]?.trim()}</h3>
-              </div>
-              <button onClick={() => setStampModal(null)} className="p-2 hover:bg-white/10 rounded-xl transition-colors">
-                <Icon name="close" className="w-5 h-5 text-white" />
-              </button>
-            </div>
 
-            {/* Stamp Options */}
-            <div className="p-6">
-              <p className="text-sm font-bold text-slate-700 mb-4">Add a stamp to this document?</p>
-              <div className="grid grid-cols-2 gap-3 mb-5">
-                {[
-                  { label: 'No Stamp',  value: null,        color: 'bg-slate-100 text-slate-600 border-slate-200' },
-                  { label: '✅ APPROVED',  value: 'APPROVED',  color: 'bg-green-50 text-green-700 border-green-200' },
-                  { label: '🖊 SIGNED',    value: 'SIGNED',    color: 'bg-blue-50 text-blue-700 border-blue-200' },
-                  { label: '🔍 VERIFIED',  value: 'VERIFIED',  color: 'bg-violet-50 text-violet-700 border-violet-200' },
-                  { label: '💰 PAID',      value: 'PAID',      color: 'bg-cyan-50 text-cyan-700 border-cyan-200' },
-                  { label: '❌ CANCELLED', value: 'CANCELLED', color: 'bg-red-50 text-red-700 border-red-200' },
-                ].map(opt => (
-                  <button
-                    key={opt.label}
-                    onClick={() => openDocument(stampModal._id, !!opt.value, opt.value || 'APPROVED')}
-                    disabled={viewLoading}
-                    className={`px-3 py-2.5 rounded-xl border-2 text-xs font-bold text-left transition-all hover:scale-105 active:scale-95 disabled:opacity-50 ${opt.color}`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-              <p className="text-xs text-slate-400 text-center">Document will open in a new tab. Use Ctrl+P to print.</p>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

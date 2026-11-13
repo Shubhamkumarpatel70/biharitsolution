@@ -48,6 +48,13 @@ td{padding:9px 10px;border-bottom:1px solid #e2e8f0;}
 .sig-block{display:flex;justify-content:space-between;margin-top:auto;padding-top:28px;}
 .sig-col{width:44%;}
 .sig-line{border-top:1px solid #334155;margin-top:45px;padding-top:4px;font-size:10px;font-weight:700;text-transform:uppercase;text-align:center;}
+.company-seal-area{height:142px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;margin:10px auto 0;page-break-inside:avoid;}
+.seal-circle{width:112px;height:112px;border:2px dashed #64748b;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:#475569;box-sizing:border-box;padding:8px;}
+.seal-circle strong{font-size:19px;letter-spacing:1.5px;line-height:1.1;color:#1e3a8a;}
+.seal-circle span{font-size:9px;font-weight:800;letter-spacing:1px;margin-top:3px;}
+.seal-circle small{font-size:7px;font-weight:700;letter-spacing:1px;margin-top:4px;}
+.company-seal-area p{font-size:8px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.5px;text-align:center;margin:0;}
+@media print{.seal-circle{border-style:dashed;}}
 footer{background:#061d4b;padding:0 45px;height:58px;display:flex;align-items:center;justify-content:center;gap:35px;position:relative;margin-top:auto;}
 footer::before{content:'';position:absolute;left:0;top:0;height:100%;width:200px;background:#334155;clip-path:polygon(0 0,100% 0,85% 100%,0 100%);}
 .fi{display:flex;align-items:center;gap:7px;color:#e2e8f0;font-size:11px;z-index:2;}
@@ -75,6 +82,11 @@ const ftr = (docCode) => `<footer>
 
 const ctrl = (label) => `<div class="controls" style="position:fixed;top:18px;right:20px;z-index:1000;">
 <button onclick="window.print()" style="background:#061d4b;color:#fff;border:none;padding:10px 22px;font-weight:700;border-radius:8px;cursor:pointer;font-size:13px;">🖨 ${label}</button></div>`;
+
+const companySealPlaceholder = () => `<div class="company-seal-area" aria-label="Physical company stamp area">
+  <div class="seal-circle"><strong>ASKC</strong><span>TECHNOLOGIES</span><small>COMPANY SEAL</small></div>
+  <p>Affix Physical Company Stamp Here</p>
+</div>`;
 
 const dcBadge = (docCode) => docCode ? `<div style="background:#f1f5f9;border:1px solid #cbd5e1;border-radius:6px;padding:8px 14px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;"><span style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.8px;">Document Reference</span><span style="font-family:monospace;font-size:13px;font-weight:800;color:#061d4b;letter-spacing:1px;">${docCode}</span></div>` : '';
 
@@ -105,8 +117,8 @@ ${dcBadge(docCode)}
 <div class="clause"><strong>4. Return of Materials:</strong> Upon written request, all documentation containing Confidential Information shall be returned or destroyed promptly.</div>
 <div class="clause"><strong>5. Governing Law:</strong> Obligations survive indefinitely beyond any service contract termination and are governed by applicable local jurisdictional legislations.</div>
 <div class="sig-block">
-<div class="sig-col"><p style="font-size:10px;margin-bottom:6px;"><strong>For Disclosing Party:</strong></p><p style="font-size:12px;font-weight:700;">${clientName}</p><div class="sig-line">Authorized Client Signature</div></div>
-<div class="sig-col"><p style="font-size:10px;margin-bottom:6px;"><strong>For ${CO}:</strong></p><p style="font-size:12px;font-weight:700;">Shubham Kumar</p><div class="sig-line">Authorized Agency Signature</div></div>
+<div class="sig-col"><p style="font-size:10px;margin-bottom:6px;"><strong>For Disclosing Party:</strong></p><p style="font-size:12px;font-weight:700;">${clientName}</p><div class="sig-line">Authorized Client Signature & Date</div></div>
+<div class="sig-col"><p style="font-size:10px;margin-bottom:6px;"><strong>For ${CO}:</strong></p><p style="font-size:12px;font-weight:700;">Shubham Kumar</p>${companySealPlaceholder()}<div class="sig-line">Authorized Signatory Signature & Date</div></div>
 </div></div>${ftr(docCode)}</div></body></html>`;
 }
 
