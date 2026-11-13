@@ -40,7 +40,7 @@ const Privacy = () => {
           <h2 className="text-xl font-semibold text-gray-900 mt-8 mb-4">5. Contact Us</h2>
           <p>
             If you have any questions about this Privacy Policy, please contact us at:{' '}
-            <a href="mailto:contact@askcweb.in" className="text-primary-600 hover:text-primary-700">contact@askcweb.in</a>
+            <a href="mailto:askctechnologies@gmail.com" className="text-primary-600 hover:text-primary-700">askctechnologies@gmail.com</a>
           </p>
         </div>
       </div>
