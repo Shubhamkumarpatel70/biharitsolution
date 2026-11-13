@@ -1567,6 +1567,23 @@ router.get(
   },
 );
 
+// Admin: Remove an unsubscribe record. This does NOT grant consent; a fresh opt-in is still required.
+router.delete(
+  "/admin/newsletter-unsubscribed/:id",
+  authMiddleware,
+  coAdminMiddleware,
+  async (req, res) => {
+    try {
+      const record = await NewsletterSubscriber.findOne({ _id: req.params.id, status: "unsubscribed" });
+      if (!record) return res.status(404).json({ message: "Unsubscribe record not found." });
+      await NewsletterSubscriber.deleteOne({ _id: record._id });
+      return res.json({ success: true, message: "Unsubscribe record deleted. A new explicit opt-in is required before promotional emails can be sent." });
+    } catch (err) {
+      return res.status(500).json({ message: "Could not delete unsubscribe record." });
+    }
+  },
+);
+
 // Admin: Get unsubscribed newsletter users
 router.get(
   "/admin/newsletter-unsubscribed",
@@ -2751,8 +2768,25 @@ router.post(
       if (!normalizedSubject) return res.status(400).json({ message: "Subject is required." });
       if (!normalizedMessage) return res.status(400).json({ message: "Message is required." });
 
-      // Only send to addresses with a recorded, explicit opt-in. Legacy rows without
-      // consentedAt are deliberately excluded; manually entered addresses are checked too.
+      // Manually entered addresses may be recorded only after the admin confirms
+      // that each recipient explicitly opted in. Existing unsubscribes are never overridden.
+      if (req.body?.consentConfirmed === true) {
+        for (const address of requestedEmails) {
+          const existing = await NewsletterSubscriber.findOne({ email: address });
+          if (existing?.status === "unsubscribed") continue;
+          await NewsletterSubscriber.findOneAndUpdate(
+            { email: address },
+            { $set: { status: "subscribed", consentedAt: existing?.consentedAt || new Date(), consentSource: "admin-confirmed", consentedBy: String(req.user?.id || "") } },
+            { upsert: true, new: true, setDefaultsOnInsert: true },
+          );
+          await User.updateOne(
+            { email: address },
+            { $set: { marketingConsent: true, marketingConsentAt: new Date(), subscribeOffers: true } },
+          );
+        }
+      }
+
+      // Only explicitly opted-in recipients are eligible. Unsubscribe records always win.
       const consented = await NewsletterSubscriber.find({
         email: { $in: requestedEmails },
         status: "subscribed",
@@ -2761,7 +2795,7 @@ router.post(
       const emailList = consented.map((subscriber) => subscriber.email);
       const skippedCount = requestedEmails.length - emailList.length;
       if (!emailList.length) {
-        return res.status(400).json({ message: "No recipients have active, recorded marketing consent. Ask users to opt in first.", successCount: 0, skippedCount });
+        return res.status(400).json({ message: "No eligible recipients. Select opted-in subscribers or confirm that manually entered recipients have explicitly agreed to receive promotional emails. Unsubscribed addresses remain blocked.", successCount: 0, skippedCount });
       }
 
       const siteOrigin = getPublicSiteOrigin();
