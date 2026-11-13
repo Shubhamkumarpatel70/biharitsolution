@@ -157,8 +157,9 @@ const Payment = () => {
         return;
       }
       const res = await axios.post('/api/auth/coupons/apply', { code: coupon }, { headers: { Authorization: `Bearer ${token}` } });
-      setDiscount(res.data.amount);
-      setCouponMsg(`Coupon applied! ₹${res.data.amount} off.`);
+      const appliedDiscount = Math.min(Number(res.data.amount) || 0, Number(amount) || 0);
+      setDiscount(appliedDiscount);
+      setCouponMsg(`Coupon applied! ₹${appliedDiscount} off.`);
     } catch (err) {
       setDiscount(0);
       setCouponMsg(err.response?.data?.message || 'Invalid coupon.');
