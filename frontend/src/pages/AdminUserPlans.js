@@ -9,6 +9,8 @@ const AdminUserPlans = () => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [actionBusy, setActionBusy] = useState(null);
+  const [success, setSuccess] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -33,9 +35,15 @@ const AdminUserPlans = () => {
             name: user.name,
             email: user.email,
             registeredAt: user.createdAt,
-            plan: latest ? latest.plan : 'None',
+            plan: latest ? (latest.planName || latest.plan) : 'None',
+            subscriptionId: latest?._id,
+            totalAmount: latest?.totalAmount || 0,
+            amountPaid: latest?.amountPaid || 0,
+            createdAt: latest?.createdAt,
+            cancellationReason: latest?.cancellationReason || '',
+            canceled: Boolean(latest?.canceled),
             expiresAt: latest?.expiresAt,
-            status: latest ? latest.status : 'N/A',
+            status: latest ? (latest.canceled ? 'cancelled' : latest.status) : 'N/A',
           };
         });
         setData(planData);
@@ -48,9 +56,30 @@ const AdminUserPlans = () => {
     fetchData();
   }, []);
 
+  const handleTerminate = async (user) => {
+    if (!user.subscriptionId || user.canceled || user.status === 'expired') return;
+    const reason = window.prompt('Reason for cancelling / terminating this plan:');
+    if (!reason || !reason.trim()) return;
+    if (!window.confirm('Confirm termination of ' + user.plan + ' for ' + user.name + '? This will immediately make the plan inactive.')) return;
+    setActionBusy(user.subscriptionId); setError(''); setSuccess('');
+    try {
+      const token = localStorage.getItem('token');
+      await axios.patch('/api/auth/admin/terminate-subscription/' + user.subscriptionId, { reason: reason.trim() }, { headers: { Authorization: 'Bearer ' + token } });
+      setSuccess('Subscription terminated successfully.');
+      const usersRes = await axios.get('/api/auth/admin/users', { headers: { Authorization: 'Bearer ' + token } });
+      const subsRes = await axios.get('/api/auth/admin/all-subscriptions', { headers: { Authorization: 'Bearer ' + token } });
+      const allSubs = subsRes.data.subscriptions || [];
+      setData((usersRes.data.users || []).map(account => {
+        const latest = allSubs.filter(s => s.user && (s.user._id === account._id || s.user === account._id)).sort((a,b) => new Date(b.createdAt || 0)-new Date(a.createdAt || 0))[0];
+        return { id: account._id, name: account.name, email: account.email, registeredAt: account.createdAt, plan: latest ? (latest.planName || latest.plan) : 'None', subscriptionId: latest?._id, totalAmount: latest?.totalAmount || 0, amountPaid: latest?.amountPaid || 0, createdAt: latest?.createdAt, cancellationReason: latest?.cancellationReason || '', canceled: Boolean(latest?.canceled), expiresAt: latest?.expiresAt, status: latest ? (latest.canceled ? 'cancelled' : latest.status) : 'N/A' };
+      }));
+    } catch (err) { setError(err.response?.data?.message || 'Could not terminate subscription.'); }
+    finally { setActionBusy(null); }
+  };
+
   const statusClass = (status) => status === 'active'
     ? 'bg-emerald-100 text-emerald-700'
-    : status === 'pending' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600';
+    : status === 'pending' ? 'bg-amber-100 text-amber-700' : status === 'cancelled' || status === 'expired' ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-600';
 
   return (
     <div className="user-plans-page w-full max-w-7xl mx-auto px-3 sm:px-5 lg:px-8 py-4 sm:py-6 text-slate-900">
@@ -61,6 +90,8 @@ const AdminUserPlans = () => {
         </div>
         <span className="text-sm text-slate-500">{data.length} users</span>
       </div>
+      {success && <div role="status" className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{success}</div>}
+      {error && <div role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
       {loading ? (
         <div className="rounded-xl bg-white p-8 text-center text-slate-500">Loading user plans…</div>
       ) : error ? (
@@ -75,7 +106,7 @@ const AdminUserPlans = () => {
                 <tr>
                   <th className="px-4 py-3">Name</th><th className="px-4 py-3">Email</th>
                   <th className="px-4 py-3">Registered</th><th className="px-4 py-3">Plan</th>
-                  <th className="px-4 py-3">Status</th><th className="px-4 py-3">Expires At</th>
+                  <th className="px-4 py-3">Status</th><th className="px-4 py-3">Plan / Payment</th><th className="px-4 py-3">Assigned At</th><th className="px-4 py-3">Expires At</th><th className="px-4 py-3">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -86,7 +117,10 @@ const AdminUserPlans = () => {
                     <td className="px-4 py-3 whitespace-nowrap text-slate-500">{formatDateTime(user.registeredAt)}</td>
                     <td className="px-4 py-3 capitalize">{user.plan}</td>
                     <td className="px-4 py-3"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${statusClass(user.status)}`}>{user.status}</span></td>
+                    <td className="px-4 py-3 whitespace-nowrap"><div className="font-semibold">₹{Number(user.amountPaid).toLocaleString('en-IN')} / ₹{Number(user.totalAmount).toLocaleString('en-IN')}</div><div className="text-xs text-slate-500">Paid / Total</div></td>
+                    <td className="px-4 py-3 whitespace-nowrap">{formatDateTime(user.createdAt)}</td>
                     <td className="px-4 py-3 whitespace-nowrap">{user.expiresAt ? formatDateTime(user.expiresAt) : '—'}</td>
+                    <td className="px-4 py-3">{user.subscriptionId && !user.canceled && user.status !== 'expired' ? <button onClick={() => handleTerminate(user)} disabled={actionBusy === user.subscriptionId} className="whitespace-nowrap rounded-lg bg-rose-600 px-3 py-2 text-xs font-bold text-white hover:bg-rose-700 disabled:opacity-50">{actionBusy === user.subscriptionId ? 'Processing…' : 'Cancel / Terminate'}</button> : <span className="text-xs text-slate-400">No action</span>}</td>
                   </tr>
                 ))}
               </tbody>
@@ -100,10 +134,13 @@ const AdminUserPlans = () => {
                   <span className={`shrink-0 rounded-full px-2 py-1 text-xs font-semibold capitalize ${statusClass(user.status)}`}>{user.status}</span>
                 </div>
                 <dl className="mt-4 grid grid-cols-2 gap-x-3 gap-y-3 text-sm">
-                  <div><dt className="text-xs text-slate-500">Plan</dt><dd className="mt-1 font-medium capitalize">{user.plan}</dd></div>
+                  <div><dt className="text-xs text-slate-500">Plan</dt><dd className="mt-1 font-medium">{user.plan}</dd></div>
+                  <div><dt className="text-xs text-slate-500">Paid / Total</dt><dd className="mt-1 font-medium">₹{Number(user.amountPaid).toLocaleString('en-IN')} / ₹{Number(user.totalAmount).toLocaleString('en-IN')}</dd></div>
+                  <div className="col-span-2"><dt className="text-xs text-slate-500">Assigned at</dt><dd className="mt-1 font-medium">{formatDateTime(user.createdAt)}</dd></div>
                   <div><dt className="text-xs text-slate-500">Expires</dt><dd className="mt-1 font-medium">{user.expiresAt ? formatDateTime(user.expiresAt) : '—'}</dd></div>
                   <div className="col-span-2"><dt className="text-xs text-slate-500">Registered</dt><dd className="mt-1 font-medium">{formatDateTime(user.registeredAt)}</dd></div>
                 </dl>
+                {user.subscriptionId && !user.canceled && user.status !== 'expired' && <button onClick={() => handleTerminate(user)} disabled={actionBusy === user.subscriptionId} className="mt-4 w-full rounded-lg bg-rose-600 px-3 py-2.5 text-sm font-bold text-white disabled:opacity-50">{actionBusy === user.subscriptionId ? 'Processing…' : 'Cancel / Terminate Plan'}</button>}
               </article>
             ))}
           </div>
