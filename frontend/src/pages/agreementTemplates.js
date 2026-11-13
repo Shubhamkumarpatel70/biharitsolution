@@ -1,7 +1,7 @@
 const CO = "ASKC TECHNOLOGIES";
 const LOGO = "/agreements/logo.jpeg";
 const EMAIL = "askctechnologies@gmail.com";
-const WEB = "www.askcweb.in";
+const WEB = "www.askctechnologies.in";
 const PHONE = "+91 79923 65197";
 
 export const DOCUMENT_TYPES = [
@@ -168,7 +168,7 @@ ${dcBadge(docCode)}
 <div style="margin-top:25px;font-size:11px;line-height:1.8;color:#475569;">
 <strong style="color:#061d4b">Payment Details:</strong><br>
 Account Name: ASKC TECHNOLOGIES<br>
-Bank: State Bank of India &nbsp;|&nbsp; UPI: support@askcweb<br>
+Payment method: As agreed in the project invoice / payment instructions<br>
 ${paymentNote?`<br><em>${paymentNote}</em>`:''}
 </div>
 </div>${ftr(docCode)}</div></body></html>`;
