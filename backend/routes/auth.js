@@ -38,6 +38,7 @@ const NewsletterSubscriber = require("../models/NewsletterSubscriber");
 const Coupon = require("../models/Coupon");
 const TeamMember = require("../models/Team");
 const ClientWork = require("../models/ClientWork");
+const Project = require("../models/Project");
 const Feature = require("../models/Feature");
 const Service = require("../models/Service");
 const PaymentOption = require("../models/PaymentOption");
@@ -4616,6 +4617,96 @@ router.delete("/admin/client-work/:id", authMiddleware, coAdminMiddleware, async
   } catch (err) {
     console.error("Error deleting client work:", err);
     res.status(500).json({ message: "Could not delete client work." });
+  }
+});
+
+
+// Public: latest active projects for the homepage.
+router.get("/projects", async (req, res) => {
+  try {
+    const projects = await Project.find({ isActive: true }).sort({ order: 1, createdAt: -1 }).lean();
+    res.json({ projects });
+  } catch (err) {
+    console.error("Error fetching projects:", err);
+    res.status(500).json({ message: "Could not load projects." });
+  }
+});
+
+// Admin: manage homepage projects.
+router.get("/admin/projects", authMiddleware, coAdminMiddleware, async (req, res) => {
+  try {
+    const projects = await Project.find().sort({ order: 1, createdAt: -1 });
+    res.json({ projects });
+  } catch (err) {
+    console.error("Error fetching admin projects:", err);
+    res.status(500).json({ message: "Could not fetch projects." });
+  }
+});
+
+router.post("/admin/projects", authMiddleware, coAdminMiddleware, upload.single("image"), async (req, res) => {
+  try {
+    const title = String(req.body.title || "").trim();
+    const description = String(req.body.description || "").trim();
+    if (!title || !description) {
+      return res.status(400).json({ message: "Project title and description are required." });
+    }
+    const project = await Project.create({
+      title,
+      description,
+      category: String(req.body.category || "Web App").trim(),
+      highlight: String(req.body.highlight || "").trim(),
+      technologies: String(req.body.technologies || "").split(",").map(item => item.trim()).filter(Boolean),
+      projectUrl: String(req.body.projectUrl || "").trim(),
+      icon: String(req.body.icon || "briefcase").trim(),
+      color: /^#[0-9a-fA-F]{6}$/.test(String(req.body.color || "")) ? req.body.color : "#64748b",
+      image: req.file ? bufferToBase64(req.file.buffer, req.file.mimetype) : "",
+      order: Number.isFinite(Number(req.body.order)) ? Number(req.body.order) : 0,
+      isActive: req.body.isActive !== "false"
+    });
+    res.status(201).json({ project, message: "Project added successfully." });
+  } catch (err) {
+    console.error("Error creating project:", err);
+    res.status(500).json({ message: "Could not add project." });
+  }
+});
+
+router.put("/admin/projects/:id", authMiddleware, coAdminMiddleware, upload.single("image"), async (req, res) => {
+  try {
+    const title = String(req.body.title || "").trim();
+    const description = String(req.body.description || "").trim();
+    if (!title || !description) {
+      return res.status(400).json({ message: "Project title and description are required." });
+    }
+    const update = {
+      title,
+      description,
+      category: String(req.body.category || "Web App").trim(),
+      highlight: String(req.body.highlight || "").trim(),
+      technologies: String(req.body.technologies || "").split(",").map(item => item.trim()).filter(Boolean),
+      projectUrl: String(req.body.projectUrl || "").trim(),
+      icon: String(req.body.icon || "briefcase").trim(),
+      color: /^#[0-9a-fA-F]{6}$/.test(String(req.body.color || "")) ? req.body.color : "#64748b",
+      order: Number.isFinite(Number(req.body.order)) ? Number(req.body.order) : 0,
+      isActive: req.body.isActive !== "false"
+    };
+    if (req.file) update.image = bufferToBase64(req.file.buffer, req.file.mimetype);
+    const project = await Project.findByIdAndUpdate(req.params.id, update, { new: true, runValidators: true });
+    if (!project) return res.status(404).json({ message: "Project not found." });
+    res.json({ project, message: "Project updated successfully." });
+  } catch (err) {
+    console.error("Error updating project:", err);
+    res.status(500).json({ message: "Could not update project." });
+  }
+});
+
+router.delete("/admin/projects/:id", authMiddleware, coAdminMiddleware, async (req, res) => {
+  try {
+    const project = await Project.findByIdAndDelete(req.params.id);
+    if (!project) return res.status(404).json({ message: "Project not found." });
+    res.json({ message: "Project deleted successfully." });
+  } catch (err) {
+    console.error("Error deleting project:", err);
+    res.status(500).json({ message: "Could not delete project." });
   }
 });
 
