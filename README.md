@@ -213,3 +213,33 @@ baseURL: process.env.REACT_APP_API_URL || 'https://your-app-name.onrender.com'
 
 For issues or questions, please contact the development team.
 
+
+
+## Email delivery (Render production)
+
+All backend email flows use the shared `backend/utils/email.js` delivery service: registration OTP, forgot-password OTP, promotional campaigns, and agreement emails. Configure **one** provider on the Render backend Web Service (Environment):
+
+### Recommended: Resend
+```env
+RESEND_API_KEY=re_your_api_key
+RESEND_FROM=ASKC TECHNOLOGIES <verified-sender@your-domain.com>
+```
+Verify the sender domain/address in Resend before sending. The sender must be authorised by Resend.
+
+### Alternative: SMTP
+```env
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=465
+SMTP_USER=your-sending-mailbox@gmail.com
+SMTP_PASS=your-16-character-app-password
+SMTP_FROM=ASKC TECHNOLOGIES <your-sending-mailbox@gmail.com>
+```
+For Gmail, use an App Password with 2-Step Verification; do not use the normal account password. Use port 465 (SSL) or port 587 (STARTTLS, as supported by your provider).
+
+After setting variables, save the Render environment and redeploy/restart the backend. Never commit real API keys, app passwords, or SMTP credentials to GitHub.
+
+Authenticated admin diagnostics:
+- `GET /api/auth/admin/email-config` — reports provider readiness without revealing secrets.
+- `POST /api/auth/admin/email-test` with JSON `{"email":"your-test-address@example.com"}` — sends a test email.
+
+Promotional campaigns use the same configured provider and should only be sent to recipients with valid marketing consent. OTP codes are used for registration and password recovery; promotional campaigns themselves are not OTP messages.
