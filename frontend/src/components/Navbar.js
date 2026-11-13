@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { UserContext } from '../UserContext';
 import Logo from './Logo';
 import { Icon } from './icons';
+import './NavbarMotion.css';
 
 const primaryNavLinks = [
   { to: '/', label: 'Home' },
@@ -31,7 +32,6 @@ function Navbar() {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [moreNavOpen, setMoreNavOpen] = useState(false);
   const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
-  const [isAnimating, setIsAnimating] = useState(false);
   const navigate = useNavigate();
   const moreNavRef = useRef(null);
   const moreActive = isMoreNavActive(location.pathname);
@@ -96,12 +96,8 @@ function Navbar() {
     if (isMobileMenuOpen && moreActive) setMobileMoreOpen(true);
   }, [isMobileMenuOpen, moreActive]);
 
-  const toggleMobileMenu = () => {
-    if (isAnimating) return;
-    setIsAnimating(true);
-    setIsMobileMenuOpen(!isMobileMenuOpen);
-    setTimeout(() => setIsAnimating(false), 400);
-  };
+  const toggleMobileMenu = () => setIsMobileMenuOpen((open) => !open);
+  const closeMobileMenu = () => setIsMobileMenuOpen(false);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -288,6 +284,7 @@ function Navbar() {
                 onClick={toggleMobileMenu}
                 aria-label="Toggle mobile menu"
                 aria-expanded={isMobileMenuOpen}
+                aria-controls="askc-mobile-navigation"
               >
                 <span
                   className={`block w-5 h-0.5 bg-text-main rounded-sm transition-all duration-300 absolute ${
@@ -311,14 +308,15 @@ function Navbar() {
 
         {/* Mobile Menu */}
         <div
-          className={`fixed inset-0 bg-gray-900/50 backdrop-blur-sm z-[2100] transition-opacity duration-300 ${
+          className={`askc-mobile-overlay fixed inset-0 bg-gray-900/50 backdrop-blur-sm z-[2100] transition-opacity duration-300 ${
             isMobileMenuOpen ? 'opacity-100 visible pointer-events-auto' : 'opacity-0 invisible pointer-events-none'
           }`}
-          onClick={toggleMobileMenu}
+          onClick={closeMobileMenu}
           aria-hidden={!isMobileMenuOpen}
         >
           <div
-            className={`absolute top-0 right-0 w-full max-w-[22rem] h-screen bg-white border-l border-gray-200 p-8 pt-20 overflow-y-auto shadow-[-10px_0_30px_rgba(0,0,0,0.1)] transition-transform duration-400 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] ${
+            id="askc-mobile-navigation"
+            className={`askc-mobile-panel absolute top-0 right-0 w-full max-w-[22rem] h-screen bg-white border-l border-gray-200 p-8 pt-20 overflow-y-auto shadow-[-10px_0_30px_rgba(0,0,0,0.1)] transition-transform duration-400 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] ${
               isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
             } md:max-w-full`}
             onClick={(e) => e.stopPropagation()}
@@ -346,7 +344,7 @@ function Navbar() {
                       : 'hover:text-primary-700 hover:bg-gray-50 hover:border-gray-200'
                   }`}
                   tabIndex={isMobileMenuOpen ? 0 : -1}
-                  onClick={toggleMobileMenu}
+                  onClick={closeMobileMenu}
                 >
                   {link.label}
                 </Link>
@@ -382,7 +380,7 @@ function Navbar() {
                           : 'text-text-main hover:bg-gray-50 hover:text-primary-700'
                       }`}
                       tabIndex={isMobileMenuOpen ? 0 : -1}
-                      onClick={toggleMobileMenu}
+                      onClick={closeMobileMenu}
                     >
                       {link.label}
                     </Link>

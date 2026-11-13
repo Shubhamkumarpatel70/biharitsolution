@@ -133,6 +133,7 @@ const AdminSidebar = ({ onLogout, activeTab, setActiveTab, onClose, userRole = '
               {items.map(item => (
                 <button
                   key={item.id}
+                  aria-current={activeTab === item.id ? "page" : undefined}
                   type="button"
                   onClick={() => {
                     setActiveTab(item.id);
