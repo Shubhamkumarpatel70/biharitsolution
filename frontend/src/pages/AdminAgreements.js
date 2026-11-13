@@ -222,7 +222,7 @@ export default function AdminAgreements() {
 
   // ─────────────────────────────────────────────────────────────────
   return (
-    <div className="max-w-7xl mx-auto space-y-6 pb-24 lg:pb-8">
+    <div className="admin-redesign-page max-w-7xl mx-auto space-y-6 pb-24 lg:pb-8">
       {/* Toast */}
       {toast && (
         <div className={`fixed top-6 right-6 z-[999] px-5 py-3 rounded-xl shadow-lg text-sm font-semibold text-white transition-all ${toast.type === 'error' ? 'bg-red-500' : 'bg-emerald-600'}`}>
