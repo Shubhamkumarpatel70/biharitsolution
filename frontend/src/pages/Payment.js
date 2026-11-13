@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
+import { useParams, useNavigate, Link, useSearchParams, useLocation } from 'react-router-dom';
 import axios from '../axios';
 import { UserContext } from '../UserContext';
 
 const Payment = () => {
   const { plan } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const selectedPlanId = location.state?.planId;
   const [searchParams] = useSearchParams();
   const [phone, setPhone] = useState('');
   const [status, setStatus] = useState('idle');
@@ -33,13 +35,20 @@ const Payment = () => {
       try {
         // Fetch plans
         const plansRes = await axios.get('/api/auth/plans');
-        const availablePlans = Array.isArray(plansRes.data?.plans) ? plansRes.data.plans : [];
+        const availablePlans = Array.isArray(plansRes.data)
+          ? plansRes.data
+          : Array.isArray(plansRes.data?.plans)
+            ? plansRes.data.plans
+            : [];
         setPlans(availablePlans);
 
-        // Match readable plan names and URL slugs, e.g. "Starter Plan" and "starter".
+        // Prefer the stable database ID passed by the Pricing CTA. Keep slug
+        // matching as a fallback for existing/shared payment URLs.
         const normalizePlan = value => String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
         const requestedPlan = normalizePlan(plan);
         const found = availablePlans.find(p => {
+          if (selectedPlanId && String(p?._id) === String(selectedPlanId)) return true;
+          if (p?._id && String(p._id) === String(plan)) return true;
           const planName = normalizePlan(p?.name);
           return planName === requestedPlan ||
             planName.replace(/plan$/, '') === requestedPlan ||
@@ -47,11 +56,12 @@ const Payment = () => {
         });
 
         if (found) {
-          setAmount(found.price);
+          setAmount(Number(found.price) || 0);
           setPlanObj(found);
+          setError('');
         } else {
-          console.log('Available plans:', plansRes.data.plans.map(p => p.name));
-          console.log('Looking for plan:', plan);
+          setError('The selected pricing plan could not be found. Please return to Pricing and select a plan again.');
+          console.warn('Pricing plan lookup failed:', { requestedPlan: plan, selectedPlanId, availablePlans: availablePlans.map(p => ({ id: p._id, name: p.name })) });
         }
 
         // Fetch payment options
@@ -73,7 +83,7 @@ const Payment = () => {
       }
     };
     fetchData();
-  }, [plan]);
+  }, [plan, selectedPlanId]);
 
   if (loadingPlan) {
     return (

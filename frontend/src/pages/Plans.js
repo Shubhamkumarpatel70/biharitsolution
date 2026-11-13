@@ -362,7 +362,8 @@ function Plans() {
                       {/* CTA Button */}
                       <div className="flex flex-col sm:flex-row gap-2">
                         <Link
-                          to={`/payment/${plan.name.toLowerCase().replace(/\s+/g, "")}`}
+                          to={`/payment/${encodeURIComponent(plan._id || slugify(plan.name))}`}
+                          state={{ planId: plan._id, planName: plan.name }}
                           className="btn btn-primary w-full justify-center py-3 font-medium group rounded-xl"
                           onClick={(e) => e.stopPropagation()}
                         >
