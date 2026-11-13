@@ -145,7 +145,7 @@ const Sidebar = ({ onLogout, isPlanExpired, user, onClose }) => (
       </div>
     </div>
 
-    <MobileBottomNav user={user} onLogout={onLogout} />
+
   </>
 );
 

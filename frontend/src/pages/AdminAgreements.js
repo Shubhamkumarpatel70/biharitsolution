@@ -40,6 +40,7 @@ export default function AdminAgreements() {
   const [sendingEmail, setSendingEmail] = useState(null); // stores doc._id being emailed
   const [stampModal, setStampModal]   = useState(null);  // doc metadata for stamp picker
   const [showGen, setShowGen]         = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const [viewLoading, setViewLoading] = useState(false);
   const [form, setForm]               = useState(initForm);
   const [toast, setToast]             = useState(null);
@@ -94,6 +95,8 @@ export default function AdminAgreements() {
   const handleGenerate = async (e) => {
     e.preventDefault();
     if (!form.clientName.trim()) return showToast('Client name is required', 'error');
+    if (form.clientEmail && !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(form.clientEmail.trim())) return showToast('Enter a valid client email address', 'error');
+    if (['quotation','invoice'].includes(form.documentType) && form.amount !== '' && (!Number.isFinite(Number(form.amount)) || Number(form.amount) < 0)) return showToast('Enter a valid non-negative amount', 'error');
     setSaving(true);
     try {
       const docCode = generateDocCode(form.clientName);
@@ -111,6 +114,7 @@ export default function AdminAgreements() {
       }, { headers });
       showToast('Document saved successfully!');
       setShowGen(false);
+      setShowPreview(false);
       setForm(initForm);
       if (view === 'folder' && activeClient) loadFolder(activeClient.clientName);
       else loadClients();
@@ -256,7 +260,7 @@ export default function AdminAgreements() {
           <button
             onClick={() => {
               setForm(view === 'folder' ? { ...initForm, clientName: activeClient?.clientName || '' } : initForm);
-              setShowGen(true);
+              setShowGen(true); setShowPreview(false);
             }}
             className="flex items-center gap-2 px-5 py-2.5 bg-white text-indigo-900 rounded-xl font-bold text-sm hover:bg-indigo-50 transition-colors shadow"
           >
@@ -383,14 +387,14 @@ export default function AdminAgreements() {
       {/* ── GENERATE MODAL ───────────────────────────── */}
       {showGen && (
         <div className="fixed inset-0 z-[200] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto">
             <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-slate-900">Generate Document</h2>
+              <div><h2 className="text-xl font-bold text-slate-900">Generate Document</h2><p className="text-xs text-slate-500 mt-1">Create a branded client document, preview it, then save it to the client folder.</p></div>
               <button onClick={() => setShowGen(false)} className="p-2 hover:bg-slate-100 rounded-xl transition-colors">
                 <Icon name="close" className="w-5 h-5 text-slate-500" />
               </button>
             </div>
-            <form onSubmit={handleGenerate} className="p-6 space-y-4">
+            <form onSubmit={handleGenerate} className="p-4 sm:p-6 space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Document Type *</label>
                 <select
@@ -401,7 +405,7 @@ export default function AdminAgreements() {
                   {DOCUMENT_TYPES.map(d => <option key={d.id} value={d.id}>{d.label}</option>)}
                 </select>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Client Name *</label>
                   <input
@@ -465,13 +469,18 @@ export default function AdminAgreements() {
                   className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-slate-50"
                 />
               </div>
-              <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setShowGen(false)} className="flex-1 py-2.5 border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors">
-                  Cancel
-                </button>
-                <button type="submit" disabled={saving} className="flex-1 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
+              {showPreview && (
+                <div className="rounded-xl border border-indigo-200 overflow-hidden">
+                  <div className="flex items-center justify-between gap-2 bg-indigo-50 px-3 py-2"><p className="text-xs font-bold text-indigo-900">Live document preview</p><button type="button" onClick={() => setShowPreview(false)} className="text-xs text-indigo-700">Close preview</button></div>
+                  <iframe title="Generated document preview" sandbox="" srcDoc={generateTemplate(form.documentType, { ...form, docCode: generateDocCode(form.clientName || "Client") })} className="w-full h-72 bg-white" />
+                </div>
+              )}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2">
+                <button type="button" onClick={() => setShowGen(false)} className="py-2.5 border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50">Cancel</button>
+                <button type="button" onClick={() => setShowPreview(value => !value)} className="py-2.5 border border-indigo-200 bg-indigo-50 text-indigo-800 rounded-xl text-sm font-bold hover:bg-indigo-100">{showPreview ? 'Hide Preview' : 'Preview Document'}</button>
+                <button type="submit" disabled={saving} className="py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 disabled:opacity-60 flex items-center justify-center gap-2">
                   {saving ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : null}
-                  {saving ? 'Saving...' : 'Generate & Save'}
+                  {saving ? 'Saving…' : 'Generate & Save'}
                 </button>
               </div>
             </form>
