@@ -12,6 +12,7 @@ const AdminPromotionalEmail = () => {
   const [loadingSubscribers, setLoadingSubscribers] = useState(true);
   const [selectAll, setSelectAll] = useState(false);
   const [selectedEmails, setSelectedEmails] = useState([]);
+  const [consentConfirmed, setConsentConfirmed] = useState(false);
 
   // Fetch newsletter subscribers
   useEffect(() => {
@@ -40,6 +41,7 @@ const AdminPromotionalEmail = () => {
   const handleSelectAll = () => {
     if (selectAll) {
       setSelectedEmails([]);
+      setConsentConfirmed(false);
       setSelectAll(false);
     } else {
       setSelectedEmails(newsletterSubscribers.map((s) => s.email));
@@ -90,6 +92,7 @@ const AdminPromotionalEmail = () => {
           emails: emailList,
           subject: subject.trim(),
           message: message.trim(),
+          consentConfirmed,
         },
         { headers: { Authorization: `Bearer ${token}` } },
       );
@@ -173,7 +176,7 @@ const AdminPromotionalEmail = () => {
         {/* Manual Email Input */}
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1.5">
-            Add opted-in email addresses (comma-separated)
+            Add recipient email addresses (comma-separated)
           </label>
           <input
             type="text"
@@ -183,9 +186,14 @@ const AdminPromotionalEmail = () => {
             placeholder="email1@example.com, email2@example.com"
           />
           <p className="text-xs text-slate-500 mt-1">
-            Only addresses with an active, recorded opt-in will receive the campaign.
+            Manually entered addresses are added only when you confirm that each recipient explicitly opted in. Unsubscribed addresses are always blocked.
           </p>
         </div>
+
+        <label className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+          <input type="checkbox" checked={consentConfirmed} onChange={(e) => setConsentConfirmed(e.target.checked)} className="mt-0.5 h-4 w-4 rounded border-amber-400" />
+          <span>I confirm that every manually entered email recipient has explicitly agreed to receive promotional emails from ASKC TECHNOLOGIES. This will record consent for eligible addresses. Previously unsubscribed addresses will remain blocked.</span>
+        </label>
 
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1.5">
