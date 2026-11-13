@@ -189,7 +189,7 @@ const AdminDashboard = () => {
                 Admin workspace
               </span>
             </div>
-            <section key={activeTab} className="min-w-0 animate-[fadeInUp_.22s_ease-out]">
+            <section key={activeTab} className="admin-dashboard-content min-w-0 animate-[fadeInUp_.22s_ease-out]">
               {renderContent()}
             </section>
           </div>
