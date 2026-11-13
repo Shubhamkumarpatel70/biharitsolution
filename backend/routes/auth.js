@@ -4401,21 +4401,6 @@ router.get(
 
 // ==================== AGREEMENTS ====================
 
-// Minimal registered-user directory for linking agreements to accounts.
-router.get(
-  "/admin/agreement-users",
-  authMiddleware,
-  coAdminMiddleware,
-  async (req, res) => {
-    try {
-      const users = await User.find({ role: "user" }).select("name email").sort({ name: 1 }).lean();
-      res.json({ users });
-    } catch (err) {
-      res.status(500).json({ message: "Could not load registered client accounts." });
-    }
-  }
-);
-
 // Exact-email account lookup avoids choosing from a long user dropdown.
 router.get("/admin/agreement-user-lookup", authMiddleware, coAdminMiddleware, async (req, res) => {
   try {
