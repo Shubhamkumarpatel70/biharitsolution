@@ -87,7 +87,8 @@ exports.sendRegisterOtp = async (req, res) => {
 // Verify OTP for registration
 exports.verifyRegisterOtp = async (req, res) => {
   try {
-    const { email, otp } = req.body;
+    const email = String(req.body?.email || "").trim().toLowerCase();
+    const otp = String(req.body?.otp || "").trim();
     if (!email || !otp)
       return res.status(400).json({ message: "Email and OTP required." });
     const record = await Otp.findOne({ email, otp, purpose: "register" });
