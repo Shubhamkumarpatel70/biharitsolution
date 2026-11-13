@@ -122,7 +122,7 @@ export default function AdminPaymentOptions() {
           <div className="flex items-start justify-between gap-3"><div className="min-w-0"><h3 className="break-words font-extrabold text-slate-900">{item.name}</h3><p className="mt-1 text-xs font-semibold text-indigo-700">{item.paymentType === 'BANK_TRANSFER' ? 'Bank transfer' : item.paymentType}</p></div><span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-bold ${item.isActive ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>{item.isActive ? 'Active' : 'Inactive'}</span></div>
           <div className="mt-4 flex flex-wrap items-start gap-4">
             <div className="min-w-0 flex-1 space-y-1.5 text-sm text-slate-600">
-              {item.upiId && <p className="break-all"><b className="text-slate-800">UPI:</b> {item.upiId}</p>}
+              {item.upiId && item.paymentType !== 'BANK_TRANSFER' && <p className="break-all"><b className="text-slate-800">UPI:</b> {item.upiId}</p>}
               {item.accountName && <p><b className="text-slate-800">Account:</b> {item.accountName}</p>}
               {item.accountNumber && <p className="break-all"><b className="text-slate-800">A/C No:</b> {item.accountNumber}</p>}
               {item.bankName && <p><b className="text-slate-800">Bank:</b> {item.bankName} {item.branch ? `· ${item.branch}` : ''}</p>}
