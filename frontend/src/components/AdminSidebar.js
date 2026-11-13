@@ -3,46 +3,47 @@ import { Icon } from './icons';
 
 export const adminNavItems = [
   { id: 'home', label: 'Dashboard', iconName: 'home', category: 'main' },
-  { id: 'funds', label: 'Funds', iconName: 'currency', category: 'main' },
+  { id: 'funds', label: 'Funds', iconName: 'currency', category: 'finance' },
   { id: 'approve', label: 'Approve Subs', iconName: 'check', category: 'subscriptions' },
   { id: 'approved-plans', label: 'Approved Plans', iconName: 'clipboard', category: 'subscriptions' },
   { id: 'cancellations', label: 'Cancellations', iconName: 'close', category: 'subscriptions' },
   { id: 'renewal-requests', label: 'Renewal Requests', iconName: 'refresh', category: 'subscriptions' },
   { id: 'user-plans', label: 'User Plans', iconName: 'users', category: 'subscriptions' },
   { id: 'project-requests', label: 'Project Requests', iconName: 'document', category: 'projects' },
-  { id: 'users', label: 'Manage Users', iconName: 'user', category: 'management' },
-  { id: 'stats', label: 'Site Stats', iconName: 'chart', category: 'analytics' },
-  { id: 'notifications', label: 'Notifications', iconName: 'bell', category: 'management' },
-  { id: 'id-card', label: 'ID Card', iconName: 'creditCard', category: 'management' },
-  { id: 'agreements', label: 'Agreements', iconName: 'document', category: 'management' },
-  { id: 'plans', label: 'Plans', iconName: 'folder', category: 'content' },
-  { id: 'team', label: 'Team', iconName: 'users', category: 'content' },
-  { id: 'features', label: 'Features', iconName: 'sparkles', category: 'content' },
-  { id: 'services', label: 'Services', iconName: 'wrench', category: 'content' },
-  { id: 'client-work', label: 'Client Work', iconName: 'briefcase', category: 'content' },
-  { id: 'projects-content', label: 'Latest Projects', iconName: 'folder', category: 'content' },
+  { id: 'users', label: 'Manage Users', iconName: 'user', category: 'customers' },
+  { id: 'stats', label: 'Site Stats', iconName: 'chart', category: 'reports' },
+  { id: 'notifications', label: 'Notifications', iconName: 'bell', category: 'customers' },
+  { id: 'id-card', label: 'ID Card', iconName: 'creditCard', category: 'customers' },
+  { id: 'agreements', label: 'Agreements', iconName: 'document', category: 'customers' },
+  { id: 'plans', label: 'Plans', iconName: 'folder', category: 'website' },
+  { id: 'team', label: 'Team', iconName: 'users', category: 'website' },
+  { id: 'features', label: 'Features', iconName: 'sparkles', category: 'website' },
+  { id: 'services', label: 'Services', iconName: 'wrench', category: 'website' },
+  { id: 'client-work', label: 'Client Work', iconName: 'briefcase', category: 'website' },
+  { id: 'projects-content', label: 'Latest Projects', iconName: 'folder', category: 'website' },
   { id: 'contacts', label: 'Contacts', iconName: 'mail', category: 'communication' },
   { id: 'careers', label: 'Careers', iconName: 'briefcase', category: 'careers' },
   { id: 'career-applications', label: 'Career Applications', iconName: 'document', category: 'careers' },
   { id: 'promotional-email', label: 'Promotional Email', iconName: 'mail', category: 'communication' },
   { id: 'promotional-unsubscribed', label: 'Promotional Unsubscribed', iconName: 'close', category: 'communication' },
   { id: 'newsletter', label: 'Newsletter Subs', iconName: 'clipboard', category: 'communication' },
-  { id: 'payment-options', label: 'Payment Options', iconName: 'creditCard', category: 'settings' },
-  { id: 'coupons', label: 'Coupons', iconName: 'currency', category: 'settings' },
+  { id: 'payment-options', label: 'Payment Options', iconName: 'creditCard', category: 'finance' },
+  { id: 'coupons', label: 'Coupons', iconName: 'currency', category: 'finance' },
   { id: 'help', label: 'Help', iconName: 'help', category: 'support' },
 ];
 
 const categoryLabels = {
-  main: 'Main',
+  main: 'Overview',
+  finance: 'Finance & Billing',
   subscriptions: 'Subscriptions',
-  projects: 'Projects',
-  management: 'Management',
-  analytics: 'Analytics',
-  content: 'Content',
+  projects: 'Project Requests',
+  customers: 'Customers & Accounts',
+  reports: 'Reports & Analytics',
+  website: 'Website Content',
   communication: 'Communication',
-  careers: 'Careers',
+  careers: 'Careers & Hiring',
   settings: 'Settings',
-  support: 'Support'
+  support: 'Help & Support'
 };
 
 const AdminSidebar = ({ onLogout, activeTab, setActiveTab, onClose, userRole = 'admin' }) => {
@@ -75,15 +76,15 @@ const AdminSidebar = ({ onLogout, activeTab, setActiveTab, onClose, userRole = '
   const totalSections = Object.keys(groupedItems).length;
 
   return (
-    <div className="h-full min-h-0 w-[19rem] max-w-[100vw] bg-gradient-to-b from-slate-950 via-slate-900 to-slate-900 border-r border-slate-800/90 flex flex-col shadow-2xl overflow-hidden">
-      <div className="shrink-0 p-5 border-b border-slate-800/90">
+    <div className="h-full min-h-0 w-[18rem] max-w-[100vw] bg-white border-r border-slate-200 flex flex-col shadow-xl shadow-slate-900/5 overflow-hidden">
+      <div className="shrink-0 p-5 border-b border-slate-200">
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-accent-400 to-accent-600 flex items-center justify-center shadow-lg shadow-accent-900/40">
-            <Icon name="shield" className="w-6 h-6 text-slate-950" strokeWidth={2.2} />
+          <div className="w-11 h-11 rounded-xl bg-slate-100 flex items-center justify-center border border-slate-200">
+            <Icon name="shield" className="w-6 h-6 text-slate-700" strokeWidth={2.2} />
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="text-sm font-semibold text-white leading-tight">Control Console</h2>
-            <p className="text-xs text-slate-400">{isCoAdmin ? 'Co-Admin workspace' : 'Admin workspace'}</p>
+            <h2 className="text-sm font-semibold text-slate-900 leading-tight">Control Console</h2>
+            <p className="text-xs text-slate-500">{isCoAdmin ? 'Co-Admin workspace' : 'Admin workspace'}</p>
           </div>
           <button
             type="button"
@@ -94,38 +95,38 @@ const AdminSidebar = ({ onLogout, activeTab, setActiveTab, onClose, userRole = '
             <Icon name="close" className="w-5 h-5" />
           </button>
         </div>
-        <div className="rounded-xl border border-slate-700/70 bg-slate-800/60 px-3 py-2">
+        <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[11px] font-semibold tracking-wide text-slate-300 uppercase">
+            <span className="text-[11px] font-semibold tracking-wide text-slate-600 uppercase">
               {isCoAdmin ? 'Co-Admin Access' : 'Admin Access'}
             </span>
-            <span className="inline-flex items-center rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-semibold text-emerald-300">
+            <span className="inline-flex items-center rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
               Online
             </span>
           </div>
-          <p className="text-[11px] text-slate-400 mt-1">
+          <p className="text-[11px] text-slate-500 mt-1">
             {baseNavItems.length} modules across {totalSections} sections
           </p>
         </div>
       </div>
 
-      <div className="shrink-0 p-3 border-b border-slate-800/90">
+      <div className="shrink-0 p-3 border-b border-slate-200">
         <div className="relative">
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search menu…"
-            className="w-full px-3 py-2 pl-9 bg-slate-800/80 text-slate-200 placeholder-slate-500 border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent-500/60 focus:border-accent-500 text-sm"
+            className="w-full px-3 py-2.5 pl-9 bg-white text-slate-800 placeholder-slate-400 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 text-sm"
           />
-          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
+          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
             <Icon name="search" className="w-4 h-4" />
           </span>
           {searchTerm && (
             <button
               type="button"
               onClick={() => setSearchTerm('')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white p-1 rounded"
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1 rounded"
               aria-label="Clear search"
             >
               <Icon name="close" className="w-4 h-4" />
@@ -136,11 +137,11 @@ const AdminSidebar = ({ onLogout, activeTab, setActiveTab, onClose, userRole = '
 
       <nav className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-y-contain p-3">
         {Object.keys(groupedItems).length === 0 ? (
-          <div className="text-center py-8 text-slate-500 text-sm">No menu items found</div>
+          <div className="text-center py-8 text-slate-400 text-sm">No menu items found</div>
         ) : (
           Object.entries(groupedItems).map(([category, items]) => (
-            <div key={category} className="mb-5">
-              <h3 className="text-[10px] font-semibold text-slate-500 uppercase tracking-[0.16em] mb-2 px-3">
+            <div key={category} className="mb-4">
+              <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.16em] mb-2 px-3">
                 {categoryLabels[category] || category}
               </h3>
               {items.map(item => (
@@ -154,14 +155,14 @@ const AdminSidebar = ({ onLogout, activeTab, setActiveTab, onClose, userRole = '
                   className={`
                     group w-full flex items-center gap-3 px-3 py-2.5 mb-1 rounded-xl text-left transition-all duration-150 min-w-0
                     ${activeTab === item.id
-                      ? 'bg-gradient-to-r from-white to-slate-100 text-slate-900 font-semibold shadow-md ring-1 ring-white/30'
-                      : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'
+                      ? 'bg-sky-50 text-sky-800 font-semibold ring-1 ring-sky-100'
+                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                     }
                   `}
                 >
                   <span
                     className={`shrink-0 ${
-                      activeTab === item.id ? 'text-slate-900' : 'text-slate-400 group-hover:text-slate-100'
+                      activeTab === item.id ? 'text-sky-700' : 'text-slate-400 group-hover:text-slate-700'
                     }`}
                   >
                     <Icon name={item.iconName} className="w-5 h-5" strokeWidth={activeTab === item.id ? 2.25 : 1.75} />
@@ -174,11 +175,11 @@ const AdminSidebar = ({ onLogout, activeTab, setActiveTab, onClose, userRole = '
         )}
       </nav>
 
-      <div className="shrink-0 p-3 border-t border-slate-800/90 bg-slate-900/60">
+      <div className="shrink-0 p-3 border-t border-slate-200 bg-white">
         <button
           type="button"
           onClick={onLogout}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-red-500/15 hover:bg-red-500/25 text-red-300 rounded-xl font-medium transition-colors border border-red-500/25"
+          className="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-white hover:bg-red-50 text-slate-600 hover:text-red-700 rounded-xl font-semibold transition-colors border border-slate-200 hover:border-red-200"
         >
           <Icon name="logout" className="w-5 h-5" />
           <span>Logout</span>
