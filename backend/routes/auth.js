@@ -2999,7 +2999,7 @@ router.post("/admin/email-test", authMiddleware, coAdminMiddleware, async (req, 
   try {
     const email = String(req.body.email || "").trim().toLowerCase();
     if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) {
-      return res.status(400).json({ message: "Enter a valid test recipient email." });
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     }
     await sendEmail(
       email,
