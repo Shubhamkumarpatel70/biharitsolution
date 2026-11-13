@@ -38,6 +38,7 @@ import Terms from './pages/Terms';
 import Refund from './pages/Refund';
 import PublicIDCard from './pages/PublicIDCard';
 import UnsubscribeEmail from './pages/UnsubscribeEmail';
+import PrivacyCenter from './pages/PrivacyCenter';
 import { UserProvider, UserContext } from './UserContext';
 import axios from 'axios';
 
@@ -102,6 +103,7 @@ function AppContent() {
             <Route path='subscription' element={<Subscription />} />
             <Route path='purchases' element={<MyPurchases />} />
             <Route path='notifications' element={<Notifications />} />
+            <Route path='privacy' element={<PrivacyCenter />} />
           </Route>
           <Route path='/payment/:plan' element={<Payment />} />
           <Route path='/admin-dashboard/*' element={<AdminDashboard />}>
