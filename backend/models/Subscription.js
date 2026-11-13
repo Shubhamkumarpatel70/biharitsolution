@@ -24,6 +24,8 @@ const subscriptionSchema = new mongoose.Schema({
   cashfreeOrderId: { type: String, unique: true, sparse: true },
   paymentStatus: { type: String, default: 'pending' },
   amountPaid: { type: Number },
+  couponCode: { type: String, default: '' },
+  discountAmount: { type: Number, min: 0, default: 0 },
   durationDays: { type: Number },
   // Renewal request fields
   renewalRequested: { type: Boolean, default: false },
