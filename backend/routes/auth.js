@@ -1532,7 +1532,9 @@ router.post("/newsletter/unsubscribe", async (req, res) => {
       await NewsletterSubscriber.create({
         email: normalizedEmail,
         status: "unsubscribed",
+        consentedAt: null,
       });
+      await User.updateOne({ email: normalizedEmail }, { $set: { marketingConsent: false, marketingConsentAt: null, subscribeOffers: false } });
       return res.json({ message: "Unsubscribed successfully." });
     }
     if (subscriber.status === "unsubscribed") {
