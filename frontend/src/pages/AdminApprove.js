@@ -83,7 +83,7 @@ const AdminApprove = () => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 pb-20 lg:pb-6">
+    <div className="admin-redesign-page max-w-6xl mx-auto space-y-6 pb-20 lg:pb-6">
       <h2 className="text-2xl md:text-3xl font-bold text-success-500 mb-6">Approve Subscriptions</h2>
       
       <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">

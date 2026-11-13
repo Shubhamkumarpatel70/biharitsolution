@@ -80,7 +80,7 @@ const AdminCoupons = () => {
   };
 
   return (
-    <div style={{ color: '#E5E7EB', maxWidth: '900px', margin: '0 auto' }}>
+    <div className="admin-redesign-page" style={{ color: '#E5E7EB', maxWidth: '900px', margin: '0 auto' }}>
       <h2 style={{ color: '#2ECC71', fontWeight: 700, fontSize: '1.7rem', marginBottom: '1.2rem' }}>Coupons</h2>
       <form onSubmit={handleSubmit} style={{ background: '#23272F', borderRadius: '1rem', padding: '2rem', marginBottom: '2rem' }}>
         <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>

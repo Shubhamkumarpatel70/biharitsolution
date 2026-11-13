@@ -107,7 +107,7 @@ const AdminPaymentOptions = () => {
 
   if (loading) {
     return (
-      <div style={{ textAlign: 'center', padding: '2rem', color: '#E5E7EB' }}>
+    <div className="admin-redesign-page admin-redesign-page" style={{ textAlign: 'center', padding: '2rem', color: '#E5E7EB' }}>
         Loading payment options...
       </div>
     );

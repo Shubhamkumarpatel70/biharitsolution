@@ -105,7 +105,7 @@ const AdminApprovedPlans = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 pb-20 lg:pb-6">
+    <div className="admin-redesign-page max-w-7xl mx-auto space-y-6 pb-20 lg:pb-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
         <h2 className="text-2xl md:text-3xl font-bold text-success-500">Approved Plans</h2>
         {subscriptions.length > 0 && (

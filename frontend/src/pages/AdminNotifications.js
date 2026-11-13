@@ -64,7 +64,7 @@ const AdminNotifications = () => {
   };
 
   return (
-    <div style={{ maxWidth: 700, margin: '0 auto', color: '#E5E7EB' }}>
+    <div className="admin-redesign-page" style={{ maxWidth: 700, margin: '0 auto', color: '#E5E7EB' }}>
       <h2 style={{ color: '#2ECC71', fontWeight: 700, fontSize: '1.7rem', marginBottom: '1.2rem' }}>Notifications</h2>
       <div style={{ background: '#23272F', borderRadius: '1rem', padding: '2rem', marginBottom: '2rem' }}>
         <h4 style={{ color: '#2ECC71', marginBottom: '1rem' }}>Send Notification</h4>

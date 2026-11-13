@@ -55,7 +55,7 @@ const AdminRenewalRequests = () => {
   if (loading) return <div style={{ color: '#E5E7EB', textAlign: 'center', padding: '2rem' }}>Loading...</div>;
 
   return (
-    <div style={{ color: '#E5E7EB', maxWidth: '1200px', margin: '0 auto' }}>
+    <div className="admin-redesign-page" style={{ color: '#E5E7EB', maxWidth: '1200px', margin: '0 auto' }}>
       <h2 style={{ color: '#2ECC71', fontWeight: 700, fontSize: '1.7rem', marginBottom: '1.2rem' }}>
         Renewal Requests ({renewalRequests.length})
       </h2>
