@@ -6,6 +6,7 @@ const Notification = require("../models/Notification");
 const Subscription = require("../models/Subscription");
 const LoginCaptcha = require("../models/LoginCaptcha");
 const NewsletterSubscriber = require("../models/NewsletterSubscriber");
+const PrivacyConsentEvent = require("../models/PrivacyConsentEvent");
 const { parsePlanDurationDays } = require("../utils/planDuration");
 const Otp = require("../models/Otp");
 const { sendEmail } = require("../utils/email");
@@ -287,9 +288,15 @@ exports.registerUser = async (req, res) => {
       const normalizedEmail = String(email).trim().toLowerCase();
       await NewsletterSubscriber.findOneAndUpdate(
         { email: normalizedEmail },
-        { $set: { email: normalizedEmail, status: "subscribed", consentedAt: new Date() } },
+        { $set: { email: normalizedEmail, status: "subscribed", consentedAt: new Date(), consentSource: "registration-form", consentedBy: String(user._id) } },
         { upsert: true, new: true, setDefaultsOnInsert: true },
       );
+      await PrivacyConsentEvent.create({
+        user: user._id,
+        purpose: "marketing_emails",
+        action: "granted",
+        source: "registration-form"
+      });
     }
     const token = jwt.sign(
       { id: user._id, role: user.role },
