@@ -37,6 +37,6 @@ const paymentOptionSchema = new mongoose.Schema({
 
 // Index for efficient queries
 paymentOptionSchema.index({ isActive: 1, order: 1 });
-paymentOptionSchema.index({ upiId: 1 }, { unique: true, sparse: true });
+paymentOptionSchema.index({ upiId: 1 }, { unique: true });
 
 module.exports = mongoose.model('PaymentOption', paymentOptionSchema);
