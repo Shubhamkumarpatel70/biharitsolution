@@ -509,3 +509,70 @@
     font-size: 1rem;
   }
 }
+
+
+/* Neutral footer refinement: reduce the blue cast and keep brand color as an accent. */
+.footer {
+  background: #202832;
+  color: #f4f6f8;
+}
+
+.footer-gradient {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.025) 0%, rgba(255, 255, 255, 0.01) 100%);
+}
+
+.footer-pattern {
+  background-image:
+    radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.025) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.018) 0%, transparent 50%);
+}
+
+.logo-icon {
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.12));
+}
+
+.logo-text {
+  background: none;
+  color: #ffffff;
+  -webkit-text-fill-color: #ffffff;
+}
+
+.footer-title::after {
+  background: #8b98a7;
+}
+
+.footer-link::before,
+.footer-link:hover,
+.contact-label,
+.contact-value:hover,
+.brand-name {
+  color: #c5d0dc;
+}
+
+.footer-link:hover {
+  text-shadow: none;
+}
+
+.social-link:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.28);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.14);
+}
+
+.newsletter-input:focus {
+  border-color: #aeb9c5;
+  box-shadow: 0 0 0 3px rgba(174, 185, 197, 0.12);
+}
+
+.newsletter-btn:hover:not(:disabled) {
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.16);
+}
+
+.footer-bottom {
+  background: rgba(0, 0, 0, 0.18);
+  border-top-color: rgba(255, 255, 255, 0.09);
+}
+
+.footer-bottom-link:hover {
+  color: #e2e8ef;
+}
