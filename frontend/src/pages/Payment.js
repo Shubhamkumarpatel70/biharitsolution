@@ -33,21 +33,19 @@ const Payment = () => {
       try {
         // Fetch plans
         const plansRes = await axios.get('/api/auth/plans');
-        setPlans(plansRes.data.plans);
-        
-        // More flexible plan matching
-        const found = plansRes.data.plans.find(p => {
-          const planName = p.name.toLowerCase();
-          const urlPlan = plan.toLowerCase();
-          const cleanPlanName = planName.replace(/\s+/g, '');
-          const cleanUrlPlan = urlPlan.replace(/\s+/g, '');
-          
-          return planName === urlPlan || 
-                 cleanPlanName === cleanUrlPlan ||
-                 planName.includes(urlPlan) || 
-                 urlPlan.includes(planName);
+        const availablePlans = Array.isArray(plansRes.data?.plans) ? plansRes.data.plans : [];
+        setPlans(availablePlans);
+
+        // Match readable plan names and URL slugs, e.g. "Starter Plan" and "starter".
+        const normalizePlan = value => String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        const requestedPlan = normalizePlan(plan);
+        const found = availablePlans.find(p => {
+          const planName = normalizePlan(p?.name);
+          return planName === requestedPlan ||
+            planName.replace(/plan$/, '') === requestedPlan ||
+            requestedPlan.replace(/plan$/, '') === planName;
         });
-        
+
         if (found) {
           setAmount(found.price);
           setPlanObj(found);
