@@ -6,12 +6,12 @@ const paymentOptionSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
-  upiId: {
-    type: String,
-    required: true,
-    trim: true,
-    unique: true
-  },
+  upiId: { type: String, trim: true, default: "" },
+  accountName: { type: String, trim: true, default: "" },
+  accountNumber: { type: String, trim: true, default: "" },
+  ifscCode: { type: String, trim: true, uppercase: true, default: "" },
+  bankName: { type: String, trim: true, default: "" },
+  branch: { type: String, trim: true, default: "" },
   qrCode: {
     type: String, // URL to QR code image
     default: null
@@ -37,5 +37,6 @@ const paymentOptionSchema = new mongoose.Schema({
 
 // Index for efficient queries
 paymentOptionSchema.index({ isActive: 1, order: 1 });
+paymentOptionSchema.index({ upiId: 1 }, { unique: true, sparse: true });
 
 module.exports = mongoose.model('PaymentOption', paymentOptionSchema);
