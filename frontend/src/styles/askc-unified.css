@@ -93,3 +93,19 @@
 @media (prefers-reduced-motion: reduce) {
   .askc-public-shell *, .askc-navbar *, .askc-footer * { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
 }
+
+/* Functional page navigation and dashboard drawer motion */
+
+.askc-corporate-layout{display:grid;grid-template-columns:220px minmax(0,1fr);gap:30px;align-items:start}
+.askc-corporate-layout .askc-content-grid-sidebar{grid-template-columns:repeat(2,minmax(0,1fr))}
+.askc-corporate-layout .askc-content-grid-sidebar:has(> :only-child){grid-template-columns:minmax(0,1fr)}
+.askc-admin-overlay{animation:askc-overlay-in .22s ease both}
+.askc-admin-drawer{transition:transform .38s cubic-bezier(.22,.8,.25,1)!important;will-change:transform}
+.askc-admin-drawer nav button{transition:background .2s ease,color .2s ease,transform .2s ease,box-shadow .2s ease}
+.askc-admin-drawer nav button:hover{transform:translateX(2px)}
+.askc-admin-drawer nav button:focus-visible{outline:2px solid #f5c84b;outline-offset:2px}
+.askc-admin-drawer nav button[aria-current=page]{box-shadow:0 8px 22px rgba(0,0,0,.16),inset 3px 0 #e8b923}
+.askc-contact-page section[id],.askc-contact-page aside[id],.askc-contact-page form[id]{scroll-margin-top:112px}
+@keyframes askc-overlay-in{from{opacity:0}to{opacity:1}}
+@media(max-width:767px){.askc-corporate-layout{grid-template-columns:minmax(0,1fr);gap:18px}.askc-corporate-layout .askc-content-grid-sidebar{grid-template-columns:minmax(0,1fr)}}
+@media(prefers-reduced-motion:reduce){.askc-admin-overlay,.askc-admin-drawer,.askc-admin-drawer nav button{animation:none!important;transition-duration:.01ms!important}}
