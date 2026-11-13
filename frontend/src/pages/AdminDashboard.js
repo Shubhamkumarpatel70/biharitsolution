@@ -52,7 +52,7 @@ const AdminDashboard = () => {
   const activeLabel = activeItem?.label || 'Dashboard';
 
   useEffect(() => {
-    const openUserPlans = () => selectTab('user-plans');
+    const openUserPlans = () => { setActiveTab('user-plans'); setSidebarOpen(false); window.scrollTo({ top: 0, behavior: 'smooth' }); };
     window.addEventListener('askc-open-user-plans', openUserPlans);
     return () => window.removeEventListener('askc-open-user-plans', openUserPlans);
   }, []);
