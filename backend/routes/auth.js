@@ -4381,6 +4381,20 @@ router.get(
   }
 );
 
+// Exact-email account lookup avoids choosing from a long user dropdown.
+router.get("/admin/agreement-user-lookup", authMiddleware, coAdminMiddleware, async (req, res) => {
+  try {
+    const email = String(req.query.email || "").trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ message: "Enter a valid registered client email." });
+    const user = await User.findOne({ $expr: { $eq: [{ $toLower: "$email" }, email] }, role: "user" }).select("name email");
+    if (!user) return res.status(404).json({ message: "No registered user found with this email. Check the address or use manual client details." });
+    res.json({ user });
+  } catch (err) {
+    console.error("Agreement user lookup failed:", err);
+    res.status(500).json({ message: "Could not find the registered user." });
+  }
+});
+
 // Save a new agreement document for a client
 router.post(
   "/admin/agreements",
@@ -4394,7 +4408,8 @@ router.post(
       }
       let linkedUser = null;
       if (clientUserId) {
-        linkedUser = await User.findById(clientUserId).select("name email");
+        if (!/^[a-f0-9]{24}$/i.test(String(clientUserId))) return res.status(400).json({ message: "Invalid registered user ID." });
+        linkedUser = await User.findOne({ _id: clientUserId, role: "user" }).select("name email");
         if (!linkedUser) return res.status(404).json({ message: "Selected client account was not found." });
       } else if (clientEmail) {
         const normalizedClientEmail = String(clientEmail).trim().toLowerCase();
@@ -4406,14 +4421,15 @@ router.post(
       const agreement = await Agreement.create({
         clientUser: linkedUser?._id || null,
         clientName: linkedUser?.name || clientName,
-        clientEmail: linkedUser?.email || clientEmail || "",
+        clientEmail: linkedUser?.email || String(clientEmail || "").trim().toLowerCase(),
         clientCompany: clientCompany || "",
         documentType,
         documentTitle,
         htmlContent,
         notes: notes || "",
         docCode: docCode || "",
-        status: "draft",
+        status: linkedUser ? "sent" : "draft",
+        responseStatus: "pending",
       });
       if (linkedUser) {
         await createUserNotification(
@@ -4460,7 +4476,12 @@ router.get("/user-agreements", authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select("name email");
     if (!user) return res.status(404).json({ message: "User not found." });
-    const agreements = await Agreement.find({ $or: [{ clientUser: user._id }, { $expr: { $eq: [{ $toLower: "$clientEmail" }, String(user.email).toLowerCase()] } }, { $expr: { $eq: [{ $toLower: "$clientName" }, String(user.name).toLowerCase()] } }] }).select("-htmlContent").sort({ createdAt: -1 }).lean();
+    const agreements = await Agreement.find({
+      $or: [
+        { clientUser: user._id },
+        { clientUser: null, $expr: { $eq: [{ $toLower: "$clientEmail" }, String(user.email).toLowerCase()] } },
+      ],
+    }).select("-htmlContent").sort({ createdAt: -1 }).lean();
     res.json({ agreements });
   } catch (err) { res.status(500).json({ message: "Could not load your agreements." }); }
 });
@@ -4469,9 +4490,76 @@ router.get("/user-agreements/:id", authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select("name email");
     const agreement = await Agreement.findById(req.params.id);
-    if (!user || !agreement || (String(agreement.clientUser || "") !== String(user._id) && String(agreement.clientEmail || "").toLowerCase() !== String(user.email || "").toLowerCase() && String(agreement.clientName || "").toLowerCase() !== String(user.name || "").toLowerCase())) return res.status(404).json({ message: "Agreement not found." });
+    const belongs = user && agreement && (
+      String(agreement.clientUser || "") === String(user._id) ||
+      (!agreement.clientUser && String(agreement.clientEmail || "").toLowerCase() === String(user.email || "").toLowerCase())
+    );
+    if (!belongs) return res.status(404).json({ message: "Agreement not found." });
     res.json({ agreement });
   } catch (err) { res.status(500).json({ message: "Could not open agreement." }); }
+});
+
+router.post("/user-agreements/:id/respond", authMiddleware, async (req, res) => {
+  try {
+    const action = String(req.body.action || "").toLowerCase();
+    if (!["accept", "decline"].includes(action)) return res.status(400).json({ message: "Choose accept or decline." });
+    const user = await User.findById(req.user.id).select("name email role");
+    if (!user || user.role !== "user") return res.status(403).json({ message: "Only the assigned client can respond." });
+    const agreement = await Agreement.findById(req.params.id);
+    const belongs = agreement && (
+      String(agreement.clientUser || "") === String(user._id) ||
+      (!agreement.clientUser && String(agreement.clientEmail || "").toLowerCase() === String(user.email || "").toLowerCase())
+    );
+    if (!belongs) return res.status(404).json({ message: "Agreement not found for this account." });
+    if (agreement.responseStatus === "accepted" || agreement.responseStatus === "declined") {
+      return res.status(409).json({ message: "This agreement already has a recorded response." });
+    }
+
+    if (action === "accept") {
+      const place = String(req.body.place || "").trim().slice(0, 240);
+      if (!place) return res.status(400).json({ message: "Location is required to record acceptance. Allow location access or enter your place manually." });
+      const latitude = Number(req.body.latitude);
+      const longitude = Number(req.body.longitude);
+      const hasCoordinates = Number.isFinite(latitude) && Number.isFinite(longitude) && Math.abs(latitude) <= 90 && Math.abs(longitude) <= 180;
+      const acceptedAt = new Date();
+      const acceptedAtIST = new Intl.DateTimeFormat("en-IN", {
+        timeZone: "Asia/Kolkata", dateStyle: "full", timeStyle: "long", hour12: true,
+      }).format(acceptedAt);
+      const escapeHtml = (value) => String(value || "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
+      agreement.responseStatus = "accepted";
+      agreement.status = "accepted";
+      agreement.acceptedByName = user.name;
+      agreement.acceptedAt = acceptedAt;
+      agreement.acceptedAtIST = acceptedAtIST;
+      agreement.acceptedPlace = place;
+      agreement.acceptedTimezone = "Asia/Kolkata";
+      agreement.acceptedLatitude = hasCoordinates ? latitude : null;
+      agreement.acceptedLongitude = hasCoordinates ? longitude : null;
+      agreement.htmlContent += `<section style="margin:32px auto 0;max-width:760px;border-top:2px solid #163d70;padding:22px 8px;font-family:Arial,sans-serif;color:#172033"><h2 style="font-size:18px">Client electronic acceptance</h2><p>This agreement was accepted electronically by the registered client.</p><p><strong>Client name:</strong> ${escapeHtml(user.name)}</p><p><strong>Place:</strong> ${escapeHtml(place)}</p><p><strong>Date & time (IST):</strong> ${escapeHtml(acceptedAtIST)}</p><p><strong>Agreement ID:</strong> ${escapeHtml(agreement.docCode || agreement._id)}</p></section>`;
+    } else {
+      agreement.responseStatus = "declined";
+      agreement.status = "declined";
+      agreement.declinedByName = user.name;
+      agreement.declinedAt = new Date();
+      agreement.declineReason = String(req.body.reason || "").trim().slice(0, 1000);
+    }
+    await agreement.save();
+
+    const admins = await User.find({ role: { $in: ["admin", "coadmin"] } }).select("_id");
+    const responseLabel = action === "accept" ? "accepted" : "declined";
+    await Promise.all(admins.map(admin => createUserNotification(
+      admin._id,
+      `Agreement ${responseLabel}`,
+      `${user.name} ${responseLabel} "${agreement.documentTitle}" (${agreement.docCode || agreement._id}).${action === "accept" ? ` Place: ${agreement.acceptedPlace}. Time: ${agreement.acceptedAtIST}.` : ""}`,
+      "agreement",
+      `agreement:response:${agreement._id}:${responseLabel}`,
+      "/admin/agreements"
+    )));
+    res.json({ agreement, message: action === "accept" ? "Agreement accepted successfully." : "Agreement declined successfully." });
+  } catch (err) {
+    console.error("Agreement response failed:", err);
+    res.status(500).json({ message: "Could not record your agreement response." });
+  }
 });
 
 // Get all agreements (grouped by client)
