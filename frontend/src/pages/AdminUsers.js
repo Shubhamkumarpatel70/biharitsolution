@@ -255,7 +255,13 @@ const AdminUsers = () => {
                       <td className="p-3 border-b border-gray-700 min-w-[220px]">
                         <div className="space-y-1 text-xs">
                           <p className="font-bold text-white">{user.latestSubscription?.planName || 'No plan assigned'}</p>
-                          {user.latestSubscription && <p className="text-gray-400">Original ₹{Number(user.latestSubscription.totalAmount || 0).toLocaleString('en-IN')} · Discount ₹{Number(user.latestSubscription.discountAmount || 0).toLocaleString('en-IN')}</p><p className="text-gray-400">Coupon: {user.latestSubscription.couponCode || 'No coupon'} · Received ₹{Number(user.latestSubscription.amountPaid || 0).toLocaleString('en-IN')}</p><p className="text-gray-400 break-all">Transaction: {user.latestSubscription.transactionId || user.latestSubscription.cashfreeOrderId || '—'}</p>}
+                          {user.latestSubscription && (
+                            <>
+                              <p className="text-gray-400">Original ₹{Number(user.latestSubscription.totalAmount || 0).toLocaleString('en-IN')} · Discount ₹{Number(user.latestSubscription.discountAmount || 0).toLocaleString('en-IN')}</p>
+                              <p className="text-gray-400">Coupon: {user.latestSubscription.couponCode || 'No coupon'} · Received ₹{Number(user.latestSubscription.amountPaid || 0).toLocaleString('en-IN')}</p>
+                              <p className="text-gray-400 break-all">Transaction: {user.latestSubscription.transactionId || user.latestSubscription.cashfreeOrderId || '—'}</p>
+                            </>
+                          )}
                           <div className="flex flex-wrap gap-1">
                             <button onClick={() => openAssignPlan(user)} disabled={billingBusy === user._id} className="rounded-lg bg-blue-600 px-2 py-1.5 font-bold text-white disabled:opacity-50">{user.latestSubscription ? 'Change plan' : 'Assign plan'}</button>
                             {user.latestSubscription && <button onClick={() => recordPayment(user)} disabled={billingBusy === user._id} className="rounded-lg bg-emerald-600 px-2 py-1.5 font-bold text-white disabled:opacity-50">Add payment</button>}
