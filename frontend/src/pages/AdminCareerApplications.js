@@ -1,117 +1,22 @@
-import React, { useEffect, useState } from 'react';
+import React,{useEffect,useMemo,useState} from 'react';
 import axios from '../axios';
-import { Icon } from '../components/icons';
+import {Icon} from '../components/icons';
+import './AdminWorkspace.css';
 
-function AdminCareerApplications() {
-  const [applications, setApplications] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      setError('');
-      try {
-        const res = await axios.get('/api/auth/admin/career-applications');
-        setApplications(res.data.applications || []);
-      } catch {
-        setError('Could not load applications.');
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  }, []);
-
-  const extFromMime = (mime) => {
-    if (mime === 'application/pdf') return '.pdf';
-    if (mime === 'application/msword') return '.doc';
-    if (mime?.includes('wordprocessingml')) return '.docx';
-    return '';
-  };
-
-  return (
-    <div className="mx-auto w-full max-w-7xl space-y-5 px-1 sm:px-2">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-        <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-          <span className="w-10 h-10 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center">
-            <Icon name="document" className="w-5 h-5" />
-          </span>
-          Career applications
-        </h2>
-        <p className="text-sm text-slate-500">{applications.length} total</p>
-      </div>
-
-      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm"><div className="overflow-x-auto overscroll-x-contain">
-        {loading ? (
-          <div className="p-8 text-center text-slate-500 text-sm">Loading…</div>
-        ) : error ? (
-          <div className="p-8 text-center text-red-600 text-sm">{error}</div>
-        ) : applications.length === 0 ? (
-          <div className="p-8 text-center text-slate-500 text-sm">No applications yet.</div>
-        ) : (
-          <table className="w-full text-sm text-left min-w-[820px]">
-            <thead>
-              <tr className="border-b border-slate-200 bg-slate-50 text-slate-600 text-xs uppercase tracking-wide">
-                <th className="px-4 py-3 font-semibold">Role</th>
-                <th className="px-4 py-3 font-semibold">Name</th>
-                <th className="px-4 py-3 font-semibold">Email</th>
-                <th className="px-4 py-3 font-semibold">Phone</th>
-                <th className="px-4 py-3 font-semibold">City / State</th>
-                <th className="px-4 py-3 font-semibold">Resume</th>
-                <th className="px-4 py-3 font-semibold">Applied</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {applications.map((a) => {
-                const title = a.career?.title || '—';
-                const safeName = (a.resumeFileName || 'resume').replace(/[/\\?%*:|"<>]/g, '-');
-                const downloadName = safeName.includes('.') ? safeName : `${safeName}${extFromMime(a.resumeMimeType)}`;
-                return (
-                  <tr key={a._id} className="hover:bg-slate-50/80 text-slate-800">
-                    <td className="px-4 py-3 font-medium text-slate-900 max-w-[140px]">{title}</td>
-                    <td className="px-4 py-3">{a.name}</td>
-                    <td className="px-4 py-3">
-                      <a href={`mailto:${a.email}`} className="text-primary-600 hover:underline">
-                        {a.email}
-                      </a>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">{a.phone}</td>
-                    <td className="px-4 py-3">
-                      {a.city}, {a.state}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-col gap-1">
-                        <span className="text-xs text-slate-500 truncate max-w-[200px]" title={a.resumeFileName}>
-                          {a.resumeFileName}
-                        </span>
-                        {a.resumeData && (
-                          <a
-                            href={a.resumeData}
-                            download={downloadName}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-primary-600 font-semibold text-xs hover:underline w-fit"
-                          >
-                            <Icon name="download" className="w-3.5 h-3.5" />
-                            View / download
-                          </a>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-slate-500 whitespace-nowrap text-xs">
-                      {a.createdAt ? new Date(a.createdAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
-      </div>
-      </div>
-    </div>
-  );
+function AdminCareerApplications(){
+ const [applications,setApplications]=useState([]),[loading,setLoading]=useState(true),[error,setError]=useState(''),[search,setSearch]=useState('');
+ useEffect(()=>{const load=async()=>{setLoading(true);setError('');try{const r=await axios.get('/api/auth/admin/career-applications');setApplications(r.data.applications||[]);}catch(e){setError('Could not load applications.');}finally{setLoading(false);}};load();},[]);
+ const ext=mime=>mime==='application/pdf'?'.pdf':mime==='application/msword'?'.doc':mime?.includes('wordprocessingml')?'.docx':'';
+ const date=value=>value?new Date(value).toLocaleString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
+ const visible=useMemo(()=>{const q=search.trim().toLowerCase();return applications.filter(a=>!q||[a.name,a.email,a.phone,a.city,a.state,a.career?.title].join(' ').toLowerCase().includes(q));},[applications,search]);
+ const Resume=({a})=>{const safe=(a.resumeFileName||'resume').replace(/[/\\?%*:|"<>]/g,'-');const download=safe.includes('.')?safe:safe+ext(a.resumeMimeType);return a.resumeData?<a href={a.resumeData} download={download} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-bold text-blue-700 hover:bg-blue-100"><Icon name="download" className="h-4 w-4"/>View / download</a>:<span className="text-xs text-slate-400">Resume unavailable</span>;};
+ return <main className="askc-admin-page space-y-5 pb-20 lg:pb-8">
+  <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-xs font-bold uppercase tracking-[.16em] text-blue-700">Careers & hiring</p><h1 className="mt-1 flex items-center gap-2 text-2xl font-extrabold text-slate-900 sm:text-3xl"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-700"><Icon name="document" className="h-5 w-5"/></span>Career applications</h1><p className="mt-1 text-sm text-slate-500">{applications.length} applications received</p></div><div className="w-full sm:max-w-xs"><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search name, role, email or city…" aria-label="Search career applications" className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"/></div></header>
+  {error&&<div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>}
+  {loading?<div className="askc-admin-card py-16 text-center text-sm text-slate-500">Loading applications…</div>:visible.length===0?<div className="askc-admin-card py-14 text-center"><p className="font-semibold text-slate-800">{applications.length?'No matching applications':'No applications yet'}</p><p className="mt-1 text-sm text-slate-500">New career applications will appear here.</p></div>:<>
+   <section className="hidden overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm xl:block"><div className="overflow-x-auto"><table className="w-full min-w-[1000px] text-left text-sm"><thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr>{['Role','Applicant','Contact','Location','Resume','Applied'].map(h=><th key={h} className="px-4 py-3 font-semibold">{h}</th>)}</tr></thead><tbody className="divide-y divide-slate-100">{visible.map(a=><tr key={a._id} className="align-top hover:bg-slate-50/70"><td className="max-w-[180px] px-4 py-4 font-semibold text-slate-900">{a.career?.title||'—'}</td><td className="px-4 py-4"><p className="font-semibold text-slate-900">{a.name}</p><p className="mt-1 text-xs text-slate-500">{a.phone}</p></td><td className="max-w-[220px] break-all px-4 py-4"><a href={`mailto:${a.email}`} className="text-blue-700 hover:underline">{a.email}</a></td><td className="px-4 py-4 text-slate-600">{[a.city,a.state].filter(Boolean).join(', ')||'—'}</td><td className="px-4 py-4"><div className="space-y-2"><p className="max-w-[180px] truncate text-xs text-slate-500" title={a.resumeFileName}>{a.resumeFileName||'Resume'}</p><Resume a={a}/></div></td><td className="whitespace-nowrap px-4 py-4 text-xs text-slate-500">{date(a.createdAt)}</td></tr>)}</tbody></table></div></section>
+   <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:hidden">{visible.map(a=><article key={a._id} className="askc-admin-card min-w-0 p-4 sm:p-5"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="break-words text-xs font-bold uppercase tracking-wide text-blue-700">{a.career?.title||'Position not specified'}</p><h2 className="mt-1 break-words text-lg font-bold text-slate-900">{a.name}</h2></div><span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">Applicant</span></div><div className="mt-4 space-y-2 text-sm"><p className="break-all"><span className="text-slate-400">Email · </span><a href={`mailto:${a.email}`} className="font-medium text-blue-700 hover:underline">{a.email}</a></p><p><span className="text-slate-400">Phone · </span><a href={`tel:${a.phone}`} className="font-medium text-slate-700">{a.phone||'—'}</a></p><p className="break-words"><span className="text-slate-400">Location · </span><span className="font-medium text-slate-700">{[a.city,a.state].filter(Boolean).join(', ')||'—'}</span></p><p><span className="text-slate-400">Applied · </span><span className="font-medium text-slate-700">{date(a.createdAt)}</span></p></div><div className="mt-4 border-t border-slate-100 pt-3"><p className="mb-2 truncate text-xs text-slate-500" title={a.resumeFileName}>{a.resumeFileName||'Resume attachment'}</p><Resume a={a}/></div></article>)}</section>
+  </>}
+ </main>;
 }
-
 export default AdminCareerApplications;
