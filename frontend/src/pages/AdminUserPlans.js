@@ -37,8 +37,15 @@ const AdminUserPlans = () => {
             registeredAt: user.createdAt,
             plan: latest ? (latest.planName || latest.plan) : 'None',
             subscriptionId: latest?._id,
-            totalAmount: latest?.totalAmount || 0,
-            amountPaid: latest?.amountPaid || 0,
+            totalAmount: Number(latest?.totalAmount || 0),
+            discountAmount: Number(latest?.discountAmount || 0),
+            payableAmount: Math.max(0, Number(latest?.totalAmount || 0) - Number(latest?.discountAmount || 0)),
+            amountPaid: Array.isArray(latest?.paymentEntries) && latest.paymentEntries.some(entry => entry.status === 'confirmed')
+              ? latest.paymentEntries.filter(entry => entry.status === 'confirmed').reduce((sum, entry) => sum + Number(entry.amount || 0), 0)
+              : Number(latest?.amountPaid || 0),
+            couponCode: latest?.couponCode || '',
+            transactionId: latest?.transactionId || latest?.cashfreeOrderId || '',
+            uniqueId: latest?.uniqueId || '',
             createdAt: latest?.createdAt,
             cancellationReason: latest?.cancellationReason || '',
             canceled: Boolean(latest?.canceled),
@@ -71,7 +78,7 @@ const AdminUserPlans = () => {
       const allSubs = subsRes.data.subscriptions || [];
       setData((usersRes.data.users || []).map(account => {
         const latest = allSubs.filter(s => s.user && (s.user._id === account._id || s.user === account._id)).sort((a,b) => new Date(b.createdAt || 0)-new Date(a.createdAt || 0))[0];
-        return { id: account._id, name: account.name, email: account.email, registeredAt: account.createdAt, plan: latest ? (latest.planName || latest.plan) : 'None', subscriptionId: latest?._id, totalAmount: latest?.totalAmount || 0, amountPaid: latest?.amountPaid || 0, createdAt: latest?.createdAt, cancellationReason: latest?.cancellationReason || '', canceled: Boolean(latest?.canceled), expiresAt: latest?.expiresAt, status: latest ? (latest.canceled ? 'cancelled' : latest.status) : 'N/A' };
+        return { id: account._id, name: account.name, email: account.email, registeredAt: account.createdAt, plan: latest ? (latest.planName || latest.plan) : 'None', subscriptionId: latest?._id, totalAmount: Number(latest?.totalAmount || 0), discountAmount: Number(latest?.discountAmount || 0), payableAmount: Math.max(0, Number(latest?.totalAmount || 0) - Number(latest?.discountAmount || 0)), amountPaid: Array.isArray(latest?.paymentEntries) && latest.paymentEntries.some(entry => entry.status === 'confirmed') ? latest.paymentEntries.filter(entry => entry.status === 'confirmed').reduce((sum, entry) => sum + Number(entry.amount || 0), 0) : Number(latest?.amountPaid || 0), couponCode: latest?.couponCode || '', transactionId: latest?.transactionId || latest?.cashfreeOrderId || '', uniqueId: latest?.uniqueId || '', createdAt: latest?.createdAt, cancellationReason: latest?.cancellationReason || '', canceled: Boolean(latest?.canceled), expiresAt: latest?.expiresAt, status: latest ? (latest.canceled ? 'cancelled' : latest.status) : 'N/A' };
       }));
     } catch (err) { setError(err.response?.data?.message || 'Could not terminate subscription.'); }
     finally { setActionBusy(null); }
@@ -106,7 +113,7 @@ const AdminUserPlans = () => {
                 <tr>
                   <th className="px-4 py-3">Name</th><th className="px-4 py-3">Email</th>
                   <th className="px-4 py-3">Registered</th><th className="px-4 py-3">Plan</th>
-                  <th className="px-4 py-3">Status</th><th className="px-4 py-3">Plan / Payment</th><th className="px-4 py-3">Assigned At</th><th className="px-4 py-3">Expires At</th><th className="px-4 py-3">Action</th>
+                  <th className="px-4 py-3">Status</th><th className="px-4 py-3">Purchase / Payment details</th><th className="px-4 py-3">Assigned At</th><th className="px-4 py-3">Expires At</th><th className="px-4 py-3">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -117,7 +124,7 @@ const AdminUserPlans = () => {
                     <td className="px-4 py-3 whitespace-nowrap text-slate-500">{formatDateTime(user.registeredAt)}</td>
                     <td className="px-4 py-3 capitalize">{user.plan}</td>
                     <td className="px-4 py-3"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${statusClass(user.status)}`}>{user.status}</span></td>
-                    <td className="px-4 py-3 whitespace-nowrap"><div className="font-semibold">₹{Number(user.amountPaid).toLocaleString('en-IN')} / ₹{Number(user.totalAmount).toLocaleString('en-IN')}</div><div className="text-xs text-slate-500">Paid / Total</div></td>
+                    <td className="px-4 py-3 min-w-[220px]"><div className="space-y-1 text-xs"><div>Original: <b>₹{Number(user.totalAmount).toLocaleString('en-IN')}</b></div><div>Coupon: <b>{user.couponCode || 'No coupon'}</b></div><div>Discount: <b className="text-emerald-700">₹{Number(user.discountAmount).toLocaleString('en-IN')}</b></div><div>Payable: <b>₹{Number(user.payableAmount).toLocaleString('en-IN')}</b></div><div>Received: <b className="text-emerald-700">₹{Number(user.amountPaid).toLocaleString('en-IN')}</b></div><div className="break-all">Subscription: <b className="font-mono">{user.uniqueId || user.subscriptionId || '—'}</b></div><div className="break-all">Transaction: <b className="font-mono">{user.transactionId || '—'}</b></div></div></td>
                     <td className="px-4 py-3 whitespace-nowrap">{formatDateTime(user.createdAt)}</td>
                     <td className="px-4 py-3 whitespace-nowrap">{user.expiresAt ? formatDateTime(user.expiresAt) : '—'}</td>
                     <td className="px-4 py-3">{user.subscriptionId && !user.canceled && user.status !== 'expired' ? <button onClick={() => handleTerminate(user)} disabled={actionBusy === user.subscriptionId} className="whitespace-nowrap rounded-lg bg-rose-600 px-3 py-2 text-xs font-bold text-white hover:bg-rose-700 disabled:opacity-50">{actionBusy === user.subscriptionId ? 'Processing…' : 'Cancel / Terminate'}</button> : <span className="text-xs text-slate-400">No action</span>}</td>
@@ -135,7 +142,7 @@ const AdminUserPlans = () => {
                 </div>
                 <dl className="mt-4 grid grid-cols-2 gap-x-3 gap-y-3 text-sm">
                   <div><dt className="text-xs text-slate-500">Plan</dt><dd className="mt-1 font-medium">{user.plan}</dd></div>
-                  <div><dt className="text-xs text-slate-500">Paid / Total</dt><dd className="mt-1 font-medium">₹{Number(user.amountPaid).toLocaleString('en-IN')} / ₹{Number(user.totalAmount).toLocaleString('en-IN')}</dd></div>
+                  <div><dt className="text-xs text-slate-500">Original price</dt><dd className="mt-1 font-medium">₹{Number(user.totalAmount).toLocaleString('en-IN')}</dd></div><div><dt className="text-xs text-slate-500">Coupon / Discount</dt><dd className="mt-1 break-words font-medium">{user.couponCode || 'No coupon'} · ₹{Number(user.discountAmount).toLocaleString('en-IN')}</dd></div><div><dt className="text-xs text-slate-500">Payable / Received</dt><dd className="mt-1 font-medium">₹{Number(user.payableAmount).toLocaleString('en-IN')} / ₹{Number(user.amountPaid).toLocaleString('en-IN')}</dd></div><div className="col-span-2"><dt className="text-xs text-slate-500">Transaction ID</dt><dd className="mt-1 break-all font-mono text-xs">{user.transactionId || '—'}</dd></div><div className="col-span-2"><dt className="text-xs text-slate-500">Subscription ID</dt><dd className="mt-1 break-all font-mono text-xs">{user.uniqueId || user.subscriptionId || '—'}</dd></div>
                   <div className="col-span-2"><dt className="text-xs text-slate-500">Assigned at</dt><dd className="mt-1 font-medium">{formatDateTime(user.createdAt)}</dd></div>
                   <div><dt className="text-xs text-slate-500">Expires</dt><dd className="mt-1 font-medium">{user.expiresAt ? formatDateTime(user.expiresAt) : '—'}</dd></div>
                   <div className="col-span-2"><dt className="text-xs text-slate-500">Registered</dt><dd className="mt-1 font-medium">{formatDateTime(user.registeredAt)}</dd></div>
