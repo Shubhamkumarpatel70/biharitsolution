@@ -54,22 +54,16 @@ const AdminApprovedPlans = () => {
     }
   };
 
-  const getPlanPrice = (planEnum) => {
-    if (!plans.length) return 'N/A';
-    const planNameLower = planEnum.toLowerCase();
-    const plan = plans.find(p => {
-      const pName = p.name.toLowerCase();
-      if (planNameLower === 'starter' || planNameLower === 'basic') {
-        return pName.includes('starter') || pName.includes('basic');
-      } else if (planNameLower === 'premium') {
-        return pName.includes('premium');
-      } else if (planNameLower === 'pro') {
-        return pName.includes('pro');
-      }
-      return false;
-    });
-    return plan ? `₹${parseFloat(plan.price).toLocaleString('en-IN')}` : 'N/A';
+  const money = (value) => '₹' + Number(value || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 });
+
+  const getPaidAmount = (sub) => {
+    const confirmedEntries = Array.isArray(sub.paymentEntries)
+      ? sub.paymentEntries.filter(entry => entry.status === 'confirmed').reduce((sum, entry) => sum + Number(entry.amount || 0), 0)
+      : 0;
+    return confirmedEntries > 0 ? confirmedEntries : Number(sub.amountPaid || 0);
   };
+
+  const getPayableAmount = (sub) => Math.max(0, Number(sub.totalAmount || 0) - Number(sub.discountAmount || 0));
 
   const formatDate = (date) => {
     if (!date) return 'N/A';
@@ -82,27 +76,7 @@ const AdminApprovedPlans = () => {
     });
   };
 
-  const calculateTotalRevenue = () => {
-    let total = 0;
-    subscriptions.forEach(sub => {
-      const planNameLower = sub.plan.toLowerCase();
-      const plan = plans.find(p => {
-        const pName = p.name.toLowerCase();
-        if (planNameLower === 'starter' || planNameLower === 'basic') {
-          return pName.includes('starter') || pName.includes('basic');
-        } else if (planNameLower === 'premium') {
-          return pName.includes('premium');
-        } else if (planNameLower === 'pro') {
-          return pName.includes('pro');
-        }
-        return false;
-      });
-      if (plan) {
-        total += parseFloat(plan.price) || 0;
-      }
-    });
-    return total;
-  };
+  const calculateTotalRevenue = () => subscriptions.reduce((sum, sub) => sum + getPaidAmount(sub), 0);
 
   return (
     <div className="admin-redesign-page max-w-7xl mx-auto space-y-6 pb-20 lg:pb-6">
@@ -172,15 +146,35 @@ const AdminApprovedPlans = () => {
                     <div className="mb-2">
                       <span className="text-gray-400 text-sm">Plan:</span>
                       <span className="text-white ml-2 font-medium">
-                        {planDisplayNames[sub.plan] || sub.plan}
+                        {sub.planName || planDisplayNames[sub.plan] || sub.plan}
                       </span>
                       <span className="text-success-500 ml-2 font-semibold">
-                        ({getPlanPrice(sub.plan)})
+                        ({money(sub.totalAmount || 0)})
                       </span>
                     </div>
                     <div className="mb-2">
                       <span className="text-gray-400 text-sm">Subscription ID:</span>
-                      <span className="text-success-500 ml-2 font-mono text-sm">{sub.uniqueId}</span>
+                      <span className="text-success-500 ml-2 font-mono text-sm break-all">{sub.uniqueId || sub._id}</span>
+                    </div>
+                    <div className="mb-2">
+                      <span className="text-gray-400 text-sm">Original plan price:</span>
+                      <span className="text-white ml-2 font-semibold">{money(sub.totalAmount)}</span>
+                    </div>
+                    <div className="mb-2">
+                      <span className="text-gray-400 text-sm">Coupon:</span>
+                      <span className="text-white ml-2 font-semibold break-all">{sub.couponCode || 'No coupon'}</span>
+                    </div>
+                    <div className="mb-2">
+                      <span className="text-gray-400 text-sm">Discount:</span>
+                      <span className="text-emerald-400 ml-2 font-semibold">{money(sub.discountAmount)}</span>
+                    </div>
+                    <div className="mb-2">
+                      <span className="text-gray-400 text-sm">Payable after discount:</span>
+                      <span className="text-white ml-2 font-semibold">{money(getPayableAmount(sub))}</span>
+                    </div>
+                    <div className="mb-2">
+                      <span className="text-gray-400 text-sm">Amount received:</span>
+                      <span className="text-emerald-400 ml-2 font-semibold">{money(getPaidAmount(sub))}</span>
                     </div>
                     <div className="mb-2">
                       <span className="text-gray-400 text-sm">Status:</span>
@@ -195,16 +189,14 @@ const AdminApprovedPlans = () => {
                   </div>
                   
                   <div>
-                    {sub.transactionId && (
-                      <div className="mb-2">
-                        <span className="text-gray-400 text-sm">Transaction ID:</span>
-                        <span className="text-success-500 ml-2 font-mono text-sm">{sub.transactionId}</span>
-                      </div>
-                    )}
+                    <div className="mb-2">
+                      <span className="text-gray-400 text-sm">Transaction ID:</span>
+                      <span className="text-success-500 ml-2 font-mono text-sm break-all">{sub.transactionId || sub.cashfreeOrderId || 'Not available'}</span>
+                    </div>
                     <div className="mb-2">
                       <span className="text-gray-400 text-sm">Payment Method:</span>
                       <span className="text-white ml-2 font-medium">
-                        {sub.paymentMethod ? sub.paymentMethod.toUpperCase() : 'UPI'}
+                        {sub.paymentMethod ? sub.paymentMethod.toUpperCase() : '—'} · {sub.paymentStatus || sub.status || '—'}
                       </span>
                     </div>
                     <div className="mb-2">
