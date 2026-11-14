@@ -77,8 +77,14 @@ const MyPurchases = () => {
                 <li key={sub._id} className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 shadow-sm">
                   <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-3">
                     <div className="text-slate-800 text-sm sm:text-base space-y-1">
-                      <div><b>Plan:</b> {planDisplayNames[sub.plan]}</div>
-                      <div><b>Subscription ID:</b> {sub.uniqueId}</div>
+                      <div><b>Plan:</b> {sub.planName || planDisplayNames[sub.plan] || sub.plan || '—'}</div>
+                      <div className="break-all"><b>Subscription ID:</b> <span className="font-mono text-xs">{sub.uniqueId || sub._id}</span></div>
+                      <div><b>Plan price:</b> ₹{Number(sub.totalAmount || 0).toLocaleString('en-IN')}</div>
+                      {sub.couponCode && <div><b>Coupon:</b> <span className="font-semibold text-emerald-700">{sub.couponCode}</span></div>}
+                      {Number(sub.discountAmount || 0) > 0 && <div><b>Coupon discount:</b> <span className="font-semibold text-emerald-700">−₹{Number(sub.discountAmount).toLocaleString('en-IN')}</span></div>}
+                      <div><b>Payable amount:</b> ₹{Number(sub.amountPaid ?? Math.max(0, Number(sub.totalAmount || 0) - Number(sub.discountAmount || 0))).toLocaleString('en-IN')}</div>
+                      <div className="break-all"><b>Transaction ID:</b> <span className="font-mono text-xs">{sub.transactionId || sub.cashfreeOrderId || 'Pending'}</span></div>
+                      <div><b>Payment status:</b> <span className="capitalize">{sub.paymentStatus || '—'}</span></div>
                       <div><b>Status:</b> <span className={`font-bold ${sub.status === 'active' ? 'text-emerald-600' : 'text-orange-600'}`}>{sub.status}</span></div>
                       {cancellationApproved && (
                         <div style={{ color: '#FF6B35', fontWeight: 700, fontSize: '1rem', marginTop: '0.5rem' }}>
