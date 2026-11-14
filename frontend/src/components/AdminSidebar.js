@@ -12,7 +12,6 @@ export const adminNavItems = [
   { id: 'user-plans', label: 'User Plans', iconName: 'users', category: 'subscriptions' },
   { id: 'project-requests', label: 'Project Requests', iconName: 'document', category: 'projects' },
   { id: 'users', label: 'Manage Users', iconName: 'user', category: 'customers' },
-  { id: 'stats', label: 'Site Stats', iconName: 'chart', category: 'reports' },
   { id: 'notifications', label: 'Notifications', iconName: 'bell', category: 'customers' },
   { id: 'id-card', label: 'ID Card', iconName: 'creditCard', category: 'customers' },
   { id: 'agreements', label: 'Agreements', iconName: 'document', category: 'customers' },
