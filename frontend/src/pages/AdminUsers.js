@@ -161,7 +161,7 @@ const AdminUsers = () => {
   ];
 
   return (
-    <div className="admin-redesign-page text-gray-200 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+    <div className="askc-admin-page admin-redesign-page text-gray-200 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4 md:mb-0">
           <h2 className="text-success-500 font-black text-2xl sm:text-3xl">Manage Users</h2>
