@@ -13,6 +13,7 @@ import AdminStats from './AdminStats';
 import AdminNotifications from './AdminNotifications';
 import AdminPlans from './AdminPlans';
 import AdminFunds from './AdminFunds';
+import AdminRefunds from './AdminRefunds';
 import AdminContacts from './AdminContacts';
 import AdminRenewalRequests from './AdminRenewalRequests';
 import AdminNewsletter from './AdminNewsletter';
@@ -89,6 +90,7 @@ const AdminDashboard = () => {
       case 'home': return <AdminHome />;
       case 'approve': return <AdminApprove />;
       case 'funds': return <AdminFunds />;
+      case 'refunds': return isCoAdmin ? <AdminHome /> : <AdminRefunds />;
       case 'approved-plans': return <AdminApprovedPlans />;
       case 'cancellations': return <AdminCancellations />;
       case 'project-requests': return <AdminProjectRequests />;
