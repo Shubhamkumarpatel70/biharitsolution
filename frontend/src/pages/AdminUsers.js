@@ -254,7 +254,7 @@ const AdminUsers = () => {
                       </td>
                       <td className="p-3 border-b border-gray-700 min-w-[220px]">
                         <div className="space-y-1 text-xs">
-                          <p className="font-bold text-white">{user.latestSubscription?.planName || 'No plan assigned'}</p>
+                          <p className="font-bold text-white">{user.latestSubscription ? (user.latestSubscription.status === 'active' && !user.latestSubscription.canceled ? (user.latestSubscription.planName || user.latestSubscription.plan) : 'No active plan · Last: ' + (user.latestSubscription.planName || user.latestSubscription.plan)) : 'No active plan assigned'}</p>
                           <p className="text-gray-400">Original ₹{Number(user.latestSubscription?.totalAmount || 0).toLocaleString('en-IN')} · Discount ₹{Number(user.latestSubscription?.discountAmount || 0).toLocaleString('en-IN')}</p>
                           <p className="text-gray-400">Coupon: {user.latestSubscription?.couponCode || 'No coupon'} · Received ₹{Number(user.latestSubscription?.amountPaid || 0).toLocaleString('en-IN')}</p>
                           <p className="text-gray-400 break-all">Transaction: {user.latestSubscription?.transactionId || user.latestSubscription?.cashfreeOrderId || '—'}</p>
