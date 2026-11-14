@@ -1026,7 +1026,7 @@ router.post("/admin/users/:id/assign-plan", authMiddleware, adminMiddleware, asy
     const now = new Date();
     await Subscription.updateMany(
       { user: user._id, status: "active", canceled: { $ne: true } },
-      { $set: { status: "expired", canceled: true, cancellationReason: "Replaced by a newly assigned plan.", cancellationStatus: "approved", cancellationApprovedDate: now } }
+      { $set: { status: "expired", canceled: true, cancellationInitiatedBy: "askc", cancellationReason: "Replaced by a newly assigned plan.", cancellationStatus: "approved", cancellationApprovedDate: now, cancellationRequestDate: now } }
     );
     const uniqueId = "ASKC-ADM-" + Date.now() + "-" + require("crypto").randomBytes(3).toString("hex").toUpperCase();
     const sub = await Subscription.create({
