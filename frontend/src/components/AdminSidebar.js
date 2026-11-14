@@ -52,7 +52,7 @@ const categoryLabels = {
 const AdminSidebar = ({ onLogout, activeTab, setActiveTab, onClose, userRole = 'admin' }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const activeCategory = adminNavItems.find(item => item.id === activeTab)?.category || 'main';
-  const [expandedCategories, setExpandedCategories] = useState(() => new Set(['main', activeCategory]));
+  const [expandedCategories, setExpandedCategories] = useState(() => new Set(['main', 'finance', activeCategory]));
 
   useEffect(() => {
     setExpandedCategories(current => new Set([...current, activeCategory]));
