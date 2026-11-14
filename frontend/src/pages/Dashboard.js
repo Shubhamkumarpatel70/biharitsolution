@@ -29,6 +29,14 @@ function Dashboard() {
       });
   }, [navigate]);
 
+  // Lock background scrolling while the mobile navigation drawer is open.
+  useEffect(() => {
+    if (!sidebarOpen) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = previousOverflow; };
+  }, [sidebarOpen]);
+
   // Close the mobile drawer when the user presses Escape.
   useEffect(() => {
     if (!sidebarOpen) return undefined;
@@ -62,13 +70,13 @@ function Dashboard() {
           type="button"
           aria-label="Close dashboard menu"
           onClick={() => setSidebarOpen(false)}
-          className="fixed inset-x-0 top-14 bottom-0 z-[1900] bg-slate-950/55 lg:hidden"
+          className="fixed inset-0 z-[9998] bg-slate-950/65 backdrop-blur-[2px] lg:hidden"
         />
       )}
 
       <aside
         id="user-dashboard-sidebar"
-        className={`fixed top-14 bottom-0 left-0 z-[1901] h-auto max-h-[calc(100dvh-3.5rem)] w-[min(18rem,86vw)] transform transition-transform duration-300 ease-in-out lg:sticky lg:top-0 lg:bottom-auto lg:z-auto lg:h-dvh lg:max-h-dvh lg:w-[15.5rem] lg:shrink-0 lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-[9999] h-dvh max-h-dvh w-[min(19rem,88vw)] transform transition-transform duration-300 ease-in-out shadow-2xl shadow-slate-950/30 will-change-transform lg:sticky lg:top-0 lg:inset-y-auto lg:z-auto lg:h-dvh lg:max-h-dvh lg:w-[15.5rem] lg:shrink-0 lg:translate-x-0 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
