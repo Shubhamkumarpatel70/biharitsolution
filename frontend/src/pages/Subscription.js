@@ -123,22 +123,51 @@ const Subscription = () => {
               <span className="font-semibold text-slate-600">Current Plan:</span>
               <span className="text-slate-900 text-lg">{subscription.planName || planDisplayNames[subscription.plan] || subscription.plan}</span>
             </div>
-            {subscription.totalAmount > 0 && (
-              <>
-                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                  <span className="font-semibold text-slate-600">Total Plan Amount:</span>
-                  <span className="font-bold text-slate-900">₹{Number(subscription.totalAmount).toLocaleString('en-IN')}</span>
-                </div>
-                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                  <span className="font-semibold text-slate-600">Amount Paid:</span>
-                  <span className="font-bold text-emerald-700">₹{Number(subscription.amountPaid || 0).toLocaleString('en-IN')}</span>
-                </div>
-                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                  <span className="font-semibold text-slate-600">Remaining Balance:</span>
-                  <span className="font-bold text-amber-700">₹{Math.max(0, Number(subscription.totalAmount || 0) - Number(subscription.amountPaid || 0)).toLocaleString('en-IN')}</span>
-                </div>
-              </>
-            )}
+            {subscription.totalAmount > 0 && (() => {
+              const originalAmount = Number(subscription.totalAmount || 0);
+              const discountAmount = Math.min(originalAmount, Math.max(0, Number(subscription.discountAmount || 0)));
+              const payableAmount = Math.max(0, originalAmount - discountAmount);
+              const confirmedEntries = Array.isArray(subscription.paymentEntries)
+                ? subscription.paymentEntries.filter(entry => entry.status === 'confirmed').reduce((sum, entry) => sum + Number(entry.amount || 0), 0)
+                : 0;
+              const isPaymentConfirmed = subscription.status === 'active' || subscription.paymentStatus === 'paid';
+              const amountPaid = isPaymentConfirmed
+                ? Number(subscription.amountPaid || confirmedEntries || 0)
+                : confirmedEntries;
+              const remainingBalance = Math.max(0, payableAmount - amountPaid);
+              return (
+                <>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                    <span className="font-semibold text-slate-600">Original Plan Amount:</span>
+                    <span className="font-bold text-slate-900">₹{originalAmount.toLocaleString('en-IN')}</span>
+                  </div>
+                  {subscription.couponCode && (
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                      <span className="font-semibold text-slate-600">Coupon Applied:</span>
+                      <span className="font-bold text-emerald-700">{subscription.couponCode}</span>
+                    </div>
+                  )}
+                  {discountAmount > 0 && (
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                      <span className="font-semibold text-slate-600">Coupon Discount:</span>
+                      <span className="font-bold text-emerald-700">−₹{discountAmount.toLocaleString('en-IN')}</span>
+                    </div>
+                  )}
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                    <span className="font-semibold text-slate-600">Payable After Discount:</span>
+                    <span className="font-bold text-slate-900">₹{payableAmount.toLocaleString('en-IN')}</span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                    <span className="font-semibold text-slate-600">Amount Paid:</span>
+                    <span className="font-bold text-emerald-700">₹{amountPaid.toLocaleString('en-IN')}</span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                    <span className="font-semibold text-slate-600">Remaining Balance:</span>
+                    <span className="font-bold text-amber-700">₹{remainingBalance.toLocaleString('en-IN')}</span>
+                  </div>
+                </>
+              );
+            })()}
             <div className="flex flex-col sm:flex-row sm:items-center gap-2">
               <span className="font-semibold text-slate-600">Status:</span>
               <span className={`font-bold ${
