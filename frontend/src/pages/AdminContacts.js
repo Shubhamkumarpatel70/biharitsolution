@@ -45,9 +45,9 @@ const AdminContacts = () => {
   };
 
   return (
-    <div className="admin-redesign-page" style={{ color: '#E5E7EB', maxWidth: '900px', margin: '0 auto' }}>
-      <h2 style={{ color: '#2ECC71', fontWeight: 700, fontSize: '1.7rem', marginBottom: '1.2rem' }}>User Contacts</h2>
-      <div style={{ background: '#23272F', borderRadius: '1rem', padding: '2rem', boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}>
+    <div className="admin-redesign-page mx-auto w-full max-w-7xl space-y-5 px-1 text-slate-800 sm:px-2">
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-xs font-bold uppercase tracking-widest text-sky-600">Communication centre</p><h2 className="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">Contact messages</h2><p className="mt-1 text-sm text-slate-500">Review enquiries and track read status.</p></div><div className="flex gap-2 text-xs font-semibold"><span className="rounded-full bg-slate-100 px-3 py-2 text-slate-700">{contacts.length} total</span><span className="rounded-full bg-amber-50 px-3 py-2 text-amber-800">{contacts.filter(c => !c.read).length} unread</span></div></div>
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         {loading ? (
           <div>Loading...</div>
         ) : error ? (
@@ -55,36 +55,36 @@ const AdminContacts = () => {
         ) : contacts.length === 0 ? (
           <div>No contacts found.</div>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse', color: '#E5E7EB' }}>
+          <div className="overflow-x-auto"><table className="w-full min-w-[850px] border-collapse text-left text-sm text-slate-700">
             <thead>
-              <tr style={{ background: '#181A20' }}>
-                <th style={{ padding: '0.7rem', borderBottom: '1px solid #333' }}>Name</th>
-                <th style={{ padding: '0.7rem', borderBottom: '1px solid #333' }}>Email</th>
-                <th style={{ padding: '0.7rem', borderBottom: '1px solid #333' }}>Message</th>
-                <th style={{ padding: '0.7rem', borderBottom: '1px solid #333' }}>Submitted</th>
-                <th style={{ padding: '0.7rem', borderBottom: '1px solid #333' }}>Status</th>
-                <th style={{ padding: '0.7rem', borderBottom: '1px solid #333' }}>Actions</th>
+              <tr className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                <th className="px-4 py-3">Name</th>
+                <th className="px-4 py-3">Email</th>
+                <th className="px-4 py-3">Message</th>
+                <th className="px-4 py-3">Submitted</th>
+                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">Actions</th>
               </tr>
             </thead>
             <tbody>
               {contacts.map(contact => (
-                <tr key={contact._id} style={{ background: contact.read ? '#1a3320' : '#331a1a', color: contact.read ? '#2ECC71' : '#FF6B35' }}>
-                  <td style={{ padding: '0.7rem', borderBottom: '1px solid #333' }}>{contact.name}</td>
-                  <td style={{ padding: '0.7rem', borderBottom: '1px solid #333' }}>{contact.email}</td>
-                  <td style={{ padding: '0.7rem', borderBottom: '1px solid #333' }}>{contact.message}</td>
-                  <td style={{ padding: '0.7rem', borderBottom: '1px solid #333' }}>{new Date(contact.createdAt).toLocaleString()}</td>
-                  <td style={{ padding: '0.7rem', borderBottom: '1px solid #333', fontWeight: 700 }}>{contact.read ? 'Read' : 'Unread'}</td>
-                  <td style={{ padding: '0.7rem', borderBottom: '1px solid #333' }}>
+                <tr key={contact._id} className="border-t border-slate-100 align-top hover:bg-slate-50">
+                  <td className="px-4 py-3">{contact.name}</td>
+                  <td className="px-4 py-3">{contact.email}</td>
+                  <td className="px-4 py-3">{contact.message}</td>
+                  <td className="px-4 py-3">{new Date(contact.createdAt).toLocaleString()}</td>
+                  <td className="px-4 py-3 font-semibold">{contact.read ? 'Read' : 'Unread'}</td>
+                  <td className="px-4 py-3">
                     {contact.read ? (
-                      <button onClick={() => handleMarkUnread(contact._id)} style={{ background: '#FF6B35', color: '#fff', border: 'none', borderRadius: '0.3rem', padding: '0.3rem 0.8rem', cursor: 'pointer' }}>Mark as Unread</button>
+                      <button onClick={() => handleMarkUnread(contact._id)} className="rounded-lg bg-slate-700 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-900">Mark as Unread</button>
                     ) : (
-                      <button onClick={() => handleMarkRead(contact._id)} style={{ background: '#2ECC71', color: '#181A20', border: 'none', borderRadius: '0.3rem', padding: '0.3rem 0.8rem', cursor: 'pointer' }}>Mark as Read</button>
+                      <button onClick={() => handleMarkRead(contact._id)} className="rounded-lg bg-sky-600 px-3 py-2 text-xs font-semibold text-white hover:bg-sky-700">Mark as Read</button>
                     )}
                   </td>
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         )}
       </div>
     </div>
