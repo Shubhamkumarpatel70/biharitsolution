@@ -382,12 +382,52 @@ router.post("/cashfree/webhook", async (req, res) => {
   }
 });
 
+// Keep one subscription purchase in progress per user. Expired/cancelled plans
+// are made inactive before checking whether another purchase is allowed.
+async function getSubscriptionPurchaseBlocker(userId) {
+  const now = new Date();
+  await Subscription.updateMany(
+    { user: userId, status: "active", canceled: { $ne: true }, expiresAt: { $ne: null, $lte: now } },
+    { $set: { status: "expired" } }
+  );
+  return Subscription.findOne({
+    user: userId,
+    canceled: { $ne: true },
+    $or: [
+      { status: "active", $or: [{ expiresAt: null }, { expiresAt: { $gt: now } }] },
+      { status: "pending" }
+    ]
+  }).sort({ createdAt: -1 });
+}
+
+function subscriptionPurchaseBlockedResponse(res, subscription) {
+  const isPending = subscription.status === "pending";
+  const planName = subscription.planName || subscription.plan || "current";
+  const expiresText = subscription.expiresAt
+    ? new Date(subscription.expiresAt).toLocaleDateString("en-IN")
+    : "";
+  return res.status(409).json({
+    code: isPending ? "SUBSCRIPTION_PURCHASE_PENDING" : "ACTIVE_SUBSCRIPTION_EXISTS",
+    message: isPending
+      ? `Your ${planName} plan purchase is already pending. Please wait for payment verification or contact ASKC TECHNOLOGIES before starting another purchase.`
+      : `You already have an active ${planName} plan${expiresText ? ` until ${expiresText}` : ""}. You can purchase another plan only after this subscription expires or becomes inactive.`,
+    subscription: {
+      planName,
+      status: subscription.status,
+      uniqueId: subscription.uniqueId,
+      expiresAt: subscription.expiresAt || null
+    }
+  });
+}
+
 router.post("/cashfree/create-order", authMiddleware, async (req, res) => {
   try {
     if (await getCheckoutPaymentMode() !== "cashfree") {
       return res.status(403).json({ message: "Online checkout is currently disabled. Please use the payment method configured by ASKC Technologies." });
     }
     const { plan, phone, couponCode } = req.body || {};
+    const purchaseBlocker = await getSubscriptionPurchaseBlocker(req.user.id);
+    if (purchaseBlocker) return subscriptionPurchaseBlockedResponse(res, purchaseBlocker);
     const cleanPhone = String(phone || "").replace(/\D/g, "").slice(-10);
     if (!plan || !/^\d{10}$/.test(cleanPhone)) {
       return res.status(400).json({ message: "Select a plan and enter a valid 10-digit mobile number." });
@@ -584,6 +624,8 @@ router.post(
     // Get data from FormData (req.body) or JSON (req.body)
     let { plan, transactionId, method, couponCode } = req.body;
     const paymentImage = req.file;
+    const purchaseBlocker = await getSubscriptionPurchaseBlocker(req.user.id);
+    if (purchaseBlocker) return subscriptionPurchaseBlockedResponse(res, purchaseBlocker);
 
     // Debug: Log the entire request
     console.log("Subscription request body:", req.body);
