@@ -936,9 +936,12 @@ router.get(
       }
 
       if (search) {
-        query.$or = [
-          { uniqueId: { $regex: search, $options: "i" } },
-          { transactionId: { $regex: search, $options: "i" } },
+        query.$and = [
+          ...(query.$and || []),
+          { $or: [
+            { uniqueId: { $regex: search, $options: "i" } },
+            { transactionId: { $regex: search, $options: "i" } },
+          ] }
         ];
       }
 
@@ -2429,9 +2432,12 @@ router.get(
       }
 
       if (search) {
-        query.$or = [
-          { uniqueId: { $regex: search, $options: "i" } },
-          { transactionId: { $regex: search, $options: "i" } },
+        query.$and = [
+          ...(query.$and || []),
+          { $or: [
+            { uniqueId: { $regex: search, $options: "i" } },
+            { transactionId: { $regex: search, $options: "i" } },
+          ] }
         ];
       }
 
