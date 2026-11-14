@@ -913,13 +913,26 @@ router.get(
   async (req, res) => {
     try {
       const { status, search } = req.query;
-      let query = {
-        status: { $in: ["active", "expired"] },
-        cancellationStatus: { $ne: "approved" }, // Exclude cancelled subscriptions
-      };
+      const now = new Date();
+      // Keep the stored status in sync with the expiry date before listing.
+      await Subscription.updateMany(
+        { status: "active", canceled: { $ne: true }, expiresAt: { $ne: null, $lte: now } },
+        { $set: { status: "expired" } }
+      );
 
-      if (status && status !== "all") {
-        query.status = status;
+      let query = { status: { $in: ["active", "expired"] } };
+      if (status === "cancelled") {
+        query = { $or: [{ canceled: true }, { cancellationStatus: "approved" }] };
+      } else if (status === "active") {
+        query = { status: "active", canceled: { $ne: true }, cancellationStatus: { $ne: "approved" } };
+      } else if (status === "expired") {
+        query = { status: "expired", canceled: { $ne: true }, cancellationStatus: { $ne: "approved" } };
+      } else if (!status || status === "all") {
+        query = { $or: [
+          { status: { $in: ["active", "expired"] }, canceled: { $ne: true }, cancellationStatus: { $ne: "approved" } },
+          { canceled: true },
+          { cancellationStatus: "approved" }
+        ] };
       }
 
       if (search) {
@@ -2393,13 +2406,26 @@ router.get(
   async (req, res) => {
     try {
       const { status, search } = req.query;
-      let query = {
-        status: { $in: ["active", "expired"] },
-        cancellationStatus: { $ne: "approved" }, // Exclude cancelled subscriptions
-      };
+      const now = new Date();
+      // Keep the stored status in sync with the expiry date before listing.
+      await Subscription.updateMany(
+        { status: "active", canceled: { $ne: true }, expiresAt: { $ne: null, $lte: now } },
+        { $set: { status: "expired" } }
+      );
 
-      if (status && status !== "all") {
-        query.status = status;
+      let query = { status: { $in: ["active", "expired"] } };
+      if (status === "cancelled") {
+        query = { $or: [{ canceled: true }, { cancellationStatus: "approved" }] };
+      } else if (status === "active") {
+        query = { status: "active", canceled: { $ne: true }, cancellationStatus: { $ne: "approved" } };
+      } else if (status === "expired") {
+        query = { status: "expired", canceled: { $ne: true }, cancellationStatus: { $ne: "approved" } };
+      } else if (!status || status === "all") {
+        query = { $or: [
+          { status: { $in: ["active", "expired"] }, canceled: { $ne: true }, cancellationStatus: { $ne: "approved" } },
+          { canceled: true },
+          { cancellationStatus: "approved" }
+        ] };
       }
 
       if (search) {
