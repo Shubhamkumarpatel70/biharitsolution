@@ -64,6 +64,11 @@ const AdminApprovedPlans = () => {
   };
 
   const getPayableAmount = (sub) => Math.max(0, Number(sub.totalAmount || 0) - Number(sub.discountAmount || 0));
+  const getDisplayStatus = (sub) => {
+    if (sub.canceled || sub.cancellationStatus === 'approved') return 'cancelled';
+    if (sub.status === 'expired' || (sub.expiresAt && new Date(sub.expiresAt).getTime() <= Date.now())) return 'expired';
+    return sub.status;
+  };
 
   const formatDate = (date) => {
     if (!date) return 'N/A';
@@ -105,6 +110,7 @@ const AdminApprovedPlans = () => {
               <option value="all">All Statuses</option>
               <option value="active">Active</option>
               <option value="expired">Expired</option>
+              <option value="cancelled">Cancelled</option>
             </select>
           </div>
           
@@ -179,11 +185,13 @@ const AdminApprovedPlans = () => {
                     <div className="mb-2">
                       <span className="text-gray-400 text-sm">Status:</span>
                       <span className={`ml-2 px-3 py-1 rounded-full text-sm font-semibold ${
-                        sub.status === 'active' 
-                          ? 'text-green-600 bg-green-100' 
-                          : 'text-red-600 bg-red-100'
+                        getDisplayStatus(sub) === 'active' ? 'text-green-700 bg-green-100' :
+                        getDisplayStatus(sub) === 'cancelled' ? 'text-amber-800 bg-amber-100' :
+                        'text-red-700 bg-red-100'
                       }`}>
-                        {sub.status === 'active' ? '✅ Active' : '⏰ Expired'}
+                        {getDisplayStatus(sub) === 'cancelled' ? '✖ Cancelled' :
+                          getDisplayStatus(sub) === 'expired' ? '⏰ Expired' :
+                          getDisplayStatus(sub) === 'active' ? '✅ Active' : (sub.status || 'Unknown')}
                       </span>
                     </div>
                   </div>
