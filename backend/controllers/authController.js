@@ -672,6 +672,7 @@ exports.cancelUserSubscription = async (req, res) => {
 
     // Set cancellation status to pending (not immediately canceled)
     sub.cancellationStatus = "pending";
+    sub.cancellationInitiatedBy = "user";
     sub.cancellationReason = reason.trim();
     sub.cancellationRequestDate = new Date();
     await sub.save();
