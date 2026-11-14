@@ -546,14 +546,14 @@ const AdminTeam = () => {
                 <div className="flex space-x-2 self-end sm:self-auto">
                   <button
                     onClick={() => handleEdit(member)}
-                    className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-lg transition-colors text-sm"
+                    className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700 shadow-sm transition hover:border-blue-300 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
                     title="Edit"
                   >
                     ✏️
                   </button>
                   <button
                     onClick={() => handleDelete(member._id)}
-                    className="bg-red-600 hover:bg-red-700 text-white p-2 rounded-lg transition-colors text-sm"
+                    className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700 shadow-sm transition hover:border-rose-300 hover:bg-rose-100 focus:outline-none focus:ring-2 focus:ring-rose-400"
                     title="Delete"
                   >
                     🗑️
