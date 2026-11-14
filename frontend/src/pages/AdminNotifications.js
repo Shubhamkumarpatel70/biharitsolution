@@ -1,98 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React,{useCallback,useEffect,useMemo,useState} from 'react';
 import axios from '../axios';
-
-const AdminNotifications = () => {
-  const [notifications, setNotifications] = useState([]);
-  const [form, setForm] = useState('');
-  const [sendMsg, setSendMsg] = useState('');
-  const [error, setError] = useState('');
-  const [users, setUsers] = useState([]);
-  const [selectedUser, setSelectedUser] = useState('');
-  const [autoMsg, setAutoMsg] = useState('');
-
-  const fetchNotifications = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const res = await axios.get('/api/auth/admin/notifications', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setNotifications(res.data.notifications);
-    } catch {
-      setError('Could not fetch notifications.');
-    }
-  };
-
-  const fetchUsers = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const res = await axios.get('/api/auth/admin/users', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setUsers(res.data.users);
-    } catch {}
-  };
-
-  useEffect(() => { fetchNotifications(); fetchUsers(); }, []);
-
-  const sendNotification = async () => {
-    setSendMsg('');
-    try {
-      const token = localStorage.getItem('token');
-      await axios.post('/api/auth/admin/notifications', { message: form, userId: selectedUser }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setSendMsg('Notification sent!');
-      setForm('');
-      setSelectedUser('');
-      fetchNotifications();
-    } catch {
-      setSendMsg('Could not send notification.');
-    }
-  };
-
-  const autoSendExpiryNotifications = async () => {
-    setAutoMsg('');
-    try {
-      const token = localStorage.getItem('token');
-      await axios.post('/api/auth/admin/auto-expiry-notifications', {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setAutoMsg('Auto notifications sent to users with expiring plans!');
-    } catch {
-      setAutoMsg('Could not send auto notifications.');
-    }
-  };
-
-  return (
-    <div className="admin-redesign-page" style={{ maxWidth: 700, margin: '0 auto', color: '#E5E7EB' }}>
-      <h2 style={{ color: '#2ECC71', fontWeight: 700, fontSize: '1.7rem', marginBottom: '1.2rem' }}>Notifications</h2>
-      <div style={{ background: '#23272F', borderRadius: '1rem', padding: '2rem', marginBottom: '2rem' }}>
-        <h4 style={{ color: '#2ECC71', marginBottom: '1rem' }}>Send Notification</h4>
-        <textarea value={form} onChange={e => setForm(e.target.value)} placeholder="Enter notification message" style={{ width: '100%', minHeight: 60, marginBottom: '0.7rem', borderRadius: '0.5rem', border: '1px solid #333', background: '#181A20', color: '#E5E7EB', padding: '0.7rem' }} />
-        <select value={selectedUser} onChange={e => setSelectedUser(e.target.value)} style={{ width: '100%', marginBottom: '0.7rem', padding: '0.7rem', borderRadius: '0.5rem', border: '1px solid #333', background: '#181A20', color: '#E5E7EB' }}>
-          <option value="">Send to all users</option>
-          {users.map(u => <option key={u._id} value={u._id}>{u.name} ({u.email})</option>)}
-        </select>
-        <button onClick={sendNotification} style={{ background: '#2ECC71', color: '#181A20', border: 'none', borderRadius: '0.5rem', padding: '0.7rem 1.5rem', fontWeight: 700, fontSize: '1rem', cursor: 'pointer', marginRight: '0.7rem' }}>Send</button>
-        {sendMsg && <span style={{ color: '#2ECC71', marginLeft: '1rem' }}>{sendMsg}</span>}
-      </div>
-      <div style={{ background: '#23272F', borderRadius: '1rem', padding: '2rem', marginBottom: '2rem' }}>
-        <h4 style={{ color: '#2ECC71', marginBottom: '1rem' }}>Auto Plan Expiry Notifications</h4>
-        <button onClick={autoSendExpiryNotifications} style={{ background: '#FF6B35', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.7rem 1.5rem', fontWeight: 700, fontSize: '1rem', cursor: 'pointer', marginRight: '0.7rem' }}>Send to users with 2 days left</button>
-        {autoMsg && <span style={{ color: '#2ECC71', marginLeft: '1rem' }}>{autoMsg}</span>}
-      </div>
-      <h4 style={{ color: '#2ECC71', marginBottom: '1rem' }}>All Notifications</h4>
-      {error && <div style={{ color: '#FF6B35', marginBottom: '1rem' }}>{error}</div>}
-      <div style={{ background: '#23272F', borderRadius: '1rem', padding: '1.2rem', maxHeight: 300, overflowY: 'auto' }}>
-        {notifications.length === 0 ? <div style={{ color: '#A0AEC0' }}>No notifications found.</div> : notifications.map((n, i) => (
-          <div key={i} style={{ borderBottom: '1px solid #333', padding: '0.7rem 0' }}>
-            <div style={{ fontWeight: 700 }}>{n.message}</div>
-            <div style={{ color: '#A0AEC0', fontSize: '0.95rem' }}>{new Date(n.createdAt).toLocaleString()}</div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+const AdminNotifications=()=>{
+ const [notifications,setNotifications]=useState([]),[form,setForm]=useState(''),[sendMsg,setSendMsg]=useState(''),[error,setError]=useState(''),[users,setUsers]=useState([]),[selectedUser,setSelectedUser]=useState(''),[autoMsg,setAutoMsg]=useState(''),[loading,setLoading]=useState(true),[search,setSearch]=useState('');
+ const fetchNotifications=useCallback(async()=>{setLoading(true);setError('');try{const token=localStorage.getItem('token');const r=await axios.get('/api/auth/admin/notifications',{headers:{Authorization:`Bearer ${token}`}});setNotifications(Array.isArray(r.data.notifications)?r.data.notifications:[]);}catch(e){setError(e.response?.data?.message||'Could not fetch notifications.');}finally{setLoading(false);}},[]);
+ const fetchUsers=useCallback(async()=>{try{const token=localStorage.getItem('token');const r=await axios.get('/api/auth/admin/users',{headers:{Authorization:`Bearer ${token}`}});setUsers(Array.isArray(r.data.users)?r.data.users:[]);}catch{}},[]);
+ useEffect(()=>{fetchNotifications();fetchUsers();},[fetchNotifications,fetchUsers]);
+ const sendNotification=async()=>{if(!form.trim()){setSendMsg('Enter a notification message first.');return;}setSendMsg('');try{const token=localStorage.getItem('token');await axios.post('/api/auth/admin/notifications',{message:form.trim(),userId:selectedUser},{headers:{Authorization:`Bearer ${token}`}});setSendMsg('Notification sent successfully.');setForm('');setSelectedUser('');fetchNotifications();}catch(e){setSendMsg(e.response?.data?.message||'Could not send notification.');}};
+ const autoSend=async()=>{setAutoMsg('');try{const token=localStorage.getItem('token');await axios.post('/api/auth/admin/auto-expiry-notifications',{},{headers:{Authorization:`Bearer ${token}`}});setAutoMsg('Expiry reminders sent to eligible users.');fetchNotifications();}catch(e){setAutoMsg(e.response?.data?.message||'Could not send auto notifications.');}};
+ const filtered=useMemo(()=>notifications.filter(n=>(n.message||'').toLowerCase().includes(search.trim().toLowerCase())),[notifications,search]);
+ return <main className="askc-admin-page space-y-5"><header className="askc-page-header"><div><h2 className="askc-page-title">Notifications</h2><p className="askc-page-subtitle">Compose announcements and review messages sent to users.</p></div><button onClick={fetchNotifications} disabled={loading} className="rounded-xl border border-slate-600 bg-slate-800 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50">{loading?'Refreshing…':'↻ Refresh'}</button></header>
+ <section className="grid grid-cols-1 gap-4 lg:grid-cols-5"><div className="askc-panel space-y-4 lg:col-span-3"><div><h3 className="text-lg font-extrabold text-white">Compose notification</h3><p className="mt-1 text-sm text-slate-400">Send to all users or select one recipient.</p></div><textarea value={form} onChange={e=>setForm(e.target.value)} maxLength={2000} rows={5} placeholder="Write an announcement…" className="w-full rounded-xl border border-slate-600 bg-slate-950 p-4 text-sm text-white"/><div className="flex justify-between text-xs text-slate-500"><span>Keep messages clear and actionable.</span><span>{form.length}/2000</span></div><select value={selectedUser} onChange={e=>setSelectedUser(e.target.value)} className="w-full rounded-xl border border-slate-600 bg-slate-950 px-4 py-3 text-sm text-white"><option value="">All users</option>{users.map(u=><option key={u._id} value={u._id}>{u.name} ({u.email})</option>)}</select><button onClick={sendNotification} disabled={!form.trim()} className="rounded-xl bg-emerald-500 px-5 py-3 font-extrabold text-slate-950 disabled:opacity-50 sm:w-fit">Send notification</button>{sendMsg&&<p role="status" className="text-sm text-emerald-300">{sendMsg}</p>}</div>
+ <div className="askc-panel flex flex-col justify-between gap-4 lg:col-span-2"><div><span className="text-xs font-bold uppercase tracking-wider text-amber-300">Automation</span><h3 className="mt-2 text-lg font-extrabold text-white">Plan expiry reminders</h3><p className="mt-2 text-sm leading-6 text-slate-400">Run the existing reminder workflow for users with 2 days remaining.</p></div><button onClick={autoSend} className="rounded-xl border border-amber-400/40 bg-amber-400/10 px-4 py-3 text-sm font-bold text-amber-200">Send expiry reminders</button>{autoMsg&&<p role="status" className="text-sm text-amber-200">{autoMsg}</p>}</div></section>
+ <section className="askc-panel space-y-4"><div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center"><div><h3 className="text-lg font-extrabold text-white">Notification history</h3><p className="text-sm text-slate-400">{notifications.length} total records</p></div><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search message text…" className="w-full rounded-xl border border-slate-600 bg-slate-950 px-4 py-2.5 text-sm text-white sm:max-w-xs"/></div>{error&&<div role="alert" className="rounded-xl border border-red-500/40 bg-red-950/40 p-3 text-sm text-red-200">{error}</div>}{loading?<div className="py-10 text-center text-slate-400">Loading notifications…</div>:filtered.length===0?<div className="py-10 text-center text-sm text-slate-400">No matching notifications found.</div>:<div className="space-y-2">{filtered.map((n,i)=><article key={n._id||i} className="rounded-xl border border-slate-700 bg-slate-950/60 p-4"><p className="whitespace-pre-wrap break-words text-sm font-medium text-slate-100">{n.message}</p><p className="mt-2 text-xs text-slate-500">{n.createdAt?new Date(n.createdAt).toLocaleString('en-IN'):'Date unavailable'}</p></article>)}</div>}</section></main>;
 };
-
-export default AdminNotifications; 
+export default AdminNotifications;
