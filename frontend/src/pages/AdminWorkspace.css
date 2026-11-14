@@ -1,6 +1,5 @@
 /* ASKC Technologies admin workspace refinements */
 .askc-admin-page{width:100%;max-width:80rem;margin-inline:auto;color:#0f172a}
-.askc-admin-page button,.askc-admin-page input,.askc-admin-page select,.askc-admin-page textarea{font:inherit}
 .askc-admin-page button{-webkit-tap-highlight-color:transparent}
 .askc-admin-page button:focus-visible,.askc-admin-page a:focus-visible,.askc-admin-page input:focus-visible,.askc-admin-page select:focus-visible,.askc-admin-page textarea:focus-visible{outline:3px solid rgba(37,99,235,.3);outline-offset:2px}
 .askc-admin-card{border:1px solid #e2e8f0;border-radius:1rem;background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.05);transition:box-shadow .18s ease}
