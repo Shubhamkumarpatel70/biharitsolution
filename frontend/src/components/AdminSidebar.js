@@ -4,6 +4,7 @@ import { Icon } from './icons';
 export const adminNavItems = [
   { id: 'home', label: 'Dashboard', iconName: 'home', category: 'main' },
   { id: 'funds', label: 'Funds', iconName: 'currency', category: 'finance' },
+  { id: 'refunds', label: 'Refunds', iconName: 'refresh', category: 'finance' },
   { id: 'approve', label: 'Approve Subs', iconName: 'check', category: 'subscriptions' },
   { id: 'approved-plans', label: 'Approved Plans', iconName: 'clipboard', category: 'subscriptions' },
   { id: 'cancellations', label: 'Cancellations', iconName: 'close', category: 'subscriptions' },
@@ -52,7 +53,7 @@ const AdminSidebar = ({ onLogout, activeTab, setActiveTab, onClose, userRole = '
   const [searchTerm, setSearchTerm] = useState('');
 
   const baseNavItems = userRole === 'coadmin'
-    ? adminNavItems.filter(item => item.id !== 'users')
+    ? adminNavItems.filter(item => !['users', 'refunds'].includes(item.id))
     : adminNavItems;
 
   const filteredNavItems = useMemo(() => {
