@@ -85,6 +85,8 @@ const MyPurchases = () => {
                       <div><b>Payable amount:</b> ₹{Number(sub.amountPaid ?? Math.max(0, Number(sub.totalAmount || 0) - Number(sub.discountAmount || 0))).toLocaleString('en-IN')}</div>
                       <div className="break-all"><b>Transaction ID:</b> <span className="font-mono text-xs">{sub.transactionId || sub.cashfreeOrderId || 'Pending'}</span></div>
                       <div><b>Payment status:</b> <span className="capitalize">{sub.paymentStatus || '—'}</span></div>
+                      <div><b>Refund status:</b> <span className="font-semibold capitalize">{(sub.refundStatus || 'not_reviewed').replace(/_/g, ' ')}</span>{Number(sub.refundAmount || 0) > 0 ? ' · ₹' + Number(sub.refundAmount).toLocaleString('en-IN') : ''}</div>
+                      {sub.cancellationInitiatedBy && <div><b>Cancelled by:</b> {sub.cancellationInitiatedBy === 'askc' ? 'ASKC TECHNOLOGIES' : sub.cancellationInitiatedBy === 'user' ? 'You (self)' : 'System'}</div>}
                       <div><b>Status:</b> <span className={`font-bold ${sub.status === 'active' ? 'text-emerald-600' : 'text-orange-600'}`}>{sub.status}</span></div>
                       {cancellationApproved && (
                         <div style={{ color: '#FF6B35', fontWeight: 700, fontSize: '1rem', marginTop: '0.5rem' }}>
