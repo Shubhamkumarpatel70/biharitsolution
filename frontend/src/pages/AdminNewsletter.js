@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import './AdminWorkspace.css';
 import axios from '../axios';
 const AdminNewsletter = () => {
  const [subscribers,setSubscribers]=useState([]),[loading,setLoading]=useState(true),[error,setError]=useState(''),[search,setSearch]=useState(''),[status,setStatus]=useState('all');
