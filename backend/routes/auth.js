@@ -4396,6 +4396,115 @@ router.patch(
   },
 );
 
+// Admin-only refund review and payout tracking.
+router.get("/admin/refunds", authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const records = await Subscription.find({
+      $or: [
+        { cancellationStatus: { $in: ["pending", "approved", "rejected"] } },
+        { canceled: true }
+      ]
+    }).populate("user", "name email").sort({ cancellationRequestDate: -1, updatedAt: -1 }).limit(500).lean();
+
+    const refunds = records.map((sub) => {
+      const cashfreePaid = ["paid", "success", "successful"].includes(String(sub.paymentStatus || "").toLowerCase())
+        ? Number(sub.amountPaid || 0) : 0;
+      const manualPaid = Array.isArray(sub.paymentEntries)
+        ? sub.paymentEntries.filter((entry) => entry.status === "confirmed")
+            .reduce((sum, entry) => sum + Number(entry.amount || 0), 0)
+        : 0;
+      const paidAmount = Math.max(cashfreePaid, manualPaid);
+      return {
+        ...sub,
+        paidAmount,
+        refundStatus: sub.refundStatus || "not_reviewed",
+        refundEligible: sub.refundEligible === true,
+        refundAmount: Number(sub.refundAmount || 0)
+      };
+    });
+    const stats = {
+      total: refunds.length,
+      awaitingReview: refunds.filter((item) => ["not_reviewed", undefined].includes(item.refundStatus)).length,
+      approvedAmount: refunds.filter((item) => ["approved", "processed"].includes(item.refundStatus)).reduce((sum, item) => sum + Number(item.refundAmount || 0), 0),
+      pendingPayout: refunds.filter((item) => item.refundStatus === "approved").length,
+      processed: refunds.filter((item) => item.refundStatus === "processed").length
+    };
+    res.set("Cache-Control", "no-store");
+    res.json({ refunds, stats });
+  } catch (err) {
+    console.error("Admin refund list error:", err);
+    res.status(500).json({ message: "Could not fetch refund records." });
+  }
+});
+
+router.patch("/admin/refunds/:id", authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const { action, amount, reason, reference } = req.body || {};
+    const sub = await Subscription.findById(req.params.id);
+    if (!sub) return res.status(404).json({ message: "Subscription record not found." });
+    if (sub.cancellationStatus !== "approved" || !sub.canceled) {
+      return res.status(409).json({ message: "Approve the subscription cancellation before reviewing its refund." });
+    }
+
+    const cashfreePaid = ["paid", "success", "successful"].includes(String(sub.paymentStatus || "").toLowerCase())
+      ? Number(sub.amountPaid || 0) : 0;
+    const manualPaid = Array.isArray(sub.paymentEntries)
+      ? sub.paymentEntries.filter((entry) => entry.status === "confirmed")
+          .reduce((sum, entry) => sum + Number(entry.amount || 0), 0)
+      : 0;
+    const paidAmount = Math.max(cashfreePaid, manualPaid);
+    const cleanReason = String(reason || "").trim().slice(0, 1000);
+    const cleanReference = String(reference || "").trim().slice(0, 200);
+
+    if (action === "not_eligible") {
+      sub.refundStatus = "not_eligible";
+      sub.refundEligible = false;
+      sub.refundAmount = 0;
+      sub.refundReason = cleanReason || "Not refundable under the published cancellation policy.";
+    } else if (action === "approve") {
+      const refundAmount = Number(amount);
+      if (!Number.isFinite(refundAmount) || refundAmount <= 0 || refundAmount > paidAmount) {
+        return res.status(400).json({ message: `Refund amount must be greater than ₹0 and no more than the verified paid amount (₹${paidAmount.toFixed(2)}).` });
+      }
+      if (cleanReason.length < 5) return res.status(400).json({ message: "Add a short reason for this exceptional refund approval." });
+      if (sub.refundStatus === "processed") return res.status(409).json({ message: "This refund has already been marked as processed." });
+      sub.refundStatus = "approved";
+      sub.refundEligible = true;
+      sub.refundAmount = Number(refundAmount.toFixed(2));
+      sub.refundReason = cleanReason;
+      sub.refundReference = "";
+      sub.refundProcessedAt = null;
+    } else if (action === "reject") {
+      if (sub.refundStatus === "processed") return res.status(409).json({ message: "A processed refund cannot be rejected." });
+      if (cleanReason.length < 5) return res.status(400).json({ message: "Add a reason for rejecting the refund request." });
+      sub.refundStatus = "rejected";
+      sub.refundEligible = false;
+      sub.refundAmount = 0;
+      sub.refundReason = cleanReason;
+      sub.refundReference = "";
+      sub.refundProcessedAt = null;
+    } else if (action === "processed") {
+      if (sub.refundStatus !== "approved" || Number(sub.refundAmount || 0) <= 0) {
+        return res.status(409).json({ message: "Only an approved refund can be marked as processed." });
+      }
+      if (!cleanReference) return res.status(400).json({ message: "Enter the bank/UPI refund reference before marking it processed." });
+      sub.refundStatus = "processed";
+      sub.refundReference = cleanReference;
+      sub.refundProcessedAt = new Date();
+    } else {
+      return res.status(400).json({ message: "Choose a valid refund action." });
+    }
+
+    sub.refundReviewedBy = req.user.id;
+    sub.refundReviewedAt = new Date();
+    await sub.save();
+    res.json({ message: "Refund record updated successfully.", refund: sub, paidAmount });
+  } catch (err) {
+    console.error("Admin refund update error:", err);
+    res.status(500).json({ message: "Could not update refund record." });
+  }
+});
+
 // ========== CAREERS (public) ==========
 router.get("/careers", async (req, res) => {
   try {
