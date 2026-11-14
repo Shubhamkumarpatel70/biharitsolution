@@ -4407,7 +4407,7 @@ router.get("/admin/refunds", authMiddleware, adminMiddleware, async (req, res) =
     }).populate("user", "name email").sort({ cancellationRequestDate: -1, updatedAt: -1 }).limit(500).lean();
 
     const refunds = records.map((sub) => {
-      const cashfreePaid = ["paid", "success", "successful"].includes(String(sub.paymentStatus || "").toLowerCase())
+      const cashfreePaid = ["paid", "partial", "success", "successful"].includes(String(sub.paymentStatus || "").toLowerCase())
         ? Number(sub.amountPaid || 0) : 0;
       const manualPaid = Array.isArray(sub.paymentEntries)
         ? sub.paymentEntries.filter((entry) => entry.status === "confirmed")
