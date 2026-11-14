@@ -158,6 +158,7 @@ const AdminApprovedPlans = () => {
                         ({money(sub.totalAmount || 0)})
                       </span>
                     </div>
+                    {(sub.canceled || sub.cancellationStatus === 'approved') && <div className="mb-2"><span className="text-gray-400 text-sm">Cancelled by:</span><span className="ml-2 font-semibold">{sub.cancellationInitiatedBy === 'askc' ? 'ASKC TECHNOLOGIES' : sub.cancellationInitiatedBy === 'user' ? 'Self (User)' : 'Not recorded'}</span></div>}
                     <div className="mb-2">
                       <span className="text-gray-400 text-sm">Subscription ID:</span>
                       <span className="text-success-500 ml-2 font-mono text-sm break-all">{sub.uniqueId || sub._id}</span>
