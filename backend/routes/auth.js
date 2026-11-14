@@ -582,7 +582,7 @@ router.post(
       return res.status(503).json({ message: "Manual payment is not configured. Please contact ASKC Technologies." });
     }
     // Get data from FormData (req.body) or JSON (req.body)
-    let { plan, transactionId, method } = req.body;
+    let { plan, transactionId, method, couponCode } = req.body;
     const paymentImage = req.file;
 
     // Debug: Log the entire request
@@ -658,6 +658,23 @@ router.post(
       planEnum = "starter";
     }
 
+    let discountAmount = 0;
+    let normalizedCouponCode = "";
+    if (couponCode) {
+      normalizedCouponCode = String(couponCode).trim().toUpperCase();
+      const couponDoc = await Coupon.findOne({ code: normalizedCouponCode, active: true });
+      if (!couponDoc) return res.status(400).json({ message: "Coupon is invalid or expired." });
+      if (couponDoc.usageLimit > 0 && couponDoc.usedCount >= couponDoc.usageLimit) {
+        return res.status(400).json({ message: "Coupon usage limit reached." });
+      }
+      if (couponDoc.usedBy.some(id => String(id) === String(user._id))) {
+        return res.status(400).json({ message: "You have already used this coupon." });
+      }
+      discountAmount = Math.min(Number(couponDoc.amount) || 0, Number(planDoc.price) || 0);
+    }
+    const payableAmount = Math.max(0, Number(planDoc.price || 0) - discountAmount);
+    if (payableAmount <= 0) return res.status(400).json({ message: "Coupon discount must leave a payable amount greater than zero." });
+
     const uniqueId =
       "SUB-" +
       Date.now().toString(36) +
@@ -682,12 +699,19 @@ router.post(
         plan: planEnum,
         uniqueId,
         status: "pending",
+        planName: planDoc.name,
+        sourcePlan: planDoc._id,
+        totalAmount: Number(planDoc.price) || 0,
+        amountPaid: payableAmount,
+        discountAmount,
+        couponCode: normalizedCouponCode,
+        paymentStatus: "pending",
         expiresAt,
         transactionId: transactionId || null,
         paymentMethod: method || "upi",
         paymentImage: paymentImageBase64,
       });
-      res.status(201).json({ subscription });
+      res.status(201).json({ subscription: subscription.toObject(), message: "Payment details submitted for admin verification." });
     } catch (err) {
       console.error("Subscription creation error:", err);
       console.error("Error details:", {
