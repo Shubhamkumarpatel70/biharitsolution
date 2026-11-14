@@ -4,7 +4,7 @@ import { Icon } from './icons';
 export const adminNavItems = [
   { id: 'home', label: 'Dashboard', iconName: 'home', category: 'main' },
   { id: 'funds', label: 'Funds', iconName: 'currency', category: 'finance' },
-  { id: 'refunds', label: 'Refunds', iconName: 'refresh', category: 'finance' },
+  { id: 'refunds', label: 'Refund Management', iconName: 'refresh', category: 'finance' },
   { id: 'approve', label: 'Approve Subs', iconName: 'check', category: 'subscriptions' },
   { id: 'approved-plans', label: 'Approved Plans', iconName: 'clipboard', category: 'subscriptions' },
   { id: 'cancellations', label: 'Cancellations', iconName: 'close', category: 'subscriptions' },
@@ -76,7 +76,8 @@ const AdminSidebar = ({ onLogout, activeTab, setActiveTab, onClose, userRole = '
     const term = searchTerm.toLowerCase();
     return baseNavItems.filter(item =>
       item.label.toLowerCase().includes(term) ||
-      item.id.toLowerCase().includes(term)
+      item.id.toLowerCase().includes(term) ||
+      (categoryLabels[item.category] || '').toLowerCase().includes(term)
     );
   }, [baseNavItems, searchTerm]);
 
