@@ -12,6 +12,7 @@ const subscriptionSchema = new mongoose.Schema({
   rejectionReason: { type: String },
   expiresAt: { type: Date },
   canceled: { type: Boolean, default: false },
+  cancellationInitiatedBy: { type: String, enum: ['user', 'askc', 'system', ''], default: '' },
   cancellationReason: { type: String },
   cancellationRequestDate: { type: Date },
   cancellationStatus: { type: String, enum: ['none', 'pending', 'approved', 'rejected'], default: 'none' },
