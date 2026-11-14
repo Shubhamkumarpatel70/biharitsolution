@@ -293,16 +293,13 @@ const Payment = () => {
     setStatus('processing');
     setError('');
     try {
-      if (coupon && discount > 0) {
-        await axios.post('/api/auth/coupons/apply', { code: coupon, use: true }, { headers: { Authorization: `Bearer ${token}` } });
-      }
-      
       // Create FormData to send image
       const formData = new FormData();
       formData.append('plan', planObj.name);
       formData.append('transactionId', transactionId);
       formData.append('method', paymentMethod === 'qr' ? 'upi' : paymentMethod);
       formData.append('paymentImage', paymentImage);
+      if (discount > 0 && coupon.trim()) formData.append('couponCode', coupon.trim().toUpperCase());
       
       // Don't set Content-Type header - let axios/browser set it with boundary
       const res = await axios.post(
@@ -364,7 +361,7 @@ const Payment = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-2xl p-8 w-full max-w-md">
+      <div className="bg-white rounded-2xl shadow-xl p-5 sm:p-8 w-full max-w-xl min-w-0 overflow-hidden">
         {/* Back Button */}
         <button
           onClick={() => navigate('/plans')}
@@ -681,19 +678,44 @@ const Payment = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
               </svg>
             </div>
-            <h3 className="text-xl font-bold text-blue-700 mb-2">Payment Successful!</h3>
-            <div className="bg-blue-50 rounded-lg p-4 mb-6 text-left space-y-2">
-              <div className="flex justify-between">
-                <span className="text-slate-500">Plan:</span>
-                <span>{subscription.plan}</span>
+            <h3 className="text-xl font-bold text-blue-700 mb-2">{subscription.status === 'active' ? 'Payment Successful!' : 'Payment Submitted Successfully'}</h3>
+            <p className="mb-5 text-sm text-slate-500">{subscription.status === 'active' ? 'Your payment has been verified and your plan is active.' : 'Your payment details have been submitted. Your plan will activate after ASKC TECHNOLOGIES verifies the payment.'}</p>
+            <div className="bg-blue-50 rounded-2xl p-4 sm:p-5 mb-6 text-left space-y-3 min-w-0">
+              <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] gap-3 items-start">
+                <span className="text-sm text-slate-500">Plan</span>
+                <span className="text-right font-semibold text-slate-900 break-words">{subscription.planName || planObj?.name || subscription.plan || '—'}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">Subscription ID:</span>
-                <span className="font-mono">{subscription.uniqueId}</span>
+              <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] gap-3 items-start">
+                <span className="text-sm text-slate-500">Original plan price</span>
+                <span className="text-right font-semibold text-slate-900">{'₹' + Number(subscription.totalAmount ?? amount ?? 0).toLocaleString('en-IN')}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">Status:</span>
-                <span className="capitalize">{subscription.status}</span>
+              <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] gap-3 items-start">
+                <span className="text-sm text-slate-500">Coupon used</span>
+                <span className="text-right font-semibold text-slate-900 break-words">{subscription.couponCode ? subscription.couponCode : 'No coupon'}</span>
+              </div>
+              {Number(subscription.discountAmount || 0) > 0 && <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] gap-3 items-start">
+                <span className="text-sm text-slate-500">Coupon discount</span>
+                <span className="text-right font-bold text-emerald-700">−{'₹' + Number(subscription.discountAmount).toLocaleString('en-IN')}</span>
+              </div>}
+              <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] gap-3 items-start border-t border-blue-100 pt-3">
+                <span className="text-sm font-semibold text-slate-700">Payable amount</span>
+                <span className="text-right font-bold text-slate-900">{'₹' + Number(subscription.amountPaid ?? Math.max(0, Number(subscription.totalAmount || amount || 0) - Number(subscription.discountAmount || 0))).toLocaleString('en-IN')}</span>
+              </div>
+              <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] gap-3 items-start">
+                <span className="text-sm text-slate-500">Subscription ID</span>
+                <span className="text-right font-mono text-xs sm:text-sm text-slate-800 break-all">{subscription.uniqueId || subscription._id || '—'}</span>
+              </div>
+              <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] gap-3 items-start">
+                <span className="text-sm text-slate-500">Transaction ID</span>
+                <span className="text-right font-mono text-xs sm:text-sm text-slate-800 break-all">{subscription.transactionId || subscription.cashfreeOrderId || transactionId || 'Awaiting verification'}</span>
+              </div>
+              <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] gap-3 items-start">
+                <span className="text-sm text-slate-500">Payment status</span>
+                <span className="text-right font-semibold capitalize text-slate-900 break-words">{subscription.paymentStatus || subscription.status || '—'}</span>
+              </div>
+              <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] gap-3 items-start">
+                <span className="text-sm text-slate-500">Subscription status</span>
+                <span className="text-right font-semibold capitalize text-slate-900">{subscription.status || '—'}</span>
               </div>
             </div>
             <button
