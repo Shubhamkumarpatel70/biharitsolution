@@ -9,7 +9,6 @@ import AdminCancellations from './AdminCancellations';
 import AdminProjectRequests from './AdminProjectRequests';
 import AdminUserPlans from './AdminUserPlans';
 import AdminUsers from './AdminUsers';
-import AdminStats from './AdminStats';
 import AdminNotifications from './AdminNotifications';
 import AdminPlans from './AdminPlans';
 import AdminFunds from './AdminFunds';
