@@ -109,6 +109,7 @@ function AdminCareerApplications() {
           </table>
         )}
       </div>
+      </div>
     </div>
   );
 }
