@@ -1,125 +1,29 @@
-import React, { useEffect, useState } from 'react';
+import React,{useEffect,useMemo,useState} from 'react';
 import axios from '../axios';
-import { useNavigate } from 'react-router-dom';
+import {useNavigate} from 'react-router-dom';
+import './AdminWorkspace.css';
 
-const AdminHelp = () => {
-  const [complaints, setComplaints] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [responseMap, setResponseMap] = useState({});
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    const fetchComplaints = async () => {
-      setLoading(true);
-      setError('');
-      try {
-        const token = localStorage.getItem('token');
-        const res = await axios.get('/api/auth/admin/complaints', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        setComplaints(res.data.complaints);
-      } catch (err) {
-        setError('Could not fetch complaints.');
-      }
-      setLoading(false);
-    };
-    fetchComplaints();
-  }, []);
-
-  const handleRespond = async (id) => {
-    const response = responseMap[id];
-    try {
-      const token = localStorage.getItem('token');
-      await axios.patch(`/api/auth/admin/complaints/${id}`, { status: 'resolved', response }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setComplaints(complaints => complaints.map(c => c._id === id ? { ...c, status: 'resolved', response } : c));
-      setResponseMap(map => ({ ...map, [id]: '' }));
-    } catch (err) {
-      alert('Could not update complaint.');
-    }
-  };
-
-  const handleReopen = async (id, action) => {
-    try {
-      const token = localStorage.getItem('token');
-      await axios.post(`/api/auth/admin/complaints/${id}/reopen`, { action }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setComplaints(complaints => complaints.map(c => c._id === id ? { ...c, reopenStatus: action === 'accept' ? 'accepted' : 'rejected', status: action === 'accept' ? 'open' : c.status } : c));
-    } catch (err) {
-      alert('Could not process reopen request.');
-    }
-  };
-
-  return (
-    <div className="admin-redesign-page" style={{ color: '#E5E7EB', maxWidth: 900, margin: '0 auto' }}>
-      <h2 style={{ color: '#2ECC71', fontWeight: 700, fontSize: '1.7rem', marginBottom: '1.2rem' }}>User Complaints</h2>
-      {loading ? <div>Loading...</div> : error ? <div style={{ color: '#FF6B35' }}>{error}</div> : (
-        <div style={{ background: '#23272F', borderRadius: '1rem', padding: '2rem', boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}>
-          {complaints.length === 0 ? <div>No complaints found.</div> : (
-            <div style={{ width: '100%', overflowX: 'auto' }}><table style={{ width: '100%', minWidth: 1050, color: '#E5E7EB', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ color: '#2ECC71', borderBottom: '1px solid #333' }}>
-                  <th style={{ padding: '0.5rem' }}>User</th>
-                  <th style={{ padding: '0.5rem' }}>Email</th>
-                  <th style={{ padding: '0.5rem' }}>Submitted At</th>
-                  <th style={{ padding: '0.5rem' }}>Message</th>
-                  <th style={{ padding: '0.5rem' }}>Status</th>
-                  <th style={{ padding: '0.5rem' }}>Reopen</th>
-                  <th style={{ padding: '0.5rem' }}>Response</th>
-                  <th style={{ padding: '0.5rem' }}>Action</th>
-                  <th style={{ padding: '0.5rem' }}>Chat</th>
-                </tr>
-              </thead>
-              <tbody>
-                {complaints.map(c => {
-                  return (
-                    <tr key={c._id} style={{ borderBottom: '1px solid #333' }}>
-                      <td style={{ padding: '0.5rem' }}>{c.user?.name || 'N/A'}</td>
-                      <td style={{ padding: '0.5rem' }}>{c.user?.email || 'N/A'}</td>
-                      <td style={{ padding: '0.5rem', whiteSpace: 'nowrap', fontSize: '0.85rem', color: '#A1A1AA' }}>{c.createdAt ? new Date(c.createdAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}</td>
-                      <td style={{ padding: '0.5rem' }}>{c.message}</td>
-                      <td style={{ padding: '0.5rem', color: c.status === 'resolved' ? '#2ECC71' : '#FF6B35' }}>{c.status}</td>
-                      <td style={{ padding: '0.5rem' }}>
-                        {c.reopenStatus === 'pending' ? (
-                          <>
-                            <button onClick={() => handleReopen(c._id, 'accept')} style={{ background: '#2ECC71', color: '#181A20', border: 'none', borderRadius: '0.5rem', padding: '0.4rem 1rem', fontWeight: 700, cursor: 'pointer', marginRight: 8 }}>Accept</button>
-                            <button onClick={() => handleReopen(c._id, 'reject')} style={{ background: '#FF6B35', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.4rem 1rem', fontWeight: 700, cursor: 'pointer' }}>Reject</button>
-                          </>
-                        ) : c.reopenStatus === 'accepted' ? <span style={{ color: '#2ECC71' }}>Accepted</span> : c.reopenStatus === 'rejected' ? <span style={{ color: '#FF6B35' }}>Rejected</span> : '-'}</td>
-                      <td style={{ padding: '0.5rem' }}>{c.response || (c.status === 'resolved' ? 'No response' : (
-                        <input
-                          type="text"
-                          value={responseMap[c._id] || ''}
-                          onChange={e => setResponseMap(map => ({ ...map, [c._id]: e.target.value }))}
-                          placeholder="Type response..."
-                          style={{ padding: '0.3rem', borderRadius: '0.3rem', border: '1px solid #333', background: '#181A20', color: '#E5E7EB' }}
-                        />
-                      ))}</td>
-                      <td style={{ padding: '0.5rem' }}>{c.status === 'open' && (
-                        <button
-                          onClick={() => handleRespond(c._id)}
-                          style={{ background: '#2ECC71', color: '#181A20', border: 'none', borderRadius: '0.5rem', padding: '0.4rem 1rem', fontWeight: 700, cursor: 'pointer' }}
-                          disabled={!responseMap[c._id]}
-                        >Resolve</button>
-                      )}</td>
-                      <td style={{ padding: '0.5rem' }}>
-                        {(c._id && (c.status === 'open' || c.reopenStatus === 'accepted')) && (
-                          <button onClick={() => navigate(`/support-chat/${c._id}`)} style={{ background: '#0057D9', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.4rem 1rem', fontWeight: 700, cursor: 'pointer' }}>Open Chat</button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table></div>
-          )}
-        </div>
-      )}
-    </div>
-  );
+const AdminHelp=()=>{
+ const [complaints,setComplaints]=useState([]),[loading,setLoading]=useState(true),[error,setError]=useState(''),[success,setSuccess]=useState(''),[responseMap,setResponseMap]=useState({}),[search,setSearch]=useState(''),[filter,setFilter]=useState('all'),[busyId,setBusyId]=useState('');
+ const navigate=useNavigate(),config=()=>({headers:{Authorization:`Bearer ${localStorage.getItem('token')}`}});
+ const fetchComplaints=async()=>{setLoading(true);setError('');try{const r=await axios.get('/api/auth/admin/complaints',config());setComplaints(Array.isArray(r.data.complaints)?r.data.complaints:[]);}catch(e){setError(e.response?.data?.message||'Could not fetch complaints.');}finally{setLoading(false);}};
+ useEffect(()=>{fetchComplaints();},[]);
+ const handleRespond=async id=>{const response=String(responseMap[id]||'').trim();if(response.length<3){setError('Please enter a response of at least 3 characters.');return;}setBusyId(id);setError('');setSuccess('');try{await axios.patch(`/api/auth/admin/complaints/${id}`,{status:'resolved',response},config());setComplaints(s=>s.map(c=>c._id===id?{...c,status:'resolved',response}:c));setResponseMap(s=>({...s,[id]:''}));setSuccess('Complaint response saved and complaint marked resolved.');}catch(e){setError(e.response?.data?.message||'Could not update complaint.');}finally{setBusyId('');}};
+ const handleReopen=async(id,action)=>{setBusyId(id);setError('');setSuccess('');try{await axios.post(`/api/auth/admin/complaints/${id}/reopen`,{action},config());setComplaints(s=>s.map(c=>c._id===id?{...c,reopenStatus:action==='accept'?'accepted':'rejected',status:action==='accept'?'open':c.status}:c));setSuccess(action==='accept'?'Reopen request accepted.':'Reopen request rejected.');}catch(e){setError(e.response?.data?.message||'Could not process reopen request.');}finally{setBusyId('');}};
+ const visible=useMemo(()=>{const q=search.trim().toLowerCase();return complaints.filter(c=>{const status=filter==='all'||(filter==='open'&&c.status==='open')||(filter==='resolved'&&c.status==='resolved')||(filter==='reopen'&&c.reopenStatus==='pending');return status&&(!q||[c.user?.name,c.user?.email,c.message,c.response].join(' ').toLowerCase().includes(q));});},[complaints,search,filter]);
+ const open=complaints.filter(c=>c.status==='open').length,reopen=complaints.filter(c=>c.reopenStatus==='pending').length;
+ const date=v=>v?new Date(v).toLocaleString('en-IN',{dateStyle:'medium',timeStyle:'short'}):'—';
+ return <main className="askc-admin-page space-y-5 pb-20 lg:pb-8">
+  <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-xs font-bold uppercase tracking-[.16em] text-blue-700">Help & support</p><h1 className="mt-1 text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">User complaints</h1><p className="mt-1 text-sm text-slate-500">Track support requests, respond to users and manage reopen requests.</p></div><button type="button" onClick={fetchComplaints} disabled={loading} className="askc-admin-action self-start border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-50 sm:self-auto">↻ Refresh</button></header>
+  <section className="grid grid-cols-2 gap-3 sm:grid-cols-3"><div className="askc-admin-card p-4"><p className="text-xs font-semibold uppercase text-slate-500">Total complaints</p><p className="mt-2 text-2xl font-extrabold">{complaints.length}</p></div><div className="askc-admin-card p-4"><p className="text-xs font-semibold uppercase text-slate-500">Open</p><p className="mt-2 text-2xl font-extrabold text-amber-600">{open}</p></div><div className="askc-admin-card col-span-2 p-4 sm:col-span-1"><p className="text-xs font-semibold uppercase text-slate-500">Reopen requests</p><p className="mt-2 text-2xl font-extrabold text-blue-700">{reopen}</p></div></section>
+  <section className="askc-admin-card grid grid-cols-1 gap-3 p-4 sm:grid-cols-[minmax(0,1fr)_200px]"><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search user, email or complaint…" aria-label="Search complaints" className="w-full min-w-0 rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"/><select value={filter} onChange={e=>setFilter(e.target.value)} aria-label="Filter complaints" className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm"><option value="all">All complaints</option><option value="open">Open</option><option value="resolved">Resolved</option><option value="reopen">Reopen pending</option></select></section>
+  {error&&<div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>}{success&&<div role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{success}</div>}
+  {loading?<div className="askc-admin-card py-16 text-center text-sm text-slate-500">Loading complaints…</div>:visible.length===0?<div className="askc-admin-card px-4 py-14 text-center"><div className="text-3xl">✓</div><h2 className="mt-3 font-bold text-slate-800">{complaints.length?'No matching complaints':'No complaints yet'}</h2><p className="mt-1 text-sm text-slate-500">Support requests will appear here when users submit them.</p></div>:<section className="grid grid-cols-1 gap-4 xl:grid-cols-2">{visible.map(c=><article key={c._id} className="askc-admin-card min-w-0 p-4 sm:p-5"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div className="min-w-0"><h2 className="break-words font-bold text-slate-900">{c.user?.name||'Unknown user'}</h2><p className="break-all text-sm text-slate-500">{c.user?.email||'No email'}</p><p className="mt-1 text-xs text-slate-400">Submitted {date(c.createdAt)}</p></div><div className="flex flex-wrap gap-2"><span className={`rounded-full px-3 py-1 text-xs font-bold ${c.status==='resolved'?'bg-emerald-50 text-emerald-700':'bg-amber-50 text-amber-800'}`}>{c.status==='resolved'?'Resolved':'Open'}</span>{c.reopenStatus==='pending'&&<span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">Reopen pending</span>}</div></div>
+   <div className="mt-4 whitespace-pre-wrap break-words rounded-xl bg-slate-50 p-3 text-sm leading-relaxed text-slate-700">{c.message}</div>{c.response&&<div className="mt-3 rounded-xl border border-emerald-100 bg-emerald-50 p-3 text-sm text-emerald-900"><p className="mb-1 text-xs font-bold uppercase tracking-wide text-emerald-700">Admin response</p>{c.response}</div>}
+   {c.reopenStatus==='pending'&&<div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 p-3"><p className="text-sm font-semibold text-blue-900">User requested to reopen this complaint.</p><div className="mt-3 flex flex-wrap gap-2"><button type="button" disabled={busyId===c._id} onClick={()=>handleReopen(c._id,'accept')} className="askc-admin-action border border-emerald-200 bg-white text-emerald-700 disabled:opacity-50">Accept reopen</button><button type="button" disabled={busyId===c._id} onClick={()=>handleReopen(c._id,'reject')} className="askc-admin-action border border-rose-200 bg-white text-rose-700 disabled:opacity-50">Reject request</button></div></div>}
+   {c.status==='open'&&<div className="mt-4 space-y-2"><label htmlFor={`response-${c._id}`} className="block text-xs font-bold uppercase tracking-wide text-slate-500">Reply to user</label><textarea id={`response-${c._id}`} rows={3} value={responseMap[c._id]||''} onChange={e=>setResponseMap(s=>({...s,[c._id]:e.target.value}))} placeholder="Write a clear response…" className="w-full resize-y rounded-xl border border-slate-200 px-3 py-3 text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"/><div className="flex flex-wrap gap-2"><button type="button" disabled={busyId===c._id||String(responseMap[c._id]||'').trim().length<3} onClick={()=>handleRespond(c._id)} className="askc-admin-action bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50">{busyId===c._id?'Saving…':'Send response & resolve'}</button><button type="button" onClick={()=>navigate(`/support-chat/${c._id}`)} className="askc-admin-action border border-slate-200 bg-white text-slate-700">Open support chat</button></div></div>}
+   {c.status==='resolved'&&c.reopenStatus!=='pending'&&<button type="button" onClick={()=>navigate(`/support-chat/${c._id}`)} className="askc-admin-action mt-4 border border-slate-200 bg-white text-slate-700">View support chat</button>}
+  </article>)}</section>}
+ </main>;
 };
-
-export default AdminHelp; 
+export default AdminHelp;
