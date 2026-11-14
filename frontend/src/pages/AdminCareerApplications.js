@@ -31,7 +31,7 @@ function AdminCareerApplications() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="mx-auto w-full max-w-7xl space-y-5 px-1 sm:px-2">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
           <span className="w-10 h-10 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center">
@@ -42,7 +42,7 @@ function AdminCareerApplications() {
         <p className="text-sm text-slate-500">{applications.length} total</p>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-x-auto">
+      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm"><div className="overflow-x-auto overscroll-x-contain">
         {loading ? (
           <div className="p-8 text-center text-slate-500 text-sm">Loading…</div>
         ) : error ? (
@@ -50,7 +50,7 @@ function AdminCareerApplications() {
         ) : applications.length === 0 ? (
           <div className="p-8 text-center text-slate-500 text-sm">No applications yet.</div>
         ) : (
-          <table className="w-full text-sm text-left min-w-[720px]">
+          <table className="w-full text-sm text-left min-w-[820px]">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50 text-slate-600 text-xs uppercase tracking-wide">
                 <th className="px-4 py-3 font-semibold">Role</th>
@@ -106,7 +106,7 @@ function AdminCareerApplications() {
                 );
               })}
             </tbody>
-          </table>
+          </table></div>
         )}
       </div>
     </div>
