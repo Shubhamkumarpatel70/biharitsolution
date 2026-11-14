@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Icon } from './icons';
 
 export const adminNavItems = [
@@ -51,6 +51,21 @@ const categoryLabels = {
 
 const AdminSidebar = ({ onLogout, activeTab, setActiveTab, onClose, userRole = 'admin' }) => {
   const [searchTerm, setSearchTerm] = useState('');
+  const activeCategory = adminNavItems.find(item => item.id === activeTab)?.category || 'main';
+  const [expandedCategories, setExpandedCategories] = useState(() => new Set(['main', activeCategory]));
+
+  useEffect(() => {
+    setExpandedCategories(current => new Set([...current, activeCategory]));
+  }, [activeCategory]);
+
+  const toggleCategory = (category) => {
+    setExpandedCategories(current => {
+      const next = new Set(current);
+      if (next.has(category)) next.delete(category);
+      else next.add(category);
+      return next;
+    });
+  };
 
   const baseNavItems = userRole === 'coadmin'
     ? adminNavItems.filter(item => !['users', 'refunds'].includes(item.id))
@@ -80,7 +95,7 @@ const AdminSidebar = ({ onLogout, activeTab, setActiveTab, onClose, userRole = '
 
   return (
     <div className="h-full min-h-0 w-[18rem] max-w-[100vw] bg-white border-r border-slate-200 flex flex-col shadow-xl shadow-slate-900/5 overflow-hidden">
-      <div className="shrink-0 p-5 border-b border-slate-200">
+      <div className="shrink-0 p-4 border-b border-slate-200">
         <div className="flex items-center gap-3 mb-3">
           <div className="w-11 h-11 rounded-xl bg-slate-100 flex items-center justify-center border border-slate-200">
             <Icon name="shield" className="w-6 h-6 text-slate-700" strokeWidth={2.2} />
@@ -98,22 +113,15 @@ const AdminSidebar = ({ onLogout, activeTab, setActiveTab, onClose, userRole = '
             <Icon name="close" className="w-5 h-5" />
           </button>
         </div>
-        <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-[11px] font-semibold tracking-wide text-slate-600 uppercase">
-              {isCoAdmin ? 'Co-Admin Access' : 'Admin Access'}
-            </span>
-            <span className="inline-flex items-center rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
-              Online
-            </span>
-          </div>
-          <p className="text-[11px] text-slate-500 mt-1">
-            {baseNavItems.length} modules across {totalSections} sections
-          </p>
+        <div className="flex items-center justify-between gap-2 px-1">
+          <span className="text-[11px] font-medium text-slate-500">
+            {isCoAdmin ? 'Co-Admin workspace' : 'Admin workspace'}
+          </span>
+          <span className="text-[10px] font-semibold text-emerald-700">● Online</span>
         </div>
       </div>
 
-      <div className="shrink-0 p-3 border-b border-slate-200">
+      <div className="shrink-0 p-2.5 border-b border-slate-200">
         <div className="relative">
           <input
             type="text"
@@ -142,39 +150,46 @@ const AdminSidebar = ({ onLogout, activeTab, setActiveTab, onClose, userRole = '
         {Object.keys(groupedItems).length === 0 ? (
           <div className="text-center py-8 text-slate-400 text-sm">No menu items found</div>
         ) : (
-          Object.entries(groupedItems).map(([category, items]) => (
-            <div key={category} className="mb-4">
-              <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.16em] mb-2 px-3">
-                {categoryLabels[category] || category}
-              </h3>
-              {items.map(item => (
+          Object.entries(groupedItems).map(([category, items]) => {
+            const expanded = Boolean(searchTerm) || expandedCategories.has(category);
+            const containsActive = items.some(item => item.id === activeTab);
+            return (
+              <div key={category} className="mb-2">
                 <button
-                  key={item.id}
                   type="button"
-                  onClick={() => {
-                    setActiveTab(item.id);
-                    if (onClose) onClose();
-                  }}
-                  className={`
-                    group w-full flex items-center gap-3 px-3 py-2.5 mb-1 rounded-xl text-left transition-all duration-150 min-w-0
-                    ${activeTab === item.id
-                      ? 'bg-sky-50 text-sky-800 font-semibold ring-1 ring-sky-100'
-                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                    }
-                  `}
+                  onClick={() => toggleCategory(category)}
+                  aria-expanded={expanded}
+                  className={"w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-left hover:bg-slate-100 transition-colors " + (containsActive ? "text-sky-800" : "text-slate-500")}
                 >
-                  <span
-                    className={`shrink-0 ${
-                      activeTab === item.id ? 'text-sky-700' : 'text-slate-400 group-hover:text-slate-700'
-                    }`}
-                  >
-                    <Icon name={item.iconName} className="w-5 h-5" strokeWidth={activeTab === item.id ? 2.25 : 1.75} />
+                  <span className="text-[10px] font-bold uppercase tracking-[0.13em]">
+                    {categoryLabels[category] || category}
+                    <span className="ml-2 font-medium text-slate-400">{items.length}</span>
                   </span>
-                  <span className="font-medium text-sm leading-snug break-words">{item.label}</span>
+                  <Icon name={expanded ? "chevronDown" : "chevronRight"} className="w-4 h-4 shrink-0 text-slate-400" />
                 </button>
-              ))}
-            </div>
-          ))
+                {expanded && (
+                  <div className="mt-1 space-y-0.5">
+                    {items.map(item => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => {
+                          setActiveTab(item.id);
+                          if (onClose) onClose();
+                        }}
+                        className={"group w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-colors min-w-0 " + (activeTab === item.id ? "bg-sky-50 text-sky-800 font-semibold ring-1 ring-inset ring-sky-100" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900")}
+                      >
+                        <span className={"shrink-0 " + (activeTab === item.id ? "text-sky-700" : "text-slate-400 group-hover:text-slate-700")}>
+                          <Icon name={item.iconName} className="w-[18px] h-[18px]" strokeWidth={activeTab === item.id ? 2.25 : 1.75} />
+                        </span>
+                        <span className="font-medium text-[13px] leading-snug">{item.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })
         )}
       </nav>
 
