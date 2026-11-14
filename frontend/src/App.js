@@ -18,6 +18,7 @@ import UserAgreements from './pages/UserAgreements';
 import HelpAndSupport from './pages/Help & Support';
 import SupportChat from './pages/SupportChat';
 import Subscription from './pages/Subscription';
+import UserRefunds from './pages/UserRefunds';
 import MyPurchases from './pages/MyPurchases';
 import Notifications from './pages/Notifications';
 import Payment from './pages/Payment';
@@ -102,6 +103,7 @@ function AppContent() {
             <Route path='project-requirement' element={<ProjectRequirement />} />
             <Route path='support' element={<HelpAndSupport />} />
             <Route path='subscription' element={<Subscription />} />
+            <Route path='refunds' element={<UserRefunds />} />
             <Route path='agreements' element={<UserAgreements />} />
             <Route path='purchases' element={<MyPurchases />} />
             <Route path='notifications' element={<Notifications />} />
