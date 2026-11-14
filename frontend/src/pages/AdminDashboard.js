@@ -96,7 +96,6 @@ const AdminDashboard = () => {
       case 'project-requests': return <AdminProjectRequests />;
       case 'user-plans': return <AdminUserPlans />;
       case 'users': return <AdminUsers />;
-      case 'stats': return <AdminStats />;
       case 'notifications': return <AdminNotifications />;
       case 'plans': return <AdminPlans />;
       case 'contacts': return <AdminContacts />;
