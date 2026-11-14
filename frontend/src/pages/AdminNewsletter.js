@@ -1,62 +1,17 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import axios from '../axios';
-
 const AdminNewsletter = () => {
-  const [subscribers, setSubscribers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    const fetchSubscribers = async () => {
-      setLoading(true);
-      setError('');
-      try {
-        const token = localStorage.getItem('token');
-        const res = await axios.get('/api/auth/admin/newsletter-subscribers', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        setSubscribers(res.data.subscribers);
-      } catch (err) {
-        setError('Could not fetch newsletter subscribers.');
-      }
-      setLoading(false);
-    };
-    fetchSubscribers();
-  }, []);
-
-  return (
-    <div style={{ color: '#E5E7EB', maxWidth: '900px', margin: '0 auto' }}>
-      <h2 style={{ color: '#2ECC71', fontWeight: 700, fontSize: '1.7rem', marginBottom: '1.2rem' }}>Newsletter Subscribers</h2>
-      <div style={{ background: '#23272F', borderRadius: '1rem', padding: '2rem', boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}>
-        {loading ? (
-          <div>Loading...</div>
-        ) : error ? (
-          <div style={{ color: '#FF6B35' }}>{error}</div>
-        ) : subscribers.length === 0 ? (
-          <div>No newsletter subscribers found.</div>
-        ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse', color: '#E5E7EB' }}>
-            <thead>
-              <tr style={{ background: '#181A20' }}>
-                <th style={{ padding: '0.7rem', borderBottom: '1px solid #333' }}>Email</th>
-                <th style={{ padding: '0.7rem', borderBottom: '1px solid #333' }}>Subscribed At</th>
-                <th style={{ padding: '0.7rem', borderBottom: '1px solid #333' }}>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {subscribers.map(sub => (
-                <tr key={sub._id}>
-                  <td style={{ padding: '0.7rem', borderBottom: '1px solid #333' }}>{sub.email}</td>
-                  <td style={{ padding: '0.7rem', borderBottom: '1px solid #333' }}>{new Date(sub.createdAt).toLocaleString()}</td>
-                  <td style={{ padding: '0.7rem', borderBottom: '1px solid #333', fontWeight: 700, color: sub.status === 'subscribed' ? '#2ECC71' : '#FF6B35' }}>{sub.status === 'subscribed' ? 'Subscribed' : 'Unsubscribed'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-    </div>
-  );
+ const [subscribers,setSubscribers]=useState([]),[loading,setLoading]=useState(true),[error,setError]=useState(''),[search,setSearch]=useState(''),[status,setStatus]=useState('all');
+ const fetchSubscribers=useCallback(async()=>{setLoading(true);setError('');try{const token=localStorage.getItem('token');const res=await axios.get('/api/auth/admin/newsletter-subscribers',{headers:{Authorization:`Bearer ${token}`}});setSubscribers(Array.isArray(res.data.subscribers)?res.data.subscribers:[]);}catch(err){setError(err.response?.data?.message||'Could not fetch newsletter subscribers.');}finally{setLoading(false);}},[]);
+ useEffect(()=>{fetchSubscribers();},[fetchSubscribers]);
+ const active=subscribers.filter(s=>s.status==='subscribed').length;
+ const filtered=useMemo(()=>subscribers.filter(s=>(s.email||'').toLowerCase().includes(search.trim().toLowerCase())&&(status==='all'||s.status===status)).sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0)),[subscribers,search,status]);
+ return <main className="askc-admin-page space-y-5">
+  <header className="askc-page-header"><div><h2 className="askc-page-title">Newsletter Subscribers</h2><p className="askc-page-subtitle">Manage mailing-list registrations and subscription preferences.</p></div><button onClick={fetchSubscribers} disabled={loading} className="rounded-xl border border-slate-600 bg-slate-800 px-4 py-2.5 text-sm font-bold text-white hover:bg-slate-700 disabled:opacity-50">{loading?'Refreshing…':'↻ Refresh'}</button></header>
+  <section className="askc-stat-grid"><div className="askc-stat"><strong>{subscribers.length}</strong><span>Total subscribers</span></div><div className="askc-stat"><strong className="!text-emerald-400">{active}</strong><span>Subscribed</span></div><div className="askc-stat"><strong className="!text-amber-300">{subscribers.length-active}</strong><span>Unsubscribed</span></div></section>
+  <section className="askc-panel space-y-4"><div className="grid grid-cols-1 gap-3 sm:grid-cols-2"><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search email address…" className="w-full rounded-xl border border-slate-600 bg-slate-950 px-4 py-3 text-sm text-white"/><select value={status} onChange={e=>setStatus(e.target.value)} className="w-full rounded-xl border border-slate-600 bg-slate-950 px-4 py-3 text-sm text-white"><option value="all">All statuses</option><option value="subscribed">Subscribed</option><option value="unsubscribed">Unsubscribed</option></select></div>
+  <p className="text-xs text-slate-400">{filtered.length} matching records</p>{error&&<div role="alert" className="rounded-xl border border-red-500/40 bg-red-950/40 p-3 text-sm text-red-200">{error}</div>}
+  {loading?<div className="py-12 text-center text-slate-400">Loading subscribers…</div>:filtered.length===0?<div className="rounded-xl border border-dashed border-slate-600 py-12 text-center"><p className="font-semibold text-slate-200">No subscribers found</p><p className="mt-1 text-sm text-slate-400">Try another search or status filter.</p></div>:<div className="askc-mobile-scroll rounded-xl border border-slate-700"><table className="w-full border-collapse text-left text-sm text-slate-200"><thead className="bg-slate-950 text-xs uppercase text-slate-400"><tr><th className="p-4">Email address</th><th className="p-4">Subscribed at</th><th className="p-4">Status</th></tr></thead><tbody>{filtered.map(s=><tr key={s._id} className="border-t border-slate-700 hover:bg-slate-800/70"><td className="p-4 font-medium break-all">{s.email}</td><td className="p-4 whitespace-nowrap text-slate-400">{s.createdAt?new Date(s.createdAt).toLocaleString('en-IN'):'—'}</td><td className="p-4"><span className={`rounded-full px-2.5 py-1 text-xs font-bold ${s.status==='subscribed'?'bg-emerald-400/10 text-emerald-300':'bg-amber-400/10 text-amber-300'}`}>{s.status==='subscribed'?'Subscribed':'Unsubscribed'}</span></td></tr>)}</tbody></table></div>}</section>
+ </main>;
 };
-
-export default AdminNewsletter; 
+export default AdminNewsletter;
