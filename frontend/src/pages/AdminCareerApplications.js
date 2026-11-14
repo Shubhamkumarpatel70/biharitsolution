@@ -106,7 +106,7 @@ function AdminCareerApplications() {
                 );
               })}
             </tbody>
-          </table></div>
+          </table>
         )}
       </div>
     </div>
