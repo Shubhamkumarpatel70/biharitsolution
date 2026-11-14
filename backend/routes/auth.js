@@ -2877,7 +2877,7 @@ router.patch(
     try {
       const complaint = await Complaint.findByIdAndUpdate(
         req.params.id,
-        { status: req.body.status },
+        { status: req.body.status, ...(typeof req.body.response === "string" ? { response: req.body.response.trim().slice(0, 3000) } : {}) },
         { new: true },
       );
       res.json({ complaint });
