@@ -1068,6 +1068,7 @@ router.patch("/admin/terminate-subscription/:id", authMiddleware, adminMiddlewar
     if (!sub) return res.status(404).json({ message: "Subscription not found." });
     if (sub.canceled || sub.status === "expired") return res.status(400).json({ message: "This subscription is already inactive." });
     sub.canceled = true;
+    sub.cancellationInitiatedBy = "askc";
     sub.cancellationReason = reason;
     sub.cancellationStatus = "approved";
     sub.cancellationApprovedDate = new Date();
@@ -1442,7 +1443,7 @@ router.get("/user/refunds", authMiddleware, async (req, res) => {
         { refundStatus: { $exists: true, $nin: ["", "not_reviewed"] } }
       ]
     })
-      .select("plan planName uniqueId status canceled cancellationStatus cancellationRequestDate cancellationReason cancellationRejectionReason refundStatus refundEligible refundAmount refundReason refundReference refundProcessedAt paymentStatus paymentMethod amountPaid paymentEntries createdAt updatedAt")
+      .select("plan planName uniqueId status canceled cancellationInitiatedBy cancellationStatus cancellationRequestDate cancellationReason cancellationRejectionReason refundStatus refundEligible refundAmount refundReason refundReference refundProcessedAt paymentStatus paymentMethod amountPaid paymentEntries createdAt updatedAt")
       .sort({ cancellationRequestDate: -1, updatedAt: -1, createdAt: -1 })
       .limit(100)
       .lean();
@@ -1461,6 +1462,7 @@ router.get("/user/refunds", authMiddleware, async (req, res) => {
         uniqueId: sub.uniqueId,
         subscriptionStatus: sub.status,
         canceled: sub.canceled === true,
+        cancellationInitiatedBy: sub.cancellationInitiatedBy || "",
         cancellationStatus: sub.cancellationStatus || "none",
         cancellationRequestDate: sub.cancellationRequestDate,
         cancellationReason: sub.cancellationReason,
