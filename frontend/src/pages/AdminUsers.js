@@ -314,7 +314,13 @@ const AdminUsers = () => {
                   <div className="mb-3 rounded-lg border border-slate-700 bg-slate-950/40 p-3">
                     <p className="text-xs font-bold text-slate-300">Plan & payment</p>
                     <p className="mt-1 text-sm font-semibold text-white">{user.latestSubscription?.planName || 'No plan assigned'}</p>
-                    {user.latestSubscription && <p className="text-xs text-slate-400">Original ₹{Number(user.latestSubscription.totalAmount || 0).toLocaleString('en-IN')} · Discount ₹{Number(user.latestSubscription.discountAmount || 0).toLocaleString('en-IN')}</p><p className="text-xs text-slate-400">Coupon: {user.latestSubscription.couponCode || 'No coupon'} · Received ₹{Number(user.latestSubscription.amountPaid || 0).toLocaleString('en-IN')}</p><p className="text-xs text-slate-400 break-all">Transaction: {user.latestSubscription.transactionId || user.latestSubscription.cashfreeOrderId || '—'}</p>}
+                    {user.latestSubscription && (
+                      <>
+                        <p className="text-xs text-slate-400">Original ₹{Number(user.latestSubscription.totalAmount || 0).toLocaleString('en-IN')} · Discount ₹{Number(user.latestSubscription.discountAmount || 0).toLocaleString('en-IN')}</p>
+                        <p className="text-xs text-slate-400">Coupon: {user.latestSubscription.couponCode || 'No coupon'} · Received ₹{Number(user.latestSubscription.amountPaid || 0).toLocaleString('en-IN')}</p>
+                        <p className="text-xs text-slate-400 break-all">Transaction: {user.latestSubscription.transactionId || user.latestSubscription.cashfreeOrderId || '—'}</p>
+                      </>
+                    )}
                     <div className="mt-2 flex flex-wrap gap-2">
                       <button onClick={() => openAssignPlan(user)} className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-white">{user.latestSubscription ? 'Change plan' : 'Assign plan'}</button>
                       {user.latestSubscription && <button onClick={() => recordPayment(user)} className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white">Add payment</button>}
