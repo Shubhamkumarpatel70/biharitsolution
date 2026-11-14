@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from '../axios';
+import './AdminWorkspace.css';
 
 const AdminTeam = () => {
   const [teamMembers, setTeamMembers] = useState([]);
@@ -259,7 +260,7 @@ const AdminTeam = () => {
   }
 
   return (
-    <div className="admin-team-page min-h-screen bg-slate-50 text-slate-900 p-4 sm:p-6">
+    <div className="askc-admin-page admin-team-page min-h-screen bg-slate-50 text-slate-900 p-4 sm:p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
@@ -523,7 +524,7 @@ const AdminTeam = () => {
         {/* Team Members Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {teamMembers.map((member) => (
-            <div key={member._id} className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 sm:p-6 hover:shadow-md transition-shadow">
+            <div key={member._id} className="askc-admin-card bg-white border border-slate-200 shadow-sm rounded-2xl p-4 sm:p-6 hover:shadow-md transition-shadow">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3">
                 <div className="flex items-center space-x-3 sm:space-x-4">
                   <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-emerald-600 flex items-center justify-center text-lg sm:text-2xl font-bold overflow-hidden">
