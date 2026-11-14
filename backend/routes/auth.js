@@ -1349,6 +1349,62 @@ router.get(
 );
 
 // Add this route for user notifications
+// User: view refund and cancellation progress for the signed-in account only.
+router.get("/user/refunds", authMiddleware, async (req, res) => {
+  try {
+    const records = await Subscription.find({
+      user: req.user.id,
+      $or: [
+        { cancellationStatus: { $in: ["pending", "approved", "rejected"] } },
+        { canceled: true },
+        { refundStatus: { $exists: true, $nin: ["", "not_reviewed"] } }
+      ]
+    })
+      .select("plan planName uniqueId status canceled cancellationStatus cancellationRequestDate cancellationReason cancellationRejectionReason refundStatus refundEligible refundAmount refundReason refundReference refundProcessedAt paymentStatus paymentMethod amountPaid paymentEntries createdAt updatedAt")
+      .sort({ cancellationRequestDate: -1, updatedAt: -1, createdAt: -1 })
+      .limit(100)
+      .lean();
+
+    const refunds = records.map((sub) => {
+      const cashfreePaid = ["paid", "partial", "success", "successful"].includes(String(sub.paymentStatus || "").toLowerCase())
+        ? Number(sub.amountPaid || 0) : 0;
+      const manualPaid = Array.isArray(sub.paymentEntries)
+        ? sub.paymentEntries.filter((entry) => entry.status === "confirmed")
+            .reduce((sum, entry) => sum + Number(entry.amount || 0), 0)
+        : 0;
+      return {
+        _id: sub._id,
+        plan: sub.plan,
+        planName: sub.planName,
+        uniqueId: sub.uniqueId,
+        subscriptionStatus: sub.status,
+        canceled: sub.canceled === true,
+        cancellationStatus: sub.cancellationStatus || "none",
+        cancellationRequestDate: sub.cancellationRequestDate,
+        cancellationReason: sub.cancellationReason,
+        cancellationRejectionReason: sub.cancellationRejectionReason,
+        refundStatus: sub.refundStatus || "not_reviewed",
+        refundEligible: sub.refundEligible === true,
+        refundAmount: Number(sub.refundAmount || 0),
+        refundReason: sub.refundReason || "",
+        refundReference: sub.refundReference || "",
+        refundProcessedAt: sub.refundProcessedAt || null,
+        paymentStatus: sub.paymentStatus || "",
+        paymentMethod: sub.paymentMethod || "",
+        paidAmount: Math.max(cashfreePaid, manualPaid),
+        createdAt: sub.createdAt,
+        updatedAt: sub.updatedAt
+      };
+    });
+
+    res.set("Cache-Control", "no-store");
+    res.json({ refunds });
+  } catch (err) {
+    console.error("User refund history error:", err);
+    res.status(500).json({ message: "Could not load your refund details." });
+  }
+});
+
 router.get("/user-notifications", authMiddleware, async (req, res) => {
   try {
     const now = new Date();
