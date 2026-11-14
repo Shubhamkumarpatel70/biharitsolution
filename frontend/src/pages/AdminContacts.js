@@ -1,94 +1,22 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import axios from '../axios';
+import './AdminWorkspace.css';
 
 const AdminContacts = () => {
-  const [contacts, setContacts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    const fetchContacts = async () => {
-      setLoading(true);
-      setError('');
-      try {
-        const token = localStorage.getItem('token');
-        const res = await axios.get('/api/auth/contacts', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        setContacts(res.data.contacts);
-      } catch (err) {
-        setError('Could not fetch contacts.');
-      }
-      setLoading(false);
-    };
-    fetchContacts();
-  }, []);
-
-  const handleMarkRead = async (id) => {
-    try {
-      const token = localStorage.getItem('token');
-      await axios.patch(`/api/auth/contacts/${id}/read`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setContacts(contacts => contacts.map(c => c._id === id ? { ...c, read: true } : c));
-    } catch {}
-  };
-
-  const handleMarkUnread = async (id) => {
-    try {
-      const token = localStorage.getItem('token');
-      await axios.patch(`/api/auth/contacts/${id}/unread`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setContacts(contacts => contacts.map(c => c._id === id ? { ...c, read: false } : c));
-    } catch {}
-  };
-
-  return (
-    <div className="admin-redesign-page mx-auto w-full max-w-7xl space-y-5 px-1 text-slate-800 sm:px-2">
-      <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-xs font-bold uppercase tracking-widest text-sky-600">Communication centre</p><h2 className="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">Contact messages</h2><p className="mt-1 text-sm text-slate-500">Review enquiries and track read status.</p></div><div className="flex gap-2 text-xs font-semibold"><span className="rounded-full bg-slate-100 px-3 py-2 text-slate-700">{contacts.length} total</span><span className="rounded-full bg-amber-50 px-3 py-2 text-amber-800">{contacts.filter(c => !c.read).length} unread</span></div></div>
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        {loading ? (
-          <div>Loading...</div>
-        ) : error ? (
-          <div style={{ color: '#FF6B35' }}>{error}</div>
-        ) : contacts.length === 0 ? (
-          <div>No contacts found.</div>
-        ) : (
-          <div className="overflow-x-auto"><table className="w-full min-w-[850px] border-collapse text-left text-sm text-slate-700">
-            <thead>
-              <tr className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-                <th className="px-4 py-3">Name</th>
-                <th className="px-4 py-3">Email</th>
-                <th className="px-4 py-3">Message</th>
-                <th className="px-4 py-3">Submitted</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {contacts.map(contact => (
-                <tr key={contact._id} className="border-t border-slate-100 align-top hover:bg-slate-50">
-                  <td className="px-4 py-3">{contact.name}</td>
-                  <td className="px-4 py-3">{contact.email}</td>
-                  <td className="px-4 py-3">{contact.message}</td>
-                  <td className="px-4 py-3">{new Date(contact.createdAt).toLocaleString()}</td>
-                  <td className="px-4 py-3 font-semibold">{contact.read ? 'Read' : 'Unread'}</td>
-                  <td className="px-4 py-3">
-                    {contact.read ? (
-                      <button onClick={() => handleMarkUnread(contact._id)} className="rounded-lg bg-slate-700 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-900">Mark as Unread</button>
-                    ) : (
-                      <button onClick={() => handleMarkRead(contact._id)} className="rounded-lg bg-sky-600 px-3 py-2 text-xs font-semibold text-white hover:bg-sky-700">Mark as Read</button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table></div>
-        )}
-      </div>
-    </div>
-  );
+  const [contacts,setContacts]=useState([]),[loading,setLoading]=useState(true),[error,setError]=useState(''),[search,setSearch]=useState(''),[filter,setFilter]=useState('all'),[busyId,setBusyId]=useState('');
+  const config=()=>({headers:{Authorization:`Bearer ${localStorage.getItem('token')}`}});
+  const fetchContacts=async()=>{setLoading(true);setError('');try{const r=await axios.get('/api/auth/contacts',config());setContacts(Array.isArray(r.data.contacts)?r.data.contacts:[]);}catch(e){setError(e.response?.data?.message||'Could not fetch contact messages.');}finally{setLoading(false);}};
+  useEffect(()=>{fetchContacts();},[]);
+  const updateRead=async(id,read)=>{setBusyId(id);setError('');try{await axios.patch(`/api/auth/contacts/${id}/${read?'read':'unread'}`,{},config());setContacts(s=>s.map(c=>c._id===id?{...c,read}:c));}catch(e){setError(e.response?.data?.message||'Could not update message status.');}finally{setBusyId('');}};
+  const visible=useMemo(()=>{const q=search.trim().toLowerCase();return contacts.filter(c=>{const status=filter==='all'||(filter==='unread'&&!c.read)||(filter==='read'&&c.read);return status&&(!q||[c.name,c.email,c.phone,c.subject,c.message].join(' ').toLowerCase().includes(q));});},[contacts,search,filter]);
+  const unread=contacts.filter(c=>!c.read).length;
+  const date=v=>v?new Date(v).toLocaleString('en-IN',{dateStyle:'medium',timeStyle:'short'}):'—';
+  return <main className="askc-admin-page space-y-5 pb-20 lg:pb-8">
+    <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-xs font-bold uppercase tracking-[.16em] text-blue-700">Communication centre</p><h1 className="mt-1 text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">Contact enquiries</h1><p className="mt-1 text-sm text-slate-500">Review incoming messages, contact details and follow-up status.</p></div><button type="button" onClick={fetchContacts} disabled={loading} className="askc-admin-action self-start border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-50 sm:self-auto">↻ Refresh inbox</button></header>
+    <section className="grid grid-cols-2 gap-3 sm:grid-cols-3"><div className="askc-admin-card p-4"><p className="text-xs font-semibold uppercase text-slate-500">Total messages</p><p className="mt-2 text-2xl font-extrabold">{contacts.length}</p></div><div className="askc-admin-card p-4"><p className="text-xs font-semibold uppercase text-slate-500">Unread</p><p className="mt-2 text-2xl font-extrabold text-amber-600">{unread}</p></div><div className="askc-admin-card col-span-2 p-4 sm:col-span-1"><p className="text-xs font-semibold uppercase text-slate-500">Read</p><p className="mt-2 text-2xl font-extrabold text-emerald-700">{contacts.length-unread}</p></div></section>
+    <section className="askc-admin-card grid grid-cols-1 gap-3 p-4 sm:grid-cols-[minmax(0,1fr)_190px]"><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search name, email, phone or message…" aria-label="Search contacts" className="w-full min-w-0 rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"/><select value={filter} onChange={e=>setFilter(e.target.value)} aria-label="Filter contact messages" className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm"><option value="all">All messages</option><option value="unread">Unread only</option><option value="read">Read only</option></select></section>
+    {error&&<div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>}
+    {loading?<div className="askc-admin-card py-16 text-center text-sm text-slate-500">Loading contact messages…</div>:visible.length===0?<div className="askc-admin-card px-4 py-14 text-center"><div className="text-3xl">✉</div><h2 className="mt-3 font-bold text-slate-800">{contacts.length?'No matching messages':'Your inbox is clear'}</h2><p className="mt-1 text-sm text-slate-500">{contacts.length?'Try a different search or filter.':'New website enquiries will appear here.'}</p></div>:<section className="grid grid-cols-1 gap-4 xl:grid-cols-2">{visible.map(c=><article key={c._id} className="askc-admin-card min-w-0 p-4 sm:p-5"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><h2 className="break-words text-base font-bold text-slate-900">{c.name||'Website visitor'}</h2><p className="mt-1 break-all text-sm text-slate-500">{c.email}</p></div><span className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold ${c.read?'bg-emerald-50 text-emerald-700':'bg-amber-50 text-amber-800'}`}>{c.read?'Read':'Unread'}</span></div><div className="mt-4 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">{c.phone&&<div><p className="text-xs font-semibold uppercase text-slate-400">Phone</p><a className="break-all font-medium text-blue-700 hover:underline" href={`tel:${c.phone}`}>{c.phone}</a></div>}<div><p className="text-xs font-semibold uppercase text-slate-400">Received</p><p className="font-medium text-slate-700">{date(c.createdAt)}</p></div></div>{c.subject&&<p className="mt-4 text-sm font-bold text-slate-800">{c.subject}</p>}<div className="mt-2 whitespace-pre-wrap break-words rounded-xl bg-slate-50 p-3 text-sm leading-relaxed text-slate-700">{c.message}</div><div className="mt-4 flex flex-wrap gap-2"><a href={`mailto:${c.email}?subject=${encodeURIComponent('Re: '+(c.subject||'Your enquiry'))}`} className="askc-admin-action border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100">✉ Reply by email</a><button type="button" disabled={busyId===c._id} onClick={()=>updateRead(c._id,!c.read)} className={`askc-admin-action border disabled:opacity-50 ${c.read?'border-slate-200 bg-white text-slate-700':'border-emerald-200 bg-emerald-50 text-emerald-700'}`}>{busyId===c._id?'Saving…':c.read?'Mark unread':'Mark as read'}</button></div></article>)}</section>}
+  </main>;
 };
-
-export default AdminContacts; 
+export default AdminContacts;
