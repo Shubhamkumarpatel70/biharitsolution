@@ -16,8 +16,9 @@ router.use(async (req, res, next) => {
   if (!process.env.JWT_SECRET) return res.status(503).json({ message: "Authentication is not configured." });
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.id).select("role").lean();
-    if (!user || !["admin", "coadmin"].includes(user.role)) return res.status(403).json({ message: "Admin access required." });
+    const user = await User.findById(decoded.id).select("role sessionVersion").lean();
+    if (!user || Number(decoded.sv || 0) !== Number(user.sessionVersion || 0)) return res.status(401).json({ message: "Session expired. Please log in again." });
+    if (!["admin", "coadmin"].includes(user.role)) return res.status(403).json({ message: "Admin access required." });
     req.actorId = user._id;
     next();
   } catch (error) {
