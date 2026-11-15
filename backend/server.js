@@ -98,6 +98,18 @@ app.use(
 );
 app.use(compression()); // Compress responses
 
+// Endpoint-specific rate limits. These run before the shared auth limiter so
+// successful OTP/email requests are also counted and cannot be spammed.
+const {
+  authEndpointLimiter,
+  privacyWriteLimiter,
+} = require("./middleware/rateLimiters");
+
+app.use("/api/auth", authEndpointLimiter);
+app.use("/api/privacy-compliance", privacyWriteLimiter);
+app.use("/api/privacy-register", privacyWriteLimiter);
+app.use("/api/privacy-operations", privacyWriteLimiter);
+
 // Rate limiting for auth endpoints - More lenient
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
