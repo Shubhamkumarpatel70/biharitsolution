@@ -11,6 +11,7 @@ const AdminCoupons = () => {
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [sharingCoupon, setSharingCoupon] = useState(null);
 
   const authConfig = () => ({
     headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
@@ -59,17 +60,21 @@ const AdminCoupons = () => {
     ? plans.filter(p => coupon.eligiblePlans.some(id => String(id?._id || id) === String(p._id))).map(p => p.name).join(', ') || 'Selected pricing plans'
     : 'All pricing plans';
   const couponShareText = coupon => [
-    'Special offer from ASKC TECHNOLOGIES!',
+    'SPECIAL OFFER FROM ASKC TECHNOLOGIES!',
     '',
     `${coupon.discountType === 'percentage' ? `${Number(coupon.amount || 0)}% OFF` : `₹${Number(coupon.amount || 0).toLocaleString('en-IN')} OFF`} on website development.`,
-    `Coupon code: ${coupon.code}`,
+    `Coupon code: *${coupon.code}*`,
     `Valid for: ${couponPlansLabel(coupon)}`,
-    `Redemptions: ${Number(coupon.usedCount || 0)} / ${coupon.usageLimit ?? 'Unlimited'}`,
-    'Apply the code at checkout. Terms & Conditions apply.',
+    '',
+    'Explore our website:',
+    'https://askctechnologies.in',
+    'https://askctechnologies.in/plans',
+    '',
+    'Apply your coupon code at checkout. Terms & Conditions apply.',
     '',
     'ASKC TECHNOLOGIES',
-    'https://askctechnologies.in'
-  ].join('\\n');
+    'Turning Your Ideas Into Digital Reality.'
+  ].join('\n');
   const copyCouponCode = async code => {
     try {
       await navigator.clipboard.writeText(code);
@@ -78,13 +83,19 @@ const AdminCoupons = () => {
       setMessage({ type: 'error', text: 'Could not copy coupon code. Please select and copy it manually.' });
     }
   };
-  const shareCoupon = async coupon => {
-    const text = couponShareText(coupon);
+  const shareCoupon = coupon => setSharingCoupon(coupon);
+
+  const shareCouponDetails = async () => {
+    if (!sharingCoupon) return;
+    const text = couponShareText(sharingCoupon);
     try {
-      if (navigator.share) await navigator.share({ title: `ASKC coupon ${coupon.code}`, text, url: 'https://askctechnologies.in/plans' });
-      else {
+      if (navigator.share) {
+        await navigator.share({ title: `ASKC coupon ${sharingCoupon.code}`, text, url: 'https://askctechnologies.in/plans' });
+        setSharingCoupon(null);
+      } else {
         await navigator.clipboard.writeText(text);
         setMessage({ type: 'success', text: 'Coupon details copied. You can now share them.' });
+        setSharingCoupon(null);
       }
     } catch (err) {
       if (err?.name !== 'AbortError') setMessage({ type: 'error', text: 'Sharing is unavailable on this device. Please copy the coupon details.' });
@@ -363,6 +374,43 @@ const AdminCoupons = () => {
           </>
         )}
       </section>
+      {sharingCoupon && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4" role="dialog" aria-modal="true" aria-labelledby="coupon-share-title" onClick={e => { if (e.target === e.currentTarget) setSharingCoupon(null); }}>
+          <div className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl">
+            <div className="flex items-start justify-between gap-3 border-b border-slate-100 p-5">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-blue-600">ASKC Technologies</p>
+                <h2 id="coupon-share-title" className="mt-1 text-xl font-bold text-slate-900">Share special offer</h2>
+              </div>
+              <button type="button" onClick={() => setSharingCoupon(null)} aria-label="Close" className="rounded-lg p-2 text-slate-500 hover:bg-slate-100">✕</button>
+            </div>
+            <div className="space-y-4 p-5">
+              <div className="rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 to-white p-4">
+                <p className="text-xs font-bold uppercase tracking-wider text-blue-700">Special offer</p>
+                <p className="mt-2 text-3xl font-extrabold tracking-tight text-slate-900">{sharingCoupon.discountType === 'percentage' ? `${Number(sharingCoupon.amount || 0)}% OFF` : `₹${Number(sharingCoupon.amount || 0).toLocaleString('en-IN')} OFF`}</p>
+                <p className="mt-1 text-sm text-slate-600">On website development</p>
+                <div className="mt-4 rounded-xl border border-dashed border-blue-300 bg-white p-3 text-center">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Coupon code</p>
+                  <p className="mt-1 break-all font-mono text-2xl font-extrabold tracking-widest text-blue-800">{sharingCoupon.code}</p>
+                </div>
+                <p className="mt-3 text-sm text-slate-600">Valid for: <span className="font-semibold text-slate-800">{couponPlansLabel(sharingCoupon)}</span></p>
+                <p className="mt-2 text-xs text-slate-500">Apply your coupon code at checkout. Terms &amp; Conditions apply.</p>
+              </div>
+              <div className="space-y-2">
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Explore our website</p>
+                <a href="https://askctechnologies.in" target="_blank" rel="noreferrer" className="block break-all text-sm font-semibold text-blue-700 underline">https://askctechnologies.in</a>
+                <a href="https://askctechnologies.in/plans" target="_blank" rel="noreferrer" className="block break-all text-sm font-semibold text-blue-700 underline">https://askctechnologies.in/plans</a>
+                <button type="button" onClick={() => copyCouponCode(sharingCoupon.code)} className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-bold text-blue-800 transition hover:bg-blue-100">
+                  <span aria-hidden="true">▢</span> Copy Coupon Code
+                </button>
+              </div>
+              <button type="button" onClick={shareCouponDetails} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700">
+                <span aria-hidden="true">↗</span> Share offer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
