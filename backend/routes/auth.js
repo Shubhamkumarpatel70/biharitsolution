@@ -31,6 +31,7 @@ const Plan = require("../models/Plan");
 const Contact = require("../models/Contact");
 const Notification = require("../models/Notification");
 const User = require("../models/User");
+const Otp = require("../models/Otp");
 const cookieParser = require("cookie-parser");
 const Complaint = require("../models/Complaint");
 const passport = require("passport");
@@ -156,6 +157,14 @@ async function notifyCashfreePaymentSuccess(subscription) {
   }
 }
 
+function parseStoredPlanPrice(value) {
+  if (value === null || value === undefined || String(value).trim() === "") return null;
+  const normalized = String(value).replace(/[₹,\s]/g, "");
+  if (!/^\d+(?:\.\d{1,2})?$/.test(normalized)) return null;
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
 async function getCheckoutPaymentMode() {
   const settings = await PaymentMode.findOne({ key: "checkout" }).lean();
   return settings?.mode === "manual" ? "manual" : "cashfree";
@@ -224,7 +233,32 @@ router.get(
 router.get(
   "/google/callback",
   passport.authenticate("google", { failureRedirect: "/login" }),
-  (req, res) => {
+  async (req, res) => {
+    // Google sign-in must respect the same second-factor requirement as password sign-in.
+    if (req.user?.twoFactorEnabled && ["email", "authenticator"].includes(req.user.twoFactorMethod)) {
+      const challengeToken = jwt.sign(
+        { id: req.user._id, role: req.user.role, purpose: "two-factor-login" },
+        process.env.JWT_SECRET,
+        { expiresIn: "5m" },
+      );
+      if (req.user.twoFactorMethod === "email") {
+        const code = require("crypto").randomInt(100000, 1000000).toString();
+        const email = String(req.user.email).toLowerCase();
+        await Otp.deleteMany({ email, purpose: "twofactor-login" });
+        await Otp.create({ email, otp: code, purpose: "twofactor-login", expiresAt: new Date(Date.now() + 5 * 60 * 1000) });
+        try {
+          await sendEmail(email, "Your ASKC TECHNOLOGIES login verification code", `Your login verification code is ${code}. It expires in 5 minutes.`, `<div style="font-family:Arial,sans-serif;padding:24px"><h2>ASKC TECHNOLOGIES</h2><p>Your login verification code:</p><h1 style="letter-spacing:8px">${code}</h1><p>This code expires in 5 minutes. Do not share it.</p></div>`);
+        } catch (error) {
+          await Otp.deleteMany({ email, purpose: "twofactor-login" });
+          return res.redirect((process.env.CLIENT_URL || "https://askctechnologies.in").replace(/\\/dashboard.*$/, "") + "/login?twoFactorError=email");
+        }
+      }
+      const frontendOrigin = process.env.CLIENT_URL || "https://askctechnologies.in";
+      const loginUrl = new URL("/login", frontendOrigin);
+      loginUrl.searchParams.set("twoFactorToken", challengeToken);
+      loginUrl.searchParams.set("twoFactorMethod", req.user.twoFactorMethod);
+      return res.redirect(loginUrl.toString());
+    }
     // Successful authentication, redirect or send token
     const token = jwt.sign(
       { id: req.user._id, role: req.user.role },
@@ -438,7 +472,8 @@ router.post("/cashfree/create-order", authMiddleware, async (req, res) => {
       return res.status(503).json({ message: "Online payments are temporarily unavailable. Please use manual payment." });
     }
     const planDoc = await Plan.findOne({ name: String(plan).trim() });
-    if (!planDoc || !Number.isFinite(Number(planDoc.price)) || Number(planDoc.price) <= 0) {
+    const basePlanPrice = planDoc ? parseStoredPlanPrice(planDoc.price) : null;
+    if (!planDoc || basePlanPrice === null) {
       return res.status(400).json({ message: "Selected plan is unavailable." });
     }
     const user = await User.findById(req.user.id);
@@ -457,10 +492,10 @@ router.post("/cashfree/create-order", authMiddleware, async (req, res) => {
       if (coupon.usageLimit > 0 && coupon.usedCount >= coupon.usageLimit) return res.status(400).json({ message: "Coupon usage limit reached." });
       if (coupon.usedBy.some(id => String(id) === String(user._id))) return res.status(400).json({ message: "You have already used this coupon." });
       discountAmount = coupon.discountType === 'percentage'
-        ? Number((Number(planDoc.price) * Math.min(100, Number(coupon.amount) || 0) / 100).toFixed(2))
-        : Math.min(Number(coupon.amount) || 0, Number(planDoc.price));
+        ? Number((basePlanPrice * Math.min(100, Number(coupon.amount) || 0) / 100).toFixed(2))
+        : Math.min(Number(coupon.amount) || 0, basePlanPrice);
     }
-    const amount = Number(Math.max(0, Number(planDoc.price) - discountAmount).toFixed(2));
+    const amount = Number(Math.max(0, basePlanPrice - discountAmount).toFixed(2));
     if (amount <= 0) return res.status(400).json({ message: "Coupon discount must leave a payable amount greater than zero." });
     const baseUrl = process.env.CASHFREE_ENVIRONMENT === "production"
       ? "https://api.cashfree.com/pg"
@@ -506,7 +541,7 @@ router.post("/cashfree/create-order", authMiddleware, async (req, res) => {
       plan: planEnum,
       planName: planDoc.name,
       sourcePlan: planDoc._id,
-      totalAmount: Number(planDoc.price),
+      totalAmount: basePlanPrice,
       uniqueId: orderId,
       status: "pending",
       expiresAt: new Date(Date.now() + durationDays * 86400000),
@@ -704,6 +739,8 @@ router.post(
       planEnum = "starter";
     }
 
+    const basePlanPrice = parseStoredPlanPrice(planDoc.price);
+    if (basePlanPrice === null) return res.status(400).json({ message: "Selected plan has an invalid price. Please contact ASKC Technologies." });
     let discountAmount = 0;
     let normalizedCouponCode = "";
     if (couponCode) {
@@ -719,10 +756,10 @@ router.post(
         return res.status(400).json({ message: "You have already used this coupon." });
       }
       discountAmount = couponDoc.discountType === 'percentage'
-        ? Number(((Number(planDoc.price) || 0) * Math.min(100, Number(couponDoc.amount) || 0) / 100).toFixed(2))
-        : Math.min(Number(couponDoc.amount) || 0, Number(planDoc.price) || 0);
+        ? Number((basePlanPrice * Math.min(100, Number(couponDoc.amount) || 0) / 100).toFixed(2))
+        : Math.min(Number(couponDoc.amount) || 0, basePlanPrice);
     }
-    const payableAmount = Math.max(0, Number(planDoc.price || 0) - discountAmount);
+    const payableAmount = Number(Math.max(0, basePlanPrice - discountAmount).toFixed(2));
     if (payableAmount <= 0) return res.status(400).json({ message: "Coupon discount must leave a payable amount greater than zero." });
 
     const uniqueId =
@@ -751,7 +788,7 @@ router.post(
         status: "pending",
         planName: planDoc.name,
         sourcePlan: planDoc._id,
-        totalAmount: Number(planDoc.price) || 0,
+        totalAmount: basePlanPrice,
         amountPaid: payableAmount,
         discountAmount,
         couponCode: normalizedCouponCode,
@@ -5718,6 +5755,182 @@ router.post("/admin/cloudinary/migrate-images", authMiddleware, coAdminMiddlewar
   } catch (error) {
     console.error("Cloudinary image migration failed:", error.message);
     res.status(error.code === "CLOUDINARY_NOT_CONFIGURED" ? 503 : 500).json({ message: error.message || "Could not migrate legacy images.", summary });
+  }
+});
+
+
+/* Admin transaction ledger: subscription purchase/payment records. */
+router.get("/admin/transactions", authMiddleware, coAdminMiddleware, async (req, res) => {
+  try {
+    const query = String(req.query.search || "").trim().slice(0, 120);
+    const status = String(req.query.status || "all");
+    const method = String(req.query.method || "all");
+    const from = req.query.from ? new Date(req.query.from) : null;
+    const to = req.query.to ? new Date(req.query.to) : null;
+    const filter = {};
+    if (["success", "pending", "failed", "refunded", "cancelled"].includes(status)) {
+      if (status === "success") filter.paymentStatus = { $in: ["paid", "success", "completed", "confirmed"] };
+      if (status === "pending") filter.paymentStatus = "pending";
+      if (status === "failed") filter.paymentStatus = { $in: ["failed", "rejected"] };
+      if (status === "refunded") filter.refundStatus = "processed";
+      if (status === "cancelled") filter.canceled = true;
+    }
+    if (["cashfree", "upi", "card", "netbanking"].includes(method)) filter.paymentMethod = method;
+    if (from && !Number.isNaN(from.getTime())) filter.createdAt = { ...(filter.createdAt || {}), $gte: from };
+    if (to && !Number.isNaN(to.getTime())) { const end = new Date(to); end.setHours(23,59,59,999); filter.createdAt = { ...(filter.createdAt || {}), $lte: end }; }
+    if (query) {
+      const rx = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, "\\
+/* Two-factor authentication: TOTP authenticator or registered-email OTP. */
+const twoFactorCrypto = require("../utils/twoFactor");
+function createSessionForUser(res, user) {
+  const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: "7d" });
+  res.cookie("token", token, { httpOnly: true, sameSite: "None", secure: process.env.NODE_ENV === "production", maxAge: 7 * 24 * 60 * 60 * 1000 });
+  return token;
+}
+router.get("/security/2fa", authMiddleware, async (req, res) => {
+  const user = await User.findById(req.user.id).select("email twoFactorEnabled twoFactorMethod");
+  if (!user) return res.status(404).json({ message: "User not found." });
+  res.json({ enabled: Boolean(user.twoFactorEnabled), method: user.twoFactorMethod || "", email: user.email });
+});
+router.post("/security/2fa/authenticator/setup", authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("+twoFactorPendingSecret");
+    if (!user) return res.status(404).json({ message: "User not found." });
+    const secret = twoFactorCrypto.makeTotpSecret();
+    user.twoFactorPendingSecret = twoFactorCrypto.encryptSecret(secret);
+    await user.save();
+    const label = encodeURIComponent(`ASKC TECHNOLOGIES:${user.email}`);
+    const issuer = encodeURIComponent("ASKC TECHNOLOGIES");
+    const otpauthUri = `otpauth://totp/${label}?secret=${secret}&issuer=${issuer}&algorithm=SHA1&digits=6&period=30`;
+    res.json({ secret, otpauthUri, message: "Add this account manually in your authenticator app, then verify the 6-digit code." });
+  } catch (err) {
+    console.error("2FA authenticator setup failed:", err);
+    res.status(500).json({ message: "Could not start authenticator setup." });
+  }
+});
+router.post("/security/2fa/authenticator/verify", authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("+twoFactorPendingSecret");
+    if (!user?.twoFactorPendingSecret) return res.status(400).json({ message: "Start authenticator setup first." });
+    const secret = twoFactorCrypto.decryptSecret(user.twoFactorPendingSecret);
+    if (!twoFactorCrypto.verifyTotp(secret, req.body?.code)) return res.status(400).json({ message: "Invalid authenticator code. Check your app and try again." });
+    user.twoFactorSecret = user.twoFactorPendingSecret;
+    user.twoFactorPendingSecret = "";
+    user.twoFactorEnabled = true;
+    user.twoFactorMethod = "authenticator";
+    await user.save();
+    res.json({ enabled: true, method: user.twoFactorMethod, message: "Authenticator two-factor authentication enabled." });
+  } catch (err) {
+    console.error("2FA authenticator verification failed:", err);
+    res.status(500).json({ message: "Could not verify authenticator setup." });
+  }
+});
+router.post("/security/2fa/email/send", authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("email name");
+    if (!user) return res.status(404).json({ message: "User not found." });
+    const code = require("crypto").randomInt(100000, 1000000).toString();
+    await Otp.deleteMany({ email: user.email.toLowerCase(), purpose: "twofactor-enable" });
+    await Otp.create({ email: user.email.toLowerCase(), otp: code, purpose: "twofactor-enable", expiresAt: new Date(Date.now() + 5 * 60 * 1000) });
+    try {
+      await sendEmail(user.email, "Enable email two-factor authentication — ASKC TECHNOLOGIES", `Your verification code is ${code}. It expires in 5 minutes.`, `<div style="font-family:Arial,sans-serif;padding:24px"><h2>ASKC TECHNOLOGIES</h2><p>Your email 2FA verification code:</p><h1 style="letter-spacing:8px">${code}</h1><p>This code expires in 5 minutes. Do not share it.</p></div>`);
+    } catch (mailError) {
+      await Otp.deleteMany({ email: user.email.toLowerCase(), purpose: "twofactor-enable" });
+      return res.status(503).json({ message: "Could not send verification email. Please try again." });
+    }
+    res.json({ message: "Verification code sent to your registered email." });
+  } catch (err) {
+    console.error("2FA email send failed:", err);
+    res.status(500).json({ message: "Could not send verification code." });
+  }
+});
+router.post("/security/2fa/email/verify", authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    const code = String(req.body?.code || "").trim();
+    const record = user && await Otp.findOne({ email: user.email.toLowerCase(), otp: code, purpose: "twofactor-enable", expiresAt: { $gt: new Date() } });
+    if (!record) return res.status(400).json({ message: "Invalid or expired email verification code." });
+    await Otp.deleteMany({ email: user.email.toLowerCase(), purpose: "twofactor-enable" });
+    user.twoFactorEnabled = true;
+    user.twoFactorMethod = "email";
+    user.twoFactorSecret = "";
+    user.twoFactorPendingSecret = "";
+    await user.save();
+    res.json({ enabled: true, method: "email", message: "Email two-factor authentication enabled." });
+  } catch (err) {
+    console.error("2FA email verification failed:", err);
+    res.status(500).json({ message: "Could not enable email two-factor authentication." });
+  }
+});
+router.post("/security/2fa/disable", authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("+password +twoFactorSecret +twoFactorPendingSecret");
+    if (!user) return res.status(404).json({ message: "User not found." });
+    if (!user.twoFactorEnabled) return res.json({ enabled: false, message: "Two-factor authentication is already disabled." });
+    const passwordOk = user.password && await require("bcryptjs").compare(String(req.body?.password || ""), user.password);
+    if (!passwordOk) return res.status(400).json({ message: "Enter your current password to disable 2FA." });
+    const code = String(req.body?.code || "");
+    let valid = false;
+    if (user.twoFactorMethod === "authenticator" && user.twoFactorSecret) valid = twoFactorCrypto.verifyTotp(twoFactorCrypto.decryptSecret(user.twoFactorSecret), code);
+    if (user.twoFactorMethod === "email") {
+      const record = await Otp.findOne({ email: user.email.toLowerCase(), otp: code, purpose: "twofactor-enable", expiresAt: { $gt: new Date() } });
+      valid = Boolean(record);
+      if (record) await Otp.deleteMany({ email: user.email.toLowerCase(), purpose: "twofactor-enable" });
+    }
+    if (!valid) return res.status(400).json({ message: "Enter a valid current 2FA code. For email 2FA, request a fresh code first." });
+    user.twoFactorEnabled = false; user.twoFactorMethod = ""; user.twoFactorSecret = ""; user.twoFactorPendingSecret = "";
+    await user.save();
+    res.json({ enabled: false, message: "Two-factor authentication disabled." });
+  } catch (err) {
+    console.error("2FA disable failed:", err);
+    res.status(500).json({ message: "Could not disable two-factor authentication." });
+  }
+});
+router.post("/2fa/login/verify", async (req, res) => {
+  try {
+    const challenge = jwt.verify(String(req.body?.challengeToken || ""), process.env.JWT_SECRET);
+    if (challenge.purpose !== "two-factor-login") return res.status(401).json({ message: "Invalid login challenge." });
+    const user = await User.findById(challenge.id).select("+twoFactorSecret");
+    if (!user || !user.twoFactorEnabled) return res.status(401).json({ message: "This login challenge is no longer valid." });
+    const code = String(req.body?.code || "").trim();
+    let valid = false;
+    if (user.twoFactorMethod === "authenticator" && user.twoFactorSecret) valid = twoFactorCrypto.verifyTotp(twoFactorCrypto.decryptSecret(user.twoFactorSecret), code);
+    if (user.twoFactorMethod === "email") {
+      const record = await Otp.findOne({ email: user.email.toLowerCase(), otp: code, purpose: "twofactor-login", expiresAt: { $gt: new Date() } });
+      valid = Boolean(record);
+      if (record) await Otp.deleteMany({ email: user.email.toLowerCase(), purpose: "twofactor-login" });
+    }
+    if (!valid) return res.status(400).json({ message: "Invalid or expired verification code." });
+    const token = createSessionForUser(res, user);
+    res.json({ token, user: { id: user._id, name: user.name, email: user.email, role: user.role }, message: "Login verified successfully." });
+  } catch (err) {
+    res.status(401).json({ message: "Login verification expired. Please sign in again." });
+  }
+});
+
+module.exports = router;"), "i");
+      const matchingUsers = await User.find({ $or: [{ name: rx }, { email: rx }] }).select("_id").limit(100).lean();
+      filter.$or = [{ uniqueId: rx }, { transactionId: rx }, { cashfreeOrderId: rx }, { couponCode: rx }, { planName: rx }, { user: { $in: matchingUsers.map(u => u._id) } }];
+    }
+    const [transactions, total] = await Promise.all([
+      Subscription.find(filter).populate("user", "name email").sort({ createdAt: -1 }).limit(500).lean(),
+      Subscription.countDocuments(filter)
+    ]);
+    const summary = await Subscription.aggregate([
+      { $group: {
+        _id: null,
+        total: { $sum: 1 },
+        successful: { $sum: { $cond: [{ $in: ["$paymentStatus", ["paid","success","completed","confirmed"]] }, 1, 0] } },
+        pending: { $sum: { $cond: [{ $eq: ["$paymentStatus", "pending"] }, 1, 0] } },
+        failed: { $sum: { $cond: [{ $in: ["$paymentStatus", ["failed","rejected"]] }, 1, 0] } },
+        refunded: { $sum: { $cond: [{ $eq: ["$refundStatus", "processed"] }, 1, 0] } },
+        grossAmount: { $sum: { $ifNull: ["$amountPaid", "$totalAmount"] } }
+      } }
+    ]);
+    res.json({ transactions, total, summary: summary[0] || { total: 0, successful: 0, pending: 0, failed: 0, refunded: 0, grossAmount: 0 } });
+  } catch (err) {
+    console.error("Admin transaction ledger error:", err);
+    res.status(500).json({ message: "Could not load transactions." });
   }
 });
 

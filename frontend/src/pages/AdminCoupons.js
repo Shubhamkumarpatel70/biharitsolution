@@ -55,6 +55,42 @@ const AdminCoupons = () => {
     });
   }, [coupons, search, statusFilter]);
 
+  const couponPlansLabel = coupon => coupon.eligiblePlans?.length
+    ? plans.filter(p => coupon.eligiblePlans.some(id => String(id?._id || id) === String(p._id))).map(p => p.name).join(', ') || 'Selected pricing plans'
+    : 'All pricing plans';
+  const couponShareText = coupon => [
+    'Special offer from ASKC TECHNOLOGIES!',
+    '',
+    `${coupon.discountType === 'percentage' ? `${Number(coupon.amount || 0)}% OFF` : `₹${Number(coupon.amount || 0).toLocaleString('en-IN')} OFF`} on website development.`,
+    `Coupon code: ${coupon.code}`,
+    `Valid for: ${couponPlansLabel(coupon)}`,
+    `Redemptions: ${Number(coupon.usedCount || 0)} / ${coupon.usageLimit ?? 'Unlimited'}`,
+    'Apply the code at checkout. Terms & Conditions apply.',
+    '',
+    'ASKC TECHNOLOGIES',
+    'https://askctechnologies.in'
+  ].join('\\n');
+  const copyCouponCode = async code => {
+    try {
+      await navigator.clipboard.writeText(code);
+      setMessage({ type: 'success', text: `Coupon ${code} copied to clipboard.` });
+    } catch {
+      setMessage({ type: 'error', text: 'Could not copy coupon code. Please select and copy it manually.' });
+    }
+  };
+  const shareCoupon = async coupon => {
+    const text = couponShareText(coupon);
+    try {
+      if (navigator.share) await navigator.share({ title: `ASKC coupon ${coupon.code}`, text, url: 'https://askctechnologies.in/plans' });
+      else {
+        await navigator.clipboard.writeText(text);
+        setMessage({ type: 'success', text: 'Coupon details copied. You can now share them.' });
+      }
+    } catch (err) {
+      if (err?.name !== 'AbortError') setMessage({ type: 'error', text: 'Sharing is unavailable on this device. Please copy the coupon details.' });
+    }
+  };
+
   const handleChange = event => {
     const { name, value } = event.target;
     setForm(current => ({ ...current, [name]: name === 'code' ? value.toUpperCase().replace(/\\s/g, '') : value }));
@@ -283,6 +319,8 @@ const AdminCoupons = () => {
                       <td className="px-6 py-4 text-slate-500">{formatDate(coupon.createdAt)}</td>
                       <td className="px-6 py-4">
                         <div className="flex justify-end gap-2">
+                          <button type="button" onClick={() => copyCouponCode(coupon.code)} className="rounded-lg border border-blue-200 px-3 py-2 text-xs font-semibold text-blue-700 transition hover:bg-blue-50">Copy</button>
+                          <button type="button" onClick={() => shareCoupon(coupon)} className="rounded-lg border border-sky-200 px-3 py-2 text-xs font-semibold text-sky-700 transition hover:bg-sky-50">Share</button>
                           <button type="button" onClick={() => handleDeactivate(coupon._id)} disabled={!coupon.active}
                             className="rounded-lg border border-amber-200 px-3 py-2 text-xs font-semibold text-amber-700 transition hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-40">Deactivate</button>
                           <button type="button" onClick={() => handleDelete(coupon._id)}
@@ -309,7 +347,11 @@ const AdminCoupons = () => {
                     <div><p className="text-xs text-slate-500">Redemptions</p><p className="mt-0.5 font-semibold text-slate-800">{coupon.usedCount || 0} / {coupon.usageLimit ?? 1}</p></div>
                     <div><p className="text-xs text-slate-500">Created</p><p className="mt-0.5 font-semibold text-slate-800">{formatDate(coupon.createdAt)}</p></div>
                   </div>
-                  <div className="mt-4 flex gap-2">
+                  <div className="mt-4 grid grid-cols-2 gap-2">
+                    <button type="button" onClick={() => copyCouponCode(coupon.code)} className="rounded-lg border border-blue-200 px-3 py-2.5 text-xs font-semibold text-blue-700">Copy code</button>
+                    <button type="button" onClick={() => shareCoupon(coupon)} className="rounded-lg border border-sky-200 px-3 py-2.5 text-xs font-semibold text-sky-700">Share details</button>
+                  </div>
+                  <div className="mt-2 flex gap-2">
                     <button type="button" onClick={() => handleDeactivate(coupon._id)} disabled={!coupon.active}
                       className="flex-1 rounded-lg border border-amber-200 px-3 py-2.5 text-xs font-semibold text-amber-700 disabled:opacity-40">Deactivate</button>
                     <button type="button" onClick={() => handleDelete(coupon._id)}

@@ -17,6 +17,8 @@ import AdminContacts from './AdminContacts';
 import AdminRenewalRequests from './AdminRenewalRequests';
 import AdminNewsletter from './AdminNewsletter';
 import AdminCoupons from './AdminCoupons';
+import AdminTransactions from './AdminTransactions';
+import SecuritySettings from './SecuritySettings';
 import AdminTeam from './AdminTeam';
 import AdminPaymentOptions from './AdminPaymentOptions';
 import AdminCareers from './AdminCareers';
@@ -105,6 +107,8 @@ const AdminDashboard = () => {
       case 'team': return <AdminTeam />;
       case 'payment-options': return <AdminPaymentOptions />;
       case 'coupons': return <AdminCoupons />;
+      case 'transactions': return <AdminTransactions />;
+      case 'settings': return <SecuritySettings />;
       case 'careers': return <AdminCareers />;
       case 'career-applications': return <AdminCareerApplications />;
       case 'help': return <AdminHelp />;

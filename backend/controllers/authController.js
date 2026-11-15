@@ -413,6 +413,32 @@ exports.loginUser = async (req, res) => {
       return res.status(400).json({ message: "Invalid email or password." });
     }
 
+    // If 2FA is enabled, issue only a short-lived challenge token (never a full session yet).
+    if (user.twoFactorEnabled && ["email", "authenticator"].includes(user.twoFactorMethod)) {
+      const challengeToken = jwt.sign(
+        { id: user._id, role: user.role, purpose: "two-factor-login" },
+        process.env.JWT_SECRET,
+        { expiresIn: "5m" },
+      );
+      if (user.twoFactorMethod === "email") {
+        const code = crypto.randomInt(100000, 1000000).toString();
+        await Otp.deleteMany({ email: trimmedEmail, purpose: "twofactor-login" });
+        await Otp.create({ email: trimmedEmail, otp: code, purpose: "twofactor-login", expiresAt: new Date(Date.now() + 5 * 60 * 1000) });
+        try {
+          await sendEmail(trimmedEmail, "Your ASKC TECHNOLOGIES login verification code", `Your login verification code is ${code}. It expires in 5 minutes.`, generateOtpEmailHtml(code, "Verify your login", "Use this one-time code to finish signing in. Do not share it with anyone."));
+        } catch (mailError) {
+          await Otp.deleteMany({ email: trimmedEmail, purpose: "twofactor-login" });
+          return res.status(503).json({ message: "We could not send your login OTP. Please try again." });
+        }
+      }
+      return res.status(202).json({
+        requiresTwoFactor: true,
+        challengeToken,
+        method: user.twoFactorMethod,
+        message: user.twoFactorMethod === "email" ? "A verification code was sent to your registered email." : "Enter the current code from your authenticator app."
+      });
+    }
+
     // Generate JWT token
     const token = jwt.sign(
       { id: user._id, role: user.role },

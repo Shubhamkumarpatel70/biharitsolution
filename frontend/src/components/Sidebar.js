@@ -13,6 +13,7 @@ const navItems = [
   { to: '/dashboard/purchases', label: 'Purchases', iconName: 'cart', end: false },
   { to: '/dashboard/notifications', label: 'Notifications', iconName: 'bell', end: false },
   { to: '/dashboard/privacy', label: 'Privacy Centre', iconName: 'shield', end: false },
+  { to: '/dashboard/settings', label: 'Settings & Security', iconName: 'settings', end: false },
 ];
 
 const mobileNavItems = [

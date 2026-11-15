@@ -27,6 +27,8 @@ export const adminNavItems = [
   { id: 'newsletter', label: 'Newsletter Subs', iconName: 'clipboard', category: 'communication' },
   { id: 'payment-options', label: 'Payment Options', iconName: 'creditCard', category: 'finance' },
   { id: 'coupons', label: 'Coupons', iconName: 'currency', category: 'finance' },
+  { id: 'transactions', label: 'Transactions', iconName: 'creditCard', category: 'finance' },
+  { id: 'settings', label: 'Settings & Security', iconName: 'settings', category: 'settings' },
   { id: 'help', label: 'Help', iconName: 'help', category: 'support' },
   { id: 'privacy-requests', label: 'Privacy Requests', iconName: 'shield', category: 'settings' },
   { id: 'privacy-compliance', label: 'Monthly Compliance', iconName: 'clipboard', category: 'settings' },
