@@ -5,7 +5,7 @@ const AdminCoupons = () => {
   const [coupons, setCoupons] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [form, setForm] = useState({ code: '', amount: '', usageLimit: '1' });
+  const [form, setForm] = useState({ code: '', amount: '', discountType: 'fixed', usageLimit: '1' });
   const [message, setMessage] = useState({ type: '', text: '' });
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
@@ -58,8 +58,8 @@ const AdminCoupons = () => {
     setMessage({ type: '', text: '' });
     const amount = Number(form.amount);
     const usageLimit = Number(form.usageLimit);
-    if (!form.code.trim() || !Number.isFinite(amount) || amount <= 0) {
-      setMessage({ type: 'error', text: 'Enter a valid coupon code and discount amount.' });
+    if (!form.code.trim() || !Number.isFinite(amount) || amount <= 0 || (form.discountType === 'percentage' && amount > 100)) {
+      setMessage({ type: 'error', text: 'Enter a valid coupon code and discount value (percentage must be 1–100).' });
       return;
     }
     if (!Number.isInteger(usageLimit) || usageLimit < 1) {
@@ -72,10 +72,11 @@ const AdminCoupons = () => {
       await axios.post('/api/auth/coupons', {
         code: form.code.trim(),
         amount,
+        discountType: form.discountType,
         usageLimit
       }, authConfig());
       setMessage({ type: 'success', text: 'Coupon created successfully.' });
-      setForm({ code: '', amount: '', usageLimit: '1' });
+      setForm({ code: '', amount: '', discountType: 'fixed', usageLimit: '1' });
       await fetchCoupons();
     } catch (err) {
       setMessage({ type: 'error', text: err.response?.data?.message || 'Could not create coupon. Check the code and try again.' });
@@ -156,15 +157,23 @@ const AdminCoupons = () => {
             <p className="text-sm text-slate-500">Set the discount value and maximum number of uses.</p>
           </div>
         </div>
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 sm:p-6 lg:grid-cols-[1.2fr_1fr_1fr_auto] lg:items-end">
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 sm:p-6 lg:grid-cols-[1.2fr_1fr_1fr_1fr_auto] lg:items-end">
           <label className="block">
             <span className="mb-1.5 block text-sm font-semibold text-slate-700">Coupon code</span>
             <input name="code" value={form.code} onChange={handleChange} placeholder="e.g. WELCOME500" required maxLength={32}
               className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-3 text-sm font-semibold uppercase tracking-wide text-slate-900 outline-none transition placeholder:font-normal placeholder:normal-case placeholder:tracking-normal focus:border-blue-500 focus:ring-4 focus:ring-blue-100" />
           </label>
           <label className="block">
-            <span className="mb-1.5 block text-sm font-semibold text-slate-700">Discount amount (₹)</span>
-            <input name="amount" value={form.amount} onChange={handleChange} placeholder="e.g. 500" required type="number" min="1" step="1"
+            <span className="mb-1.5 block text-sm font-semibold text-slate-700">Discount type</span>
+            <select name="discountType" value={form.discountType} onChange={handleChange}
+              className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-3 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100">
+              <option value="fixed">Fixed amount (₹)</option>
+              <option value="percentage">Percentage (%)</option>
+            </select>
+          </label>
+          <label className="block">
+            <span className="mb-1.5 block text-sm font-semibold text-slate-700">{form.discountType === 'percentage' ? 'Discount percentage (%)' : 'Discount amount (₹)'}</span>
+            <input name="amount" value={form.amount} onChange={handleChange} placeholder={form.discountType === 'percentage' ? 'e.g. 10' : 'e.g. 500'} required type="number" min="1" max={form.discountType === 'percentage' ? '100' : undefined} step={form.discountType === 'percentage' ? '0.01' : '1'}
               className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100" />
           </label>
           <label className="block">
@@ -237,7 +246,7 @@ const AdminCoupons = () => {
                       <td className="px-6 py-4">
                         <span className="inline-flex rounded-lg border border-dashed border-blue-300 bg-blue-50 px-3 py-1.5 font-mono font-bold tracking-wide text-blue-800">{coupon.code}</span>
                       </td>
-                      <td className="px-6 py-4 font-semibold text-slate-900">₹{Number(coupon.amount || 0).toLocaleString('en-IN')}</td>
+                      <td className="px-6 py-4 font-semibold text-slate-900">{(coupon.discountType === 'percentage' ? `${Number(coupon.amount || 0)}%` : `₹${Number(coupon.amount || 0).toLocaleString('en-IN')}`)}</td>
                       <td className="px-6 py-4 text-slate-700"><span className="font-semibold">{coupon.usedCount || 0}</span><span className="text-slate-400"> / {coupon.usageLimit ?? 1}</span></td>
                       <td className="px-6 py-4"><span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${coupon.active ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>{coupon.active ? 'Active' : 'Inactive'}</span></td>
                       <td className="px-6 py-4 text-slate-500">{formatDate(coupon.createdAt)}</td>
@@ -260,7 +269,7 @@ const AdminCoupons = () => {
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <span className="inline-flex max-w-full break-all rounded-lg border border-dashed border-blue-300 bg-blue-50 px-3 py-1.5 font-mono text-sm font-bold tracking-wide text-blue-800">{coupon.code}</span>
-                      <p className="mt-2 text-lg font-bold text-slate-900">₹{Number(coupon.amount || 0).toLocaleString('en-IN')} <span className="text-xs font-medium text-slate-500">discount</span></p>
+                      <p className="mt-2 text-lg font-bold text-slate-900">{(coupon.discountType === 'percentage' ? `${Number(coupon.amount || 0)}%` : `₹${Number(coupon.amount || 0).toLocaleString('en-IN')}`)} <span className="text-xs font-medium text-slate-500">discount</span></p>
                     </div>
                     <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${coupon.active ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>{coupon.active ? 'Active' : 'Inactive'}</span>
                   </div>
