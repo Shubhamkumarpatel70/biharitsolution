@@ -29,6 +29,9 @@ function authenticate(req, res, next) {
   if (!process.env.JWT_SECRET) return res.status(503).json({ message: "Authentication is not configured securely." });
   try {
     req.user = jwt.verify(token, process.env.JWT_SECRET);
+    if (req.user.purpose === "two-factor-login") {
+      return res.status(401).json({ message: "Complete two-factor verification first." });
+    }
     next();
   } catch {
     return res.status(401).json({ message: "Invalid or expired session." });
@@ -36,8 +39,10 @@ function authenticate(req, res, next) {
 }
 async function adminOnly(req, res, next) {
   try {
-    const user = await User.findById(req.user.id).select("role sessionVersion").lean();
+    const user = await User.findById(req.user.id).select("role sessionVersion sessions").lean();
     if (!user || Number(req.user.sv || 0) !== Number(user.sessionVersion || 0)) return res.status(401).json({ message: "Session expired. Please log in again." });
+    const activeSession = req.user.sid && (user.sessions || []).some((session) => session.sessionId === req.user.sid && !session.revokedAt);
+    if (!activeSession) return res.status(401).json({ message: "This device session has ended. Please log in again." });
     if (!["admin", "coadmin"].includes(user.role)) return res.status(403).json({ message: "Admin access required." });
     req.actor = user;
     next();
