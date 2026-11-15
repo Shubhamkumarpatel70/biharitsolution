@@ -316,8 +316,9 @@ exports.registerUser = async (req, res) => {
         source: "registration-form"
       });
     }
+    const loginState = await recordSuccessfulLogin(user._id, req);
     const token = jwt.sign(
-      { id: user._id, role: user.role },
+      { id: user._id, role: user.role, sv: Number(loginState?.sessionVersion || 0) },
       process.env.JWT_SECRET,
       { expiresIn: "7d" },
     );
@@ -453,8 +454,9 @@ exports.loginUser = async (req, res) => {
     }
 
     // Generate JWT token
+    const loginState = await recordSuccessfulLogin(user._id, req);
     const token = jwt.sign(
-      { id: user._id, role: user.role },
+      { id: user._id, role: user.role, sv: Number(loginState?.sessionVersion || 0) },
       process.env.JWT_SECRET,
       { expiresIn: "7d" },
     );
@@ -521,8 +523,9 @@ exports.registerAdmin = async (req, res) => {
       role: "admin",
     });
     await user.save();
+    const loginState = await recordSuccessfulLogin(user._id, req);
     const token = jwt.sign(
-      { id: user._id, role: user.role },
+      { id: user._id, role: user.role, sv: Number(loginState?.sessionVersion || 0) },
       process.env.JWT_SECRET,
       { expiresIn: "7d" },
     );
