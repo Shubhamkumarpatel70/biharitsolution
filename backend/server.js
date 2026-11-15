@@ -15,6 +15,7 @@ const http = require("http");
 const { Server } = require("socket.io");
 const passport = require("passport");
 const session = require("express-session");
+const MongoSessionStore = require("./utils/mongoSessionStore");
 
 require("./config/passport"); // Google strategy configuration
 
@@ -146,25 +147,10 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
-// Cookie-authenticated state-changing requests require a trusted Origin. Bearer
-// token clients and third-party payment webhooks are not affected.
-app.use((req, res, next) => {
-  if (["GET", "HEAD", "OPTIONS"].includes(req.method)) return next();
-  const authorization = String(req.headers.authorization || "");
-  const cookieHeader = String(req.headers.cookie || "");
-  const hasCookieToken = /(?:^|;\s*)token=/.test(cookieHeader);
-  if (!hasCookieToken || authorization.startsWith("Bearer ")) return next();
-  const origin = req.headers.origin;
-  const referer = req.headers.referer;
-  let sourceOrigin = origin;
-  if (!sourceOrigin && referer) {
-    try { sourceOrigin = new URL(referer).origin; } catch { sourceOrigin = ""; }
-  }
-  if (!sourceOrigin || !allowedOrigins.has(sourceOrigin)) {
-    return res.status(403).json({ message: "Request origin could not be verified. Refresh the page and try again." });
-  }
-  next();
-});
+// Cookie-authenticated state-changing requests require a trusted Origin.
+// Bearer token clients and third-party payment webhooks are not affected.
+const createCookieCsrfOriginMiddleware = require("./utils/cookieCsrfOrigin");
+app.use(createCookieCsrfOriginMiddleware(allowedOrigins));
 
 // Preserve the exact Cashfree webhook payload for signature verification.
 app.use("/api/auth/cashfree/webhook", express.raw({ type: "application/json" }));
@@ -176,6 +162,7 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 // Session middleware for Passport
 app.use(
   session({
+    store: new MongoSessionStore(),
     secret: process.env.SESSION_SECRET || process.env.JWT_SECRET,
     resave: false,
     saveUninitialized: false,

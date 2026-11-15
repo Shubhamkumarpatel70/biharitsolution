@@ -48,6 +48,8 @@ const ProjectRequirement = require("../models/ProjectRequirement");
 const Career = require("../models/Career");
 const CareerApplication = require("../models/CareerApplication");
 const FundTransaction = require("../models/FundTransaction");
+const { cashfreeRefundRequest, normalizeRefundStatus } = require("../utils/cashfreeRefund");
+const { issueTwoFactorChallenge, consumeTwoFactorChallenge } = require("../utils/twoFactorChallenge");
 const IDCard = require("../models/IDCard");
 const Agreement = require("../models/Agreement");
 const FounderProfile = require("../models/FounderProfile");
@@ -360,11 +362,8 @@ router.get(
   async (req, res) => {
     // Google sign-in must respect the same second-factor requirement as password sign-in.
     if (req.user?.twoFactorEnabled && ["email", "authenticator"].includes(req.user.twoFactorMethod)) {
-      const challengeToken = jwt.sign(
-        { id: req.user._id, role: req.user.role, purpose: "two-factor-login" },
-        process.env.JWT_SECRET,
-        { expiresIn: "5m" },
-      );
+      const challenge = await issueTwoFactorChallenge({ user: req.user, Otp, jwtSecret: process.env.JWT_SECRET });
+      const challengeToken = challenge.token;
       if (req.user.twoFactorMethod === "email") {
         const code = require("crypto").randomInt(100000, 1000000).toString();
         const email = String(req.user.email).toLowerCase();
@@ -374,6 +373,7 @@ router.get(
           await sendEmail(email, "Your ASKC TECHNOLOGIES login verification code", `Your login verification code is ${code}. It expires in 5 minutes.`, `<div style="margin:0;background:#f3f6fb;padding:28px 12px;font-family:Arial,sans-serif;color:#172033"><div style="max-width:520px;margin:auto;background:#fff;border:1px solid #e2e8f0;border-radius:16px;overflow:hidden"><div style="background:#102b55;padding:24px 28px;color:#fff"><div style="font-size:22px;font-weight:800">ASKC<br><span style="color:#8fc5ff">TECHNOLOGIES</span></div><div style="font-size:10px;letter-spacing:2px;color:#c2d5ee;margin-top:8px">ACCOUNT SECURITY</div></div><div style="padding:28px"><h2 style="color:#102b55">Verify your login</h2><p style="color:#536174;line-height:1.7">Use this one-time code to finish signing in. Do not share it with anyone.</p><div style="background:#f5f8fc;border:1px solid #dce6f2;border-radius:12px;padding:22px;text-align:center"><p style="font-size:11px;letter-spacing:2px;color:#718096">YOUR VERIFICATION CODE</p><div style="font-size:34px;font-weight:800;letter-spacing:8px;color:#1763b1">${code}</div></div><p style="font-size:12px;color:#64748b;margin-top:22px">This code expires in 5 minutes.</p></div><div style="background:#f8fafc;padding:18px 28px;color:#748196;font-size:11px">ASKC TECHNOLOGIES · <a href="https://askctechnologies.in" style="color:#1756a2">askctechnologies.in</a></div></div></div>`);
         } catch (error) {
           await Otp.deleteMany({ email, purpose: "twofactor-login" });
+          await Otp.deleteOne({ email: challenge.email, otp: challenge.otpHash, purpose: "twofactor-challenge" });
           const errorLoginUrl = new URL("/login", process.env.CLIENT_URL || "https://askctechnologies.in");
           errorLoginUrl.searchParams.set("twoFactorError", "email");
           return res.redirect(errorLoginUrl.toString());
@@ -391,7 +391,7 @@ router.get(
     const sessionAgent = String(req.headers["user-agent"] || "").slice(0, 500);
     const loginState = await User.findByIdAndUpdate(req.user._id, {
       $set: { lastLoginAt: new Date(), lastLoginIp: sessionIp, lastLoginUserAgent: sessionAgent },
-      $push: { sessions: { $each: [{ sessionId, createdAt: new Date(), lastSeenAt: new Date(), ip: sessionIp, userAgent: sessionAgent, revokedAt: null }], $slice: -30 } },
+      $push: { sessions: { sessionId, createdAt: new Date(), lastSeenAt: new Date(), ip: sessionIp, userAgent: sessionAgent, revokedAt: null } },
     }, { new: true }).select("sessionVersion");
     const token = jwt.sign(
       { id: req.user._id, role: req.user.role, sv: Number(loginState?.sessionVersion || 0), sid: sessionId },
@@ -508,6 +508,45 @@ function getPublicSiteOrigin() {
   return canonicalOrigin;
 }
 
+// Coupon slots are reserved at checkout creation so concurrent orders cannot
+// oversubscribe a limited campaign. The reservation is consumed only after a
+// verified successful payment.
+async function redeemCouponReservation(subscription) {
+  if (!subscription?.couponCode || !subscription?.user) return null;
+  const coupon = await Coupon.findOneAndUpdate(
+    { code: subscription.couponCode, reservedCount: { $gt: 0 }, usedBy: { $ne: subscription.user } },
+    { $addToSet: { usedBy: subscription.user }, $inc: { usedCount: 1, reservedCount: -1 } },
+    { new: true }
+  );
+  if (coupon?.usageLimit > 0 && coupon.usedCount >= coupon.usageLimit) {
+    await Coupon.updateOne({ _id: coupon._id }, { $set: { active: false } });
+  }
+  return coupon;
+}
+
+async function releaseCouponReservation(subscription) {
+  if (!subscription?.couponCode) return;
+  await Coupon.updateOne(
+    { code: subscription.couponCode, reservedCount: { $gt: 0 } },
+    { $inc: { reservedCount: -1 } }
+  );
+}
+
+async function expireAbandonedCouponOrders(couponCode) {
+  const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const filter = { status: "pending", createdAt: { $lte: cutoff }, couponCode: { $nin: ["", null] } };
+  if (couponCode) filter.couponCode = couponCode;
+  const abandoned = await Subscription.find(filter).select("_id couponCode");
+  for (const item of abandoned) {
+    const expired = await Subscription.findOneAndUpdate(
+      { _id: item._id, status: "pending" },
+      { $set: { status: "expired", paymentStatus: "expired" } },
+      { new: true }
+    );
+    if (expired?.couponCode) await releaseCouponReservation(expired);
+  }
+}
+
 // Cashfree Checkout: create a server-priced order and a pending subscription.
 // Cashfree server-to-server webhook. Signature is verified against the untouched raw request body.
 router.post("/cashfree/webhook", async (req, res) => {
@@ -558,19 +597,7 @@ router.post("/cashfree/webhook", async (req, res) => {
       { new: true }
     );
     if (activatedSubscription && subscription.couponCode) {
-      const redeemedCoupon = await Coupon.findOneAndUpdate(
-        {
-          code: subscription.couponCode,
-          active: true,
-          usedBy: { $ne: subscription.user },
-          $or: [{ usageLimit: 0 }, { $expr: { $lt: ["$usedCount", "$usageLimit"] } }],
-        },
-        { $addToSet: { usedBy: subscription.user }, $inc: { usedCount: 1 } },
-        { new: true },
-      );
-      if (redeemedCoupon?.usageLimit > 0 && redeemedCoupon.usedCount >= redeemedCoupon.usageLimit) {
-        await Coupon.updateOne({ _id: redeemedCoupon._id }, { $set: { active: false } });
-      }
+      await redeemCouponReservation(subscription);
     }
     if (activatedSubscription) await notifyCashfreePaymentSuccess(activatedSubscription);
     return res.status(200).json({ received: true });
@@ -589,12 +616,19 @@ async function getSubscriptionPurchaseBlocker(userId) {
     { user: userId, status: "active", canceled: { $ne: true }, expiresAt: { $ne: null, $lte: now } },
     { $set: { status: "expired" } }
   );
-  // A pending checkout/receipt must not lock a customer's account forever.
-  // Only stale pending requests are expired; recent requests remain protected.
-  await Subscription.updateMany(
-    { user: userId, status: "pending", createdAt: { $lte: abandonedPendingCutoff } },
-    { $set: { status: "expired", paymentStatus: "expired" } }
-  );
+  // Expire stale checkouts with a compare-and-set so concurrent requests cannot
+  // release the same coupon reservation more than once.
+  const stalePending = await Subscription.find({
+    user: userId, status: "pending", createdAt: { $lte: abandonedPendingCutoff }
+  }).select("_id couponCode");
+  for (const stale of stalePending) {
+    const expired = await Subscription.findOneAndUpdate(
+      { _id: stale._id, status: "pending" },
+      { $set: { status: "expired", paymentStatus: "expired" } },
+      { new: true }
+    );
+    if (expired?.couponCode) await releaseCouponReservation(expired);
+  }
   return Subscription.findOne({
     user: userId,
     canceled: { $ne: true },
@@ -626,6 +660,7 @@ function subscriptionPurchaseBlockedResponse(res, subscription) {
 }
 
 router.post("/cashfree/create-order", authMiddleware, async (req, res) => {
+  let reservedCouponId = null;
   try {
     if (await getCheckoutPaymentMode() !== "cashfree") {
       return res.status(403).json({ message: "Online checkout is currently disabled. Please use the payment method configured by ASKC Technologies." });
@@ -656,18 +691,31 @@ router.post("/cashfree/create-order", authMiddleware, async (req, res) => {
     let normalizedCouponCode = "";
     if (couponCode) {
       normalizedCouponCode = String(couponCode).trim().toUpperCase();
-      const coupon = await Coupon.findOne({ code: normalizedCouponCode, active: true });
-      if (!coupon) return res.status(400).json({ message: "Coupon is invalid or expired." });
-      if (coupon.eligiblePlans?.length && !coupon.eligiblePlans.some(id => String(id) === String(planDoc._id)))
-        return res.status(400).json({ message: "This coupon is not valid for the selected pricing plan." });
-      if (coupon.usageLimit > 0 && coupon.usedCount >= coupon.usageLimit) return res.status(400).json({ message: "Coupon usage limit reached." });
-      if (coupon.usedBy.some(id => String(id) === String(user._id))) return res.status(400).json({ message: "You have already used this coupon." });
-      discountAmount = coupon.discountType === 'percentage'
+      const coupon = await Coupon.findOneAndUpdate(
+        {
+          code: normalizedCouponCode,
+          active: true,
+          usedBy: { $ne: user._id },
+          $and: [
+            { $or: [{ eligiblePlans: { $size: 0 } }, { eligiblePlans: planDoc._id }] },
+            { $or: [{ usageLimit: 0 }, { $expr: { $lt: [{ $add: [{ $ifNull: ["$usedCount", 0] }, { $ifNull: ["$reservedCount", 0] }] }, "$usageLimit"] } }] }
+          ]
+        },
+        { $inc: { reservedCount: 1 } },
+        { new: true }
+      );
+      if (!coupon) return res.status(400).json({ message: "Coupon is invalid, expired, already used, or its usage limit has been reached." });
+      reservedCouponId = coupon._id;
+      discountAmount = coupon.discountType === "percentage"
         ? Number((basePlanPrice * Math.min(100, Number(coupon.amount) || 0) / 100).toFixed(2))
         : Math.min(Number(coupon.amount) || 0, basePlanPrice);
     }
     const amount = Number(Math.max(0, basePlanPrice - discountAmount).toFixed(2));
-    if (amount <= 0) return res.status(400).json({ message: "Coupon discount must leave a payable amount greater than zero." });
+    if (amount <= 0) {
+      if (reservedCouponId) await Coupon.updateOne({ _id: reservedCouponId, reservedCount: { $gt: 0 } }, { $inc: { reservedCount: -1 } });
+      reservedCouponId = null;
+      return res.status(400).json({ message: "Coupon discount must leave a payable amount greater than zero." });
+    }
     const baseUrl = process.env.CASHFREE_ENVIRONMENT === "production"
       ? "https://api.cashfree.com/pg"
       : "https://sandbox.cashfree.com/pg";
@@ -703,6 +751,8 @@ router.post("/cashfree/create-order", authMiddleware, async (req, res) => {
     });
     const data = await response.json();
     if (!response.ok || !data.payment_session_id) {
+      if (reservedCouponId) await Coupon.updateOne({ _id: reservedCouponId, reservedCount: { $gt: 0 } }, { $inc: { reservedCount: -1 } });
+      reservedCouponId = null;
       console.error("Cashfree order creation failed:", data);
       return res.status(502).json({ message: data.message || "Could not start Cashfree checkout." });
     }
@@ -733,6 +783,10 @@ router.post("/cashfree/create-order", authMiddleware, async (req, res) => {
       subscriptionId: subscription._id
     });
   } catch (err) {
+    if (reservedCouponId) {
+      try { await Coupon.updateOne({ _id: reservedCouponId, reservedCount: { $gt: 0 } }, { $inc: { reservedCount: -1 } }); }
+      catch (releaseError) { console.error("Could not release coupon reservation:", releaseError?.message); }
+    }
     console.error("Cashfree create-order error:", err);
     return res.status(500).json({ message: "Unable to create payment order." });
   }
@@ -765,14 +819,24 @@ router.post("/cashfree/verify-order", authMiddleware, async (req, res) => {
       return res.status(502).json({ message: "Could not verify payment with Cashfree." });
     }
     if (order.order_status !== "PAID") {
-      await Subscription.updateOne(
+      const paymentStatus = String(order.order_status || "pending").toUpperCase();
+      const isTerminalFailure = ["FAILED", "CANCELLED", "EXPIRED", "USER_DROPPED"].includes(paymentStatus);
+      const updatedPending = await Subscription.findOneAndUpdate(
         { _id: subscription._id, status: "pending" },
-        { $set: { paymentStatus: String(order.order_status || "pending").toLowerCase() } }
+        { $set: isTerminalFailure
+          ? { status: "expired", paymentStatus: paymentStatus.toLowerCase() }
+          : { paymentStatus: paymentStatus.toLowerCase() } },
+        { new: true }
       );
-      return res.status(202).json({
-        status: "pending",
-        paymentStatus: order.order_status || "PENDING",
-        message: "Payment is not confirmed yet. Please wait and check again."
+      if (isTerminalFailure && updatedPending?.couponCode) {
+        await releaseCouponReservation(updatedPending);
+      }
+      return res.status(isTerminalFailure ? 200 : 202).json({
+        status: isTerminalFailure ? "failed" : "pending",
+        paymentStatus,
+        message: isTerminalFailure
+          ? "Payment was not completed. You can start a new purchase."
+          : "Payment is not confirmed yet. Please wait and check again."
       });
     }
     const paidAmount = Number(order.order_amount);
@@ -787,12 +851,9 @@ router.post("/cashfree/verify-order", authMiddleware, async (req, res) => {
     const successfulPayment = Array.isArray(payments)
       ? payments.find(payment => payment.payment_status === "SUCCESS")
       : null;
-    if (subscription.couponCode) {
-      await Coupon.findOneAndUpdate(
-        { code: subscription.couponCode, active: true, usedBy: { $ne: subscription.user }, $or: [{ usageLimit: 0 }, { $expr: { $lt: ["$usedCount", "$usageLimit"] } }] },
-        { $addToSet: { usedBy: subscription.user }, $inc: { usedCount: 1 } }
-      );
-    }
+    // The pending -> active compare-and-set below guarantees only one verifier
+    // can consume this order's reserved coupon slot.
+
     const safeDuration = Number.isFinite(Number(subscription.durationDays)) && Number(subscription.durationDays) > 0 ? Number(subscription.durationDays) : 30;
     const updated = await Subscription.findOneAndUpdate(
       { _id: subscription._id, user: req.user.id, status: "pending" },
@@ -806,7 +867,10 @@ router.post("/cashfree/verify-order", authMiddleware, async (req, res) => {
       },
       { new: true }
     );
-    if (updated) await notifyCashfreePaymentSuccess(updated);
+    if (updated) {
+      if (updated.couponCode) await redeemCouponReservation(updated);
+      await notifyCashfreePaymentSuccess(updated);
+    }
     const finalSubscription = updated || await Subscription.findById(subscription._id);
     if (!finalSubscription || finalSubscription.status !== "active") {
       return res.status(409).json({ message: "Subscription could not be activated. Please contact support." });
@@ -818,2711 +882,7 @@ router.post("/cashfree/verify-order", authMiddleware, async (req, res) => {
   }
 });
 
-// Create a new subscription (after payment)
-router.post(
-  "/subscribe",
-  authMiddleware,
-  upload.single("paymentImage"),
-  async (req, res) => {
-    // Manual receipt submissions are accepted only when the server-side checkout mode is manual.
-    if (await getCheckoutPaymentMode() !== "manual") {
-      return res.status(403).json({ message: "Manual payment submissions are disabled. Complete payment through the configured online gateway." });
-    }
-    if (!(await PaymentOption.countDocuments({ isActive: true }))) {
-      return res.status(503).json({ message: "Manual payment is not configured. Please contact ASKC Technologies." });
-    }
-    // Get data from FormData (req.body) or JSON (req.body)
-    let { plan, transactionId, method, couponCode } = req.body;
-    const paymentImage = req.file;
-    const purchaseBlocker = await getSubscriptionPurchaseBlocker(req.user.id);
-    if (purchaseBlocker) return subscriptionPurchaseBlockedResponse(res, purchaseBlocker);
-
-    // Debug: Log the entire request
-    console.log("Subscription request body:", req.body);
-    console.log(
-      "Subscription request file:",
-      paymentImage
-        ? { name: paymentImage.originalname, size: paymentImage.size }
-        : "none",
-    );
-    console.log("Subscription request:", {
-      plan,
-      planType: typeof plan,
-      transactionId,
-      method,
-      hasImage: !!paymentImage,
-      userId: req.user.id,
-      userEmail: req.user.email,
-    });
-
-    // More flexible plan validation - handle both string and other types
-    if (!plan) {
-      return res.status(400).json({ message: "Plan is required." });
-    }
-
-    // Convert plan to string if it's not already
-    plan = String(plan).trim();
-
-    if (!plan || plan.length === 0) {
-      return res.status(400).json({ message: "Plan is required." });
-    }
-
-    // Validate transaction ID if provided
-    if (transactionId && typeof transactionId !== "string") {
-      return res
-        .status(400)
-        .json({ message: "Transaction ID must be a string." });
-    }
-
-    // Validate payment method if provided
-    if (method && !["upi", "card", "netbanking"].includes(method)) {
-      return res.status(400).json({ message: "Invalid payment method." });
-    }
-
-    // Find plan by name (case-insensitive)
-    const planDoc = await Plan.findOne({
-      name: { $regex: new RegExp("^" + plan + "$", "i") },
-    });
-
-    if (!planDoc) {
-      console.log("Plan not found:", plan);
-      console.log("Available plans:", await Plan.find().select("name"));
-      return res.status(400).json({ message: "Plan not found." });
-    }
-
-    // Verify user exists
-    const user = await User.findById(req.user.id);
-    if (!user) {
-      return res.status(404).json({ message: "User not found." });
-    }
-
-    // Map plan name to subscription enum values
-    let planEnum;
-    const planNameLower = planDoc.name.toLowerCase();
-    if (planNameLower.includes("starter") || planNameLower.includes("basic")) {
-      planEnum = "starter";
-    } else if (planNameLower.includes("premium")) {
-      planEnum = "premium";
-    } else if (planNameLower.includes("pro")) {
-      planEnum = "pro";
-    } else {
-      // Default to starter if no match found
-      planEnum = "starter";
-    }
-
-    const basePlanPrice = parseStoredPlanPrice(planDoc.price);
-    if (basePlanPrice === null) return res.status(400).json({ message: "Selected plan has an invalid price. Please contact ASKC Technologies." });
-    let discountAmount = 0;
-    let normalizedCouponCode = "";
-    if (couponCode) {
-      normalizedCouponCode = String(couponCode).trim().toUpperCase();
-      const couponDoc = await Coupon.findOne({ code: normalizedCouponCode, active: true });
-      if (!couponDoc) return res.status(400).json({ message: "Coupon is invalid or expired." });
-      if (couponDoc.eligiblePlans?.length && !couponDoc.eligiblePlans.some(id => String(id) === String(planDoc._id)))
-        return res.status(400).json({ message: "This coupon is not valid for the selected pricing plan." });
-      if (couponDoc.usageLimit > 0 && couponDoc.usedCount >= couponDoc.usageLimit) {
-        return res.status(400).json({ message: "Coupon usage limit reached." });
-      }
-      if (couponDoc.usedBy.some(id => String(id) === String(user._id))) {
-        return res.status(400).json({ message: "You have already used this coupon." });
-      }
-      discountAmount = couponDoc.discountType === 'percentage'
-        ? Number((basePlanPrice * Math.min(100, Number(couponDoc.amount) || 0) / 100).toFixed(2))
-        : Math.min(Number(couponDoc.amount) || 0, basePlanPrice);
-    }
-    const payableAmount = Number(Math.max(0, basePlanPrice - discountAmount).toFixed(2));
-    if (payableAmount <= 0) return res.status(400).json({ message: "Coupon discount must leave a payable amount greater than zero." });
-
-    const uniqueId =
-      "SUB-" +
-      Date.now().toString(36) +
-      Math.random().toString(36).substr(2, 6).toUpperCase();
-    const now = new Date();
-
-    // Ensure plan duration is valid
-    const durationInDays = parsePlanDurationDays(planDoc.duration);
-    const expiresAt = new Date(
-      now.getTime() + durationInDays * 24 * 60 * 60 * 1000,
-    );
-
-    // Convert payment image to base64 if provided
-    let paymentImageBase64 = null;
-    if (paymentImage) {
-      paymentImageBase64 = (await uploadImageBuffer(paymentImage.buffer, paymentImage.mimetype, "askc-technologies/payment-proofs")).url;
-    }
-
-    try {
-      const subscription = await Subscription.create({
-        user: req.user.id,
-        plan: planEnum,
-        uniqueId,
-        status: "pending",
-        planName: planDoc.name,
-        sourcePlan: planDoc._id,
-        totalAmount: basePlanPrice,
-        amountPaid: payableAmount,
-        discountAmount,
-        couponCode: normalizedCouponCode,
-        paymentStatus: "pending",
-        expiresAt,
-        transactionId: transactionId || null,
-        paymentMethod: method || "upi",
-        paymentImage: paymentImageBase64,
-      });
-      res.status(201).json({ subscription: subscription.toObject(), message: "Payment details submitted for admin verification." });
-    } catch (err) {
-      console.error("Subscription creation error:", err);
-      console.error("Error details:", {
-        user: req.user.id,
-        plan: planEnum,
-        planDoc: planDoc.name,
-        error: err.message,
-        validationErrors: err.errors,
-      });
-      res.status(500).json({ message: "Could not create subscription." });
-    }
-  },
-);
-
-// Get all subscriptions for the logged-in user
-router.get("/user-subscriptions", authMiddleware, async (req, res) => {
-  try {
-    const subscriptions = await Subscription.find({ user: req.user.id }).sort({
-      createdAt: -1,
-    });
-
-    // Check and update expired subscriptions
-    const now = new Date();
-    for (let subscription of subscriptions) {
-      if (
-        subscription.expiresAt &&
-        subscription.expiresAt < now &&
-        subscription.status === "active"
-      ) {
-        subscription.status = "expired";
-        await subscription.save();
-      }
-    }
-
-    // Fetch updated subscriptions
-    const updatedSubscriptions = await Subscription.find({
-      user: req.user.id,
-    }).sort({ createdAt: -1 });
-
-    for (const subscription of updatedSubscriptions) {
-      if (!subscription.expiresAt || subscription.status !== "active" || subscription.canceled) continue;
-      const remainingMs = new Date(subscription.expiresAt).getTime() - now.getTime();
-      const daysRemaining = Math.ceil(remainingMs / 86400000);
-      if (daysRemaining >= 0 && daysRemaining <= 7) {
-        const expiryKey = `subscription:expiring:${subscription._id}:${new Date(subscription.expiresAt).toISOString().slice(0, 10)}`;
-        await createUserNotification(
-          req.user.id,
-          "Subscription expiring soon",
-          `Your ${subscription.planName || subscription.plan} subscription (${subscription.uniqueId}) expires in ${daysRemaining} day(s), on ${new Date(subscription.expiresAt).toLocaleString("en-IN")}.`,
-          "subscription",
-          expiryKey,
-          "/dashboard/subscription"
-        );
-      }
-    }
-    res.json({ subscriptions: updatedSubscriptions });
-  } catch (err) {
-    res.status(500).json({ message: "Could not fetch subscriptions." });
-  }
-});
-
-router.post("/user-subscriptions/:id/payment-request", authMiddleware, async (req, res) => {
-  try {
-    const sub = await Subscription.findOne({ _id: req.params.id, user: req.user.id });
-    if (!sub) return res.status(404).json({ message: "Subscription not found." });
-    const amount = Number(req.body?.amount);
-    if (!Number.isFinite(amount) || amount <= 0) return res.status(400).json({ message: "Enter a valid payment amount." });
-    const confirmed = (sub.paymentEntries || []).filter(p => p.status === "confirmed").reduce((sum, p) => sum + Number(p.amount || 0), 0);
-    const pending = (sub.paymentEntries || []).filter(p => p.status === "pending").reduce((sum, p) => sum + Number(p.amount || 0), 0);
-    const balance = Math.max(0, Number(sub.totalAmount || 0) - confirmed - pending);
-    if (amount > balance + 0.01) return res.status(400).json({ message: "Payment request exceeds the unallocated outstanding balance." });
-    sub.paymentEntries.push({ amount, method: "user-submitted", reference: String(req.body?.reference || "").slice(0, 120), note: "Payment submitted by user; verify receipt before confirming.", status: "pending", recordedAt: new Date() });
-    await sub.save();
-    res.status(201).json({ message: "Payment details submitted for admin verification.", subscription: sub });
-  } catch (err) { res.status(500).json({ message: "Could not submit payment details." }); }
-});
-
-// Plans endpoints
-router.get("/plans", async (req, res) => {
-  try {
-    const plans = await Plan.find().sort({ createdAt: -1 });
-    res.json({ plans });
-  } catch (err) {
-    res.status(500).json({ message: "Could not fetch plans." });
-  }
-});
-
-router.post("/plans", authMiddleware, coAdminMiddleware, async (req, res) => {
-  try {
-    const plan = await Plan.create(req.body);
-    res.status(201).json({ plan });
-  } catch (err) {
-    res.status(500).json({ message: "Could not create plan." });
-  }
-});
-
-router.put(
-  "/plans/:id",
-  authMiddleware,
-  coAdminMiddleware,
-  async (req, res) => {
-    try {
-      const plan = await Plan.findByIdAndUpdate(req.params.id, req.body, {
-        new: true,
-      });
-      res.json({ plan });
-    } catch (err) {
-      res.status(500).json({ message: "Could not update plan." });
-    }
-  },
-);
-
-// Contact endpoints
-router.post("/contact", async (req, res) => {
-  try {
-    const contact = await Contact.create(req.body);
-    res.status(201).json({ contact });
-  } catch (err) {
-    res.status(500).json({ message: "Could not submit contact." });
-  }
-});
-
-router.get("/contacts", authMiddleware, coAdminMiddleware, async (req, res) => {
-  try {
-    const contacts = await Contact.find().sort({ createdAt: -1 });
-    res.json({ contacts });
-  } catch (err) {
-    res.status(500).json({ message: "Could not fetch contacts." });
-  }
-});
-
-// Admin: Get all pending subscriptions
-router.get(
-  "/admin/pending-subscriptions",
-  authMiddleware,
-  coAdminMiddleware,
-  async (req, res) => {
-    try {
-      const subs = await Subscription.find({ status: "pending" }).populate(
-        "user",
-        "name email",
-      );
-      res.json({ subscriptions: subs });
-    } catch (err) {
-      res
-        .status(500)
-        .json({ message: "Could not fetch pending subscriptions." });
-    }
-  },
-);
-
-// Admin: Get all approved subscriptions
-router.get(
-  "/admin/approved-subscriptions",
-  authMiddleware,
-  coAdminMiddleware,
-  async (req, res) => {
-    try {
-      const { status, search } = req.query;
-      const now = new Date();
-      // Keep the stored status in sync with the expiry date before listing.
-      await Subscription.updateMany(
-        { status: "active", canceled: { $ne: true }, expiresAt: { $ne: null, $lte: now } },
-        { $set: { status: "expired" } }
-      );
-
-      let query = { status: { $in: ["active", "expired"] } };
-      if (status === "cancelled") {
-        query = { $or: [{ canceled: true }, { cancellationStatus: "approved" }] };
-      } else if (status === "active") {
-        query = { status: "active", canceled: { $ne: true }, cancellationStatus: { $ne: "approved" } };
-      } else if (status === "expired") {
-        query = { status: "expired", canceled: { $ne: true }, cancellationStatus: { $ne: "approved" } };
-      } else if (!status || status === "all") {
-        query = { $or: [
-          { status: { $in: ["active", "expired"] }, canceled: { $ne: true }, cancellationStatus: { $ne: "approved" } },
-          { canceled: true },
-          { cancellationStatus: "approved" }
-        ] };
-      }
-
-      if (search) {
-        query.$and = [
-          ...(query.$and || []),
-          { $or: [
-            { uniqueId: { $regex: search, $options: "i" } },
-            { transactionId: { $regex: search, $options: "i" } },
-          ] }
-        ];
-      }
-
-      const subs = await Subscription.find(query)
-        .populate("user", "name email")
-        .sort({ createdAt: -1 });
-
-      res.json({ subscriptions: subs });
-    } catch (err) {
-      console.error("Error fetching approved subscriptions:", err);
-      res
-        .status(500)
-        .json({ message: "Could not fetch approved subscriptions." });
-    }
-  },
-);
-
-// Admin: Approve a subscription
-router.patch(
-  "/admin/approve-subscription/:id",
-  authMiddleware,
-  coAdminMiddleware,
-  async (req, res) => {
-    try {
-      const sub = await Subscription.findById(req.params.id);
-      if (!sub) return res.status(404).json({ message: "Subscription not found." });
-      if (sub.status !== "pending") {
-        return res.status(409).json({ message: "Only a pending manual payment can be approved." });
-      }
-      if (String(sub.paymentMethod || "").toLowerCase() === "cashfree") {
-        return res.status(409).json({ message: "Online payments can only be activated after Cashfree verification." });
-      }
-      if (!String(sub.transactionId || "").trim() && !String(sub.paymentImage || "").trim()) {
-        return res.status(400).json({ message: "Payment proof or a transaction reference is required before manual approval." });
-      }
-      sub.status = "active";
-      sub.paymentStatus = "paid";
-      sub.amountPaid = Number(sub.amountPaid || sub.totalAmount || 0);
-      sub.rejectionReason = "";
-      if (sub.expiresAt && new Date(sub.expiresAt) <= new Date()) {
-        const duration = Number(sub.durationDays || 0);
-        if (duration > 0) sub.expiresAt = new Date(Date.now() + duration * 86400000);
-      }
-      await sub.save();
-      if (sub.couponCode) {
-        try {
-          await Coupon.updateOne(
-            { code: sub.couponCode, usedBy: { $ne: sub.user } },
-            { $addToSet: { usedBy: sub.user }, $inc: { usedCount: 1 } },
-          );
-        } catch (couponError) {
-          console.error("Manual coupon redemption count update failed:", couponError);
-        }
-      }
-      res.json({ subscription: sub, message: "Manual payment approved and marked as paid." });
-    } catch (err) {
-      res.status(500).json({ message: "Could not approve subscription." });
-    }
-  },
-);
-
-// Admin: Reject a subscription with reason
-router.patch(
-  "/admin/reject-subscription/:id",
-  authMiddleware,
-  coAdminMiddleware,
-  async (req, res) => {
-    try {
-      const { reason } = req.body;
-      const sub = await Subscription.findByIdAndUpdate(
-        req.params.id,
-        { status: "rejected", rejectionReason: reason },
-        { new: true },
-      );
-      res.json({ subscription: sub });
-    } catch (err) {
-      res.status(500).json({ message: "Could not reject subscription." });
-    }
-  },
-);
-
-// Admin: assign a plan and price directly to a user.
-router.post("/admin/users/:id/assign-plan", authMiddleware, adminMiddleware, async (req, res) => {
-  try {
-    const { planId, planName, totalAmount, durationDays, note } = req.body || {};
-    const user = await User.findById(req.params.id);
-    if (!user) return res.status(404).json({ message: "User not found." });
-
-    let resolvedName = String(planName || "").trim();
-    let resolvedAmount = Number(totalAmount);
-    let resolvedDays = Number(durationDays);
-    let sourcePlan = null;
-    if (planId) {
-      sourcePlan = await Plan.findById(planId);
-      if (!sourcePlan) return res.status(404).json({ message: "Selected existing plan was not found." });
-      resolvedName = sourcePlan.name;
-      resolvedAmount = Number(String(sourcePlan.price || "").replace(/[^0-9.]/g, ""));
-      resolvedDays = parsePlanDurationDays(sourcePlan.duration);
-    }
-    if (!resolvedName || !Number.isFinite(resolvedAmount) || resolvedAmount < 0) {
-      return res.status(400).json({ message: "Select a valid existing plan or enter a custom plan name and amount." });
-    }
-    if (!Number.isInteger(resolvedDays) || resolvedDays < 1 || resolvedDays > 3650) {
-      return res.status(400).json({ message: "Plan validity must be between 1 and 3650 days." });
-    }
-
-    const now = new Date();
-    await Subscription.updateMany(
-      { user: user._id, status: "active", canceled: { $ne: true } },
-      { $set: { status: "expired", canceled: true, cancellationInitiatedBy: "askc", cancellationReason: "Replaced by a newly assigned plan.", cancellationStatus: "approved", cancellationApprovedDate: now, cancellationRequestDate: now } }
-    );
-    const uniqueId = "ASKC-ADM-" + Date.now() + "-" + require("crypto").randomBytes(3).toString("hex").toUpperCase();
-    const sub = await Subscription.create({
-      user: user._id,
-      plan: "starter",
-      sourcePlan: sourcePlan?._id || null,
-      planName: resolvedName,
-      totalAmount: resolvedAmount,
-      amountPaid: 0,
-      paymentStatus: resolvedAmount === 0 ? "paid" : "pending",
-      durationDays: resolvedDays,
-      status: "active",
-      uniqueId,
-      expiresAt: new Date(now.getTime() + resolvedDays * 86400000),
-      paymentEntries: [],
-      adminNote: String(note || "").slice(0, 500)
-    });
-    await createUserNotification(
-      user._id,
-      "New subscription assigned",
-      `ASKC TECHNOLOGIES assigned you the ${resolvedName} plan (ID: ${uniqueId}). Total amount: ₹${resolvedAmount.toLocaleString("en-IN")}.`,
-      "subscription",
-      `subscription:assigned:${sub._id}`,
-      "/dashboard/subscription"
-    );
-    res.status(201).json({ subscription: sub, message: "Plan assigned successfully." });
-  } catch (err) {
-    console.error("Admin plan assignment failed:", err);
-    res.status(500).json({ message: "Could not assign plan." });
-  }
-});
-
-// Admin: immediately terminate or cancel a user's subscription.
-router.patch("/admin/terminate-subscription/:id", authMiddleware, adminMiddleware, async (req, res) => {
-  try {
-    const reason = String(req.body?.reason || "").trim().slice(0, 500);
-    if (!reason) return res.status(400).json({ message: "A termination reason is required." });
-    const sub = await Subscription.findById(req.params.id);
-    if (!sub) return res.status(404).json({ message: "Subscription not found." });
-    if (sub.canceled || sub.status === "expired") return res.status(400).json({ message: "This subscription is already inactive." });
-    sub.canceled = true;
-    sub.cancellationInitiatedBy = "askc";
-    sub.cancellationReason = reason;
-    sub.cancellationStatus = "approved";
-    sub.cancellationApprovedDate = new Date();
-    sub.status = "expired";
-    await sub.save();
-    res.json({ subscription: sub, message: "Subscription terminated successfully." });
-  } catch (err) {
-    console.error("Admin subscription termination failed:", err);
-    res.status(500).json({ message: "Could not terminate subscription." });
-  }
-});
-
-// Admin: record a confirmed instalment against a user's latest subscription.
-router.post("/admin/users/:id/record-payment", authMiddleware, adminMiddleware, async (req, res) => {
-  try {
-    const { amount, method, reference, note } = req.body || {};
-    const paid = Number(amount);
-    if (!Number.isFinite(paid) || paid <= 0) return res.status(400).json({ message: "Enter a payment amount greater than zero." });
-    const sub = await Subscription.findOne({ user: req.params.id }).sort({ createdAt: -1 });
-    if (!sub) return res.status(404).json({ message: "Assign a plan before recording a payment." });
-    const confirmed = (sub.paymentEntries || []).filter(p => p.status === "confirmed").reduce((sum, p) => sum + Number(p.amount || 0), 0);
-    const legacyPaid = sub.totalAmount > 0 ? 0 : Number(sub.amountPaid || 0);
-    const balance = Math.max(0, Number(sub.totalAmount || 0) - confirmed - legacyPaid);
-    if (paid > balance + 0.01) return res.status(400).json({ message: "Payment cannot exceed the outstanding balance." });
-    const cleanReference = String(reference || "").trim().slice(0,120);
-    const pendingEntry = (sub.paymentEntries || []).find(entry => entry.status === "pending" && Number(entry.amount) === paid && (!cleanReference || String(entry.reference || "").trim() === cleanReference));
-    if (pendingEntry) {
-      pendingEntry.status = "confirmed";
-      pendingEntry.method = String(method || "manual");
-      pendingEntry.recordedBy = req.user.id;
-      pendingEntry.recordedAt = new Date();
-      pendingEntry.note = String(note || "Verified by ASKC admin").slice(0,300);
-    } else {
-      sub.paymentEntries.push({ amount: paid, method: String(method || "manual"), reference: cleanReference, note: String(note || "").slice(0,300), status: "confirmed", recordedBy: req.user.id, recordedAt: new Date() });
-    }
-    const newPaid = confirmed + legacyPaid + paid;
-    sub.amountPaid = newPaid;
-    sub.paymentStatus = newPaid >= Number(sub.totalAmount || 0) ? "paid" : "partial";
-    await sub.save();
-    res.json({ subscription: sub, balanceDue: Math.max(0, Number(sub.totalAmount || 0) - newPaid), message: "Payment recorded." });
-  } catch (err) {
-    console.error("Payment ledger update failed:", err);
-    res.status(500).json({ message: "Could not record payment." });
-  }
-});
-
-// Admin: Get all users
-router.get(
-  "/admin/users",
-  authMiddleware,
-  adminMiddleware,
-  async (req, res) => {
-    try {
-      const users = await User.find().sort({ createdAt: -1 }).lean();
-      const ids = users.map(user => user._id);
-      const subscriptions = await Subscription.find({ user: { $in: ids } }).sort({ createdAt: -1 }).lean();
-      const latestByUser = new Map();
-      subscriptions.forEach(sub => { const key = String(sub.user); if (!latestByUser.has(key)) latestByUser.set(key, sub); });
-      res.json({ users: users.map(user => ({ ...user, latestSubscription: latestByUser.get(String(user._id)) || null })) });
-    } catch (err) {
-      res.status(500).json({ message: "Could not fetch users." });
-    }
-  },
-);
-
-// Admin: Update user role
-router.put(
-  "/admin/users/:id/role",
-  authMiddleware,
-  adminMiddleware,
-  async (req, res) => {
-    try {
-      const { role } = req.body;
-
-      // Validate role
-      if (!role || !["user", "admin", "coadmin"].includes(role)) {
-        return res.status(400).json({
-          message: 'Invalid role. Must be "user", "admin", or "coadmin".',
-        });
-      }
-
-      // Prevent admin from changing their own role
-      if (req.params.id === req.user.id) {
-        return res
-          .status(400)
-          .json({ message: "You cannot change your own role." });
-      }
-
-      const user = await User.findByIdAndUpdate(
-        req.params.id,
-        { role },
-        { new: true, runValidators: true },
-      ).select("-password");
-
-      if (!user) {
-        return res.status(404).json({ message: "User not found." });
-      }
-
-      res.json({ user, message: "User role updated successfully." });
-    } catch (err) {
-      console.error("Error updating user role:", err);
-      res.status(500).json({ message: "Could not update user role." });
-    }
-  },
-);
-
-// Admin: Get site statistics
-router.get(
-  "/admin/stats",
-  authMiddleware,
-  coAdminMiddleware,
-  async (req, res) => {
-    try {
-      const userCount = await User.countDocuments();
-      const subCount = await Subscription.countDocuments();
-      const activeSubs = await Subscription.countDocuments({
-        status: "active",
-        cancellationStatus: { $ne: "approved" },
-      });
-
-      // Get all plans to map plan names to prices
-      const plans = await Plan.find();
-      const planPriceMap = {};
-      plans.forEach((plan) => {
-        // Map plan name to price (handle different naming conventions)
-        const planNameLower = plan.name.toLowerCase();
-        let planKey = "";
-        if (
-          planNameLower.includes("starter") ||
-          planNameLower.includes("basic")
-        ) {
-          planKey = "starter";
-        } else if (planNameLower.includes("premium")) {
-          planKey = "premium";
-        } else if (planNameLower.includes("pro")) {
-          planKey = "pro";
-        }
-        if (planKey) {
-          planPriceMap[planKey] = parseFloat(plan.price) || 0;
-        }
-      });
-
-      // Calculate total revenue from all approved subscriptions (active, expired, or were active)
-      // Exclude rejected and pending subscriptions
-      const paidSubscriptions = await Subscription.find({
-        status: { $in: ["active", "expired"] },
-        cancellationStatus: { $ne: "approved" }, // Don't count cancelled subscriptions
-      });
-
-      let totalRevenue = 0;
-      paidSubscriptions.forEach((sub) => {
-        const planPrice = planPriceMap[sub.plan] || 0;
-        totalRevenue += planPrice;
-      });
-
-      res.json({
-        userCount,
-        subCount,
-        activeSubs,
-        totalRevenue: Math.round(totalRevenue * 100) / 100, // Round to 2 decimal places
-      });
-    } catch (err) {
-      console.error("Error fetching stats:", err);
-      res.status(500).json({ message: "Could not fetch stats." });
-    }
-  },
-);
-
-// Admin/Co-Admin: Get funds balance and statements
-router.get(
-  "/admin/funds",
-  authMiddleware,
-  coAdminMiddleware,
-  async (req, res) => {
-    try {
-      const transactions = await FundTransaction.find()
-        .populate("createdBy", "name email role")
-        .sort({ createdAt: -1 });
-
-      const balance = transactions.reduce((total, item) => {
-        if (item.type === "add") return total + item.amount;
-        return total - item.amount;
-      }, 0);
-
-      res.json({
-        balance: Math.max(0, Math.round(balance * 100) / 100),
-        transactions,
-      });
-    } catch (err) {
-      console.error("Error fetching funds:", err);
-      res.status(500).json({ message: "Could not fetch funds data." });
-    }
-  },
-);
-
-// Admin/Co-Admin: Add or withdraw funds
-router.post(
-  "/admin/funds",
-  authMiddleware,
-  coAdminMiddleware,
-  async (req, res) => {
-    try {
-      const { type, amount, reason } = req.body;
-      const normalizedType = String(type || "")
-        .trim()
-        .toLowerCase();
-      const parsedAmount = Number(amount);
-      const normalizedReason = String(reason || "").trim();
-
-      if (!["add", "withdraw"].includes(normalizedType)) {
-        return res.status(400).json({ message: "Invalid transaction type." });
-      }
-      if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
-        return res
-          .status(400)
-          .json({ message: "Amount must be greater than zero." });
-      }
-      if (!normalizedReason) {
-        return res.status(400).json({ message: "Reason is required." });
-      }
-
-      const transactions = await FundTransaction.find().sort({ createdAt: -1 });
-      const currentBalance = transactions.reduce((total, item) => {
-        if (item.type === "add") return total + item.amount;
-        return total - item.amount;
-      }, 0);
-
-      if (normalizedType === "withdraw" && parsedAmount > currentBalance) {
-        return res
-          .status(400)
-          .json({ message: "Insufficient funds for withdrawal." });
-      }
-
-      const transaction = await FundTransaction.create({
-        type: normalizedType,
-        amount: Math.round(parsedAmount * 100) / 100,
-        reason: normalizedReason,
-        createdBy: req.user.id,
-      });
-
-      const updatedBalance =
-        normalizedType === "add"
-          ? currentBalance + transaction.amount
-          : currentBalance - transaction.amount;
-
-      const populated = await FundTransaction.findById(
-        transaction._id,
-      ).populate("createdBy", "name email role");
-
-      res.status(201).json({
-        message:
-          normalizedType === "add"
-            ? "Funds added successfully."
-            : "Funds withdrawn successfully.",
-        transaction: populated,
-        balance: Math.max(0, Math.round(updatedBalance * 100) / 100),
-      });
-    } catch (err) {
-      console.error("Error updating funds:", err);
-      res.status(500).json({ message: "Could not process fund transaction." });
-    }
-  },
-);
-
-// Admin: Send notification
-router.post(
-  "/admin/notifications",
-  authMiddleware,
-  coAdminMiddleware,
-  async (req, res) => {
-    try {
-      const { message } = req.body;
-      const notification = await Notification.create({ message });
-      res.status(201).json({ notification });
-    } catch (err) {
-      res.status(500).json({ message: "Could not send notification." });
-    }
-  },
-);
-
-// Admin: Get all notifications
-router.get(
-  "/admin/notifications",
-  authMiddleware,
-  coAdminMiddleware,
-  async (req, res) => {
-    try {
-      const notifications = await Notification.find().sort({ createdAt: -1 });
-      res.json({ notifications });
-    } catch (err) {
-      res.status(500).json({ message: "Could not fetch notifications." });
-    }
-  },
-);
-
-// Admin: Delete a plan
-router.delete(
-  "/plans/:id",
-  authMiddleware,
-  coAdminMiddleware,
-  async (req, res) => {
-    try {
-      await Plan.findByIdAndDelete(req.params.id);
-      res.json({ success: true });
-    } catch (err) {
-      res.status(500).json({ message: "Could not delete plan." });
-    }
-  },
-);
-
-router.post("/user/update", authMiddleware, updateUserProfile);
-router.post("/user/change-password", authMiddleware, changeUserPassword);
-router.get("/notifications", authMiddleware, getUserNotifications);
-router.post("/notifications/read/:id", authMiddleware, markNotificationRead);
-router.post("/notifications/read-all", authMiddleware, async (req, res) => {
-  try {
-    await Notification.updateMany(
-      { $or: [{ user: req.user.id }, { user: null }], readBy: { $ne: req.user.id } },
-      { $addToSet: { readBy: req.user.id } }
-    );
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ message: "Could not mark all notifications as read." });
-  }
-});
-router.post("/cancel-subscription/:id", authMiddleware, cancelUserSubscription);
-router.post("/renew-subscription", authMiddleware, renewUserSubscription);
-
-router.get(
-  "/admin/all-subscriptions",
-  authMiddleware,
-  coAdminMiddleware,
-  async (req, res) => {
-    try {
-      const subs = await Subscription.find()
-        .populate("user", "name email")
-        .sort({ createdAt: -1 });
-
-      // Check and update expired subscriptions
-      const now = new Date();
-      for (let subscription of subs) {
-        if (
-          subscription.expiresAt &&
-          subscription.expiresAt < now &&
-          subscription.status === "active"
-        ) {
-          subscription.status = "expired";
-          await subscription.save();
-        }
-      }
-
-      // Fetch updated subscriptions
-      const updatedSubs = await Subscription.find()
-        .populate("user", "name email")
-        .sort({ createdAt: -1 });
-      res.json({ subscriptions: updatedSubs });
-    } catch (err) {
-      res.status(500).json({ message: "Could not fetch subscriptions." });
-    }
-  },
-);
-
-// Add this route for user notifications
-// User: view refund and cancellation progress for the signed-in account only.
-router.get("/user/refunds", authMiddleware, async (req, res) => {
-  try {
-    const records = await Subscription.find({
-      user: req.user.id,
-      $or: [
-        { cancellationStatus: { $in: ["pending", "approved", "rejected"] } },
-        { canceled: true },
-        { refundStatus: { $exists: true, $nin: ["", "not_reviewed"] } }
-      ]
-    })
-      .select("plan planName uniqueId status canceled cancellationInitiatedBy cancellationStatus cancellationRequestDate cancellationReason cancellationRejectionReason refundStatus refundEligible refundAmount refundReason refundReference refundProcessedAt paymentStatus paymentMethod amountPaid paymentEntries createdAt updatedAt")
-      .sort({ cancellationRequestDate: -1, updatedAt: -1, createdAt: -1 })
-      .limit(100)
-      .lean();
-
-    const refunds = records.map((sub) => {
-      const cashfreePaid = ["paid", "partial", "success", "successful"].includes(String(sub.paymentStatus || "").toLowerCase())
-        ? Number(sub.amountPaid || 0) : 0;
-      const manualPaid = Array.isArray(sub.paymentEntries)
-        ? sub.paymentEntries.filter((entry) => entry.status === "confirmed")
-            .reduce((sum, entry) => sum + Number(entry.amount || 0), 0)
-        : 0;
-      return {
-        _id: sub._id,
-        plan: sub.plan,
-        planName: sub.planName,
-        uniqueId: sub.uniqueId,
-        subscriptionStatus: sub.status,
-        canceled: sub.canceled === true,
-        cancellationInitiatedBy: sub.cancellationInitiatedBy || "",
-        cancellationStatus: sub.cancellationStatus || "none",
-        cancellationRequestDate: sub.cancellationRequestDate,
-        cancellationReason: sub.cancellationReason,
-        cancellationRejectionReason: sub.cancellationRejectionReason,
-        refundStatus: sub.refundStatus || "not_reviewed",
-        refundEligible: sub.refundEligible === true,
-        refundAmount: Number(sub.refundAmount || 0),
-        refundReason: sub.refundReason || "",
-        refundReference: sub.refundReference || "",
-        refundProcessedAt: sub.refundProcessedAt || null,
-        paymentStatus: sub.paymentStatus || "",
-        paymentMethod: sub.paymentMethod || "",
-        paidAmount: Math.max(cashfreePaid, manualPaid),
-        createdAt: sub.createdAt,
-        updatedAt: sub.updatedAt
-      };
-    });
-
-    res.set("Cache-Control", "no-store");
-    res.json({ refunds });
-  } catch (err) {
-    console.error("User refund history error:", err);
-    res.status(500).json({ message: "Could not load your refund details." });
-  }
-});
-
-router.get("/user-notifications", authMiddleware, async (req, res) => {
-  try {
-    const now = new Date();
-    const expiringSubscriptions = await Subscription.find({
-      user: req.user.id,
-      status: "active",
-      canceled: { $ne: true },
-      expiresAt: { $gte: now, $lte: new Date(now.getTime() + 7 * 86400000) },
-    });
-    for (const subscription of expiringSubscriptions) {
-      const daysRemaining = Math.max(0, Math.ceil((new Date(subscription.expiresAt).getTime() - now.getTime()) / 86400000));
-      const expiryKey = `subscription:expiring:${subscription._id}:${new Date(subscription.expiresAt).toISOString().slice(0, 10)}`;
-      await createUserNotification(
-        req.user.id,
-        "Subscription expiring soon",
-        `Your ${subscription.planName || subscription.plan} subscription (${subscription.uniqueId}) expires in ${daysRemaining} day(s), on ${new Date(subscription.expiresAt).toLocaleString("en-IN")}.`,
-        "subscription",
-        expiryKey,
-        "/dashboard/subscription"
-      );
-    }
-    const notifications = await Notification.find({
-      $and: [
-        { $or: [{ user: req.user.id }, { user: null }] },
-        {
-          $or: [
-            { expiresAt: { $gt: new Date() } }, // Not expired
-            { expiresAt: { $exists: false } }, // No expiration set (backward compatibility)
-          ],
-        },
-      ],
-    }).sort({ createdAt: -1 });
-
-    res.json({
-      notifications: notifications.map((n) => ({
-        _id: n._id,
-        title: n.title || "Notification",
-        message: n.message,
-        createdAt: n.createdAt,
-        read: n.readBy && n.readBy.some((id) => String(id) === String(req.user.id)),
-        type: n.type || 'general',
-        link: n.link || '',
-      })),
-    });
-  } catch (err) {
-    res.status(500).json({ message: "Could not fetch notifications." });
-  }
-});
-
-// User: Submit a complaint
-router.post("/complaints", authMiddleware, async (req, res) => {
-  try {
-    const { message } = req.body;
-    if (!message)
-      return res.status(400).json({ message: "Message is required." });
-    const complaint = await Complaint.create({ user: req.user.id, message });
-    res.status(201).json({ complaint });
-  } catch (err) {
-    res.status(500).json({ message: "Could not submit complaint." });
-  }
-});
-
-// User: Get all their complaints
-router.get("/complaints", authMiddleware, async (req, res) => {
-  try {
-    const complaints = await Complaint.find({ user: req.user.id }).sort({
-      createdAt: -1,
-    });
-    res.json({ complaints });
-  } catch (err) {
-    res.status(500).json({ message: "Could not fetch complaints." });
-  }
-});
-
-// Admin: Get all complaints
-router.get(
-  "/admin/complaints",
-  authMiddleware,
-  coAdminMiddleware,
-  async (req, res) => {
-    try {
-      const complaints = await Complaint.find()
-        .populate("user", "name email")
-        .sort({ createdAt: -1 });
-      res.json({ complaints });
-    } catch (err) {
-      res.status(500).json({ message: "Could not fetch complaints." });
-    }
-  },
-);
-
-// Admin: Update complaint status
-router.patch(
-  "/admin/complaints/:id",
-  authMiddleware,
-  coAdminMiddleware,
-  async (req, res) => {
-    try {
-      const complaint = await Complaint.findByIdAndUpdate(
-        req.params.id,
-        { status: req.body.status, ...(typeof req.body.response === "string" ? { response: req.body.response.trim().slice(0, 3000) } : {}) },
-        { new: true },
-      );
-      res.json({ complaint });
-    } catch (err) {
-      res.status(500).json({ message: "Could not update complaint." });
-    }
-  },
-);
-
-// Helpers to decide complaint access (user vs admin/coadmin)
-function getComplaintQueryForUserOrAdmin(req) {
-  if (req.user && (req.user.role === "admin" || req.user.role === "coadmin")) {
-    return { _id: req.params.id };
-  }
-  return { _id: req.params.id, user: req.user.id };
-}
-
-// User/Admin: Get a specific complaint
-router.get("/complaints/:id", authMiddleware, async (req, res) => {
-  try {
-    const complaint = await Complaint.findOne(
-      getComplaintQueryForUserOrAdmin(req),
-    );
-    if (!complaint) {
-      return res
-        .status(404)
-        .json({ message: "Complaint not found or access denied." });
-    }
-    res.json({ complaint });
-  } catch (err) {
-    res.status(500).json({ message: "Could not fetch complaint." });
-  }
-});
-
-// User/Admin: Get chat messages for a complaint
-router.get("/complaints/:id/chat", authMiddleware, async (req, res) => {
-  try {
-    const complaint = await Complaint.findOne(
-      getComplaintQueryForUserOrAdmin(req),
-    );
-    if (!complaint) {
-      return res
-        .status(404)
-        .json({ message: "Complaint not found or access denied." });
-    }
-    res.json({ chat: complaint.chat || [] });
-  } catch (err) {
-    res.status(500).json({ message: "Could not fetch chat." });
-  }
-});
-
-// User/Admin: Send a message in complaint chat
-router.post("/complaints/:id/chat", authMiddleware, async (req, res) => {
-  try {
-    const { text } = req.body;
-    if (!text) {
-      return res.status(400).json({ message: "Message text is required." });
-    }
-
-    const complaint = await Complaint.findOne(
-      getComplaintQueryForUserOrAdmin(req),
-    );
-    if (!complaint) {
-      return res
-        .status(404)
-        .json({ message: "Complaint not found or access denied." });
-    }
-
-    const from =
-      req.user && (req.user.role === "admin" || req.user.role === "coadmin")
-        ? "admin"
-        : "user";
-    const newMessage = {
-      from,
-      text: text,
-      time: new Date(),
-    };
-
-    complaint.chat.push(newMessage);
-    await complaint.save();
-
-    res.json({ chat: complaint.chat });
-  } catch (err) {
-    res.status(500).json({ message: "Could not send message." });
-  }
-});
-
-// ID Card Endpoints
-router.post(
-  "/admin/id-cards",
-  authMiddleware,
-  coAdminMiddleware,
-  async (req, res) => {
-    try {
-      const name = String(req.body?.name || "").trim();
-      const role = String(req.body?.role || "").trim();
-      const idNumber = String(req.body?.idNumber || "").trim().toUpperCase();
-      const photoInput = typeof req.body?.photo === "string" ? req.body.photo : "";
-      const photo = await uploadDataUri(photoInput, "askc-technologies/id-cards");
-
-      if (!name || !role || !idNumber) {
-        return res.status(400).json({ message: "Employee name, job position and ID number are required." });
-      }
-      if (name.length > 100 || role.length > 80 || idNumber.length > 40) {
-        return res.status(400).json({ message: "One or more ID card fields exceed the allowed length." });
-      }
-      if (photo.length > 8 * 1024 * 1024) {
-        return res.status(413).json({ message: "Photo is too large. Please upload a smaller image (under 5 MB)." });
-      }
-
-      const existingCard = await IDCard.findOne({ idNumber }).select("_id").lean();
-      if (existingCard) {
-        return res.status(409).json({ message: "This employee ID number is already in use. Generate a new ID number." });
-      }
-
-      const idCard = await IDCard.create({ name, role, idNumber, photo });
-      return res.status(201).json({ idCard, message: "ID card saved successfully." });
-    } catch (err) {
-      console.error("ID Card save error:", err);
-      if (err.name === "ValidationError") {
-        return res.status(400).json({ message: "Please check the ID card details and try again." });
-      }
-      return res.status(500).json({ message: "Could not save ID card. Please try again." });
-    }
-  },
-);
-
-// Admin: Get single ID card
-router.get(
-  "/admin/id-cards/:id",
-  authMiddleware,
-  coAdminMiddleware,
-  async (req, res) => {
-    try {
-      const idCard = await IDCard.findById(req.params.id);
-      if (!idCard) return res.status(404).json({ message: "ID Card not found." });
-      res.json({ idCard });
-    } catch (err) {
-      res.status(500).json({ message: "Could not fetch ID card." });
-    }
-  },
-);
-
-// Public: Get single ID card for sharing
-router.get("/public/id-cards/:id", async (req, res) => {
-  try {
-    const idCard = await IDCard.findById(req.params.id).select("-__v");
-    if (!idCard) return res.status(404).json({ message: "ID Card not found." });
-    res.json({ idCard });
-  } catch (err) {
-    res.status(500).json({ message: "Could not fetch ID card." });
-  }
-});
-
-router.get(
-  "/admin/id-cards",
-  authMiddleware,
-  coAdminMiddleware,
-  async (req, res) => {
-    try {
-      const idCards = await IDCard.find().sort({ createdAt: -1 });
-      res.json({ idCards });
-    } catch (err) {
-      res.status(500).json({ message: "Could not fetch ID cards." });
-    }
-  },
-);
-
-router.delete(
-  "/admin/id-cards/:id",
-  authMiddleware,
-  coAdminMiddleware,
-  async (req, res) => {
-    try {
-      await IDCard.findByIdAndDelete(req.params.id);
-      res.json({ success: true, message: "ID Card deleted successfully." });
-    } catch (err) {
-      res.status(500).json({ message: "Could not delete ID card." });
-    }
-  },
-);
-
-// User: Request subscription renewal
-router.post("/renewal-request", authMiddleware, async (req, res) => {
-  try {
-    const { subscriptionId } = req.body;
-    if (!subscriptionId) {
-      return res.status(400).json({ message: "Subscription ID is required." });
-    }
-
-    const subscription = await Subscription.findOne({
-      _id: subscriptionId,
-      user: req.user.id,
-    });
-    if (!subscription) {
-      return res.status(404).json({ message: "Subscription not found." });
-    }
-
-    if (subscription.renewalStatus === "pending") {
-      return res.status(400).json({
-        message: "A renewal request is already pending for this subscription.",
-      });
-    }
-
-    if (subscription.status !== "expired") {
-      return res
-        .status(400)
-        .json({ message: "Only expired subscriptions can be renewed." });
-    }
-
-    subscription.renewalRequested = true;
-    subscription.renewalRequestDate = new Date();
-    subscription.renewalStatus = "pending";
-    subscription.renewalRejectionReason = undefined;
-    await subscription.save();
-
-    res.json({
-      subscription,
-      message: "Renewal request submitted successfully.",
-    });
-  } catch (err) {
-    res.status(500).json({ message: "Could not submit renewal request." });
-  }
-});
-
-// Admin: Get all renewal requests
-router.get(
-  "/admin/renewal-requests",
-  authMiddleware,
-  coAdminMiddleware,
-  async (req, res) => {
-    try {
-      const subscriptions = await Subscription.find({
-        renewalRequested: true,
-        renewalStatus: "pending",
-      })
-        .populate("user", "name email")
-        .sort({ renewalRequestDate: -1 });
-      res.json({ subscriptions });
-    } catch (err) {
-      res.status(500).json({ message: "Could not fetch renewal requests." });
-    }
-  },
-);
-
-// Admin: Approve renewal request
-router.patch(
-  "/admin/renewal-requests/:id/approve",
-  authMiddleware,
-  coAdminMiddleware,
-  async (req, res) => {
-    try {
-      const subscription = await Subscription.findById(req.params.id);
-      if (!subscription) {
-        return res.status(404).json({ message: "Subscription not found." });
-      }
-
-      if (
-        !subscription.renewalRequested ||
-        subscription.renewalStatus !== "pending"
-      ) {
-        return res
-          .status(400)
-          .json({ message: "No pending renewal request found." });
-      }
-
-      const plan = await Plan.findOne({
-        name: new RegExp("^" + subscription.plan + "$", "i"),
-      });
-      if (!plan) {
-        return res.status(400).json({ message: "Plan not found." });
-      }
-
-      const now = new Date();
-      const durationInDays = parsePlanDurationDays(plan.duration);
-      const newExpiryDate = new Date(
-        now.getTime() + durationInDays * 24 * 60 * 60 * 1000,
-      );
-
-      subscription.status = "active";
-      subscription.expiresAt = newExpiryDate;
-      subscription.renewalStatus = "approved";
-      subscription.renewalApprovedDate = now;
-      subscription.renewalRequested = false;
-      await subscription.save();
-
-      res.json({
-        subscription,
-        message: "Renewal request approved successfully.",
-      });
-    } catch (err) {
-      res.status(500).json({ message: "Could not approve renewal request." });
-    }
-  },
-);
-
-// Admin: Reject renewal request
-router.patch(
-  "/admin/renewal-requests/:id/reject",
-  authMiddleware,
-  coAdminMiddleware,
-  async (req, res) => {
-    try {
-      const { reason } = req.body;
-      if (!reason) {
-        return res
-          .status(400)
-          .json({ message: "Rejection reason is required." });
-      }
-
-      const subscription = await Subscription.findById(req.params.id);
-      if (!subscription) {
-        return res.status(404).json({ message: "Subscription not found." });
-      }
-
-      if (
-        !subscription.renewalRequested ||
-        subscription.renewalStatus !== "pending"
-      ) {
-        return res
-          .status(400)
-          .json({ message: "No pending renewal request found." });
-      }
-
-      subscription.renewalStatus = "rejected";
-      subscription.renewalRejectionReason = reason;
-      subscription.renewalRequested = false;
-      await subscription.save();
-
-      res.json({
-        subscription,
-        message: "Renewal request rejected successfully.",
-      });
-    } catch (err) {
-      res.status(500).json({ message: "Could not reject renewal request." });
-    }
-  },
-);
-
-// Newsletter sign-up uses double opt-in: consent is recorded only after
-// the mailbox owner follows the short-lived confirmation link.
-router.post("/newsletter/subscribe", async (req, res) => {
-  try {
-    const normalizedEmail = String(req.body.email || "").trim().toLowerCase();
-    if (!/^[a-z0-9.!#$%&'*+/=?^\`{|}~-]+@[a-z0-9-]+(?:\.[a-z0-9-]+)+$/i.test(normalizedEmail)) {
-      return res.status(400).json({ message: "Enter a valid email address." });
-    }
-    const existing = await NewsletterSubscriber.findOne({ email: normalizedEmail });
-    if (existing?.status === "subscribed" && existing.consentedAt) {
-      return res.json({ message: "This email is already subscribed." });
-    }
-    const token = crypto.randomBytes(32).toString("hex");
-    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
-    const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
-    await NewsletterSubscriber.findOneAndUpdate(
-      { email: normalizedEmail },
-      { $set: { status: "pending", consentedAt: null, confirmationTokenHash: tokenHash, confirmationTokenExpiresAt: expiresAt, unsubscribeTokenHash: null, consentSource: "newsletter-double-opt-in" } },
-      { upsert: true, new: true, setDefaultsOnInsert: true },
-    );
-    const siteOrigin = getPublicSiteOrigin();
-    if (!siteOrigin) return res.status(503).json({ message: "Email confirmation is temporarily unavailable." });
-    const confirmUrl = siteOrigin.replace(/\/+$/, "") + "/api/auth/newsletter/confirm?token=" + token;
-    await sendEmail(
-      normalizedEmail,
-      "Confirm your ASKC TECHNOLOGIES email subscription",
-      "Confirm your subscription: " + confirmUrl + "\nThis link expires in 30 minutes. Ignore this email if you did not request it.",
-      "<div style='font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:28px;color:#172033'><h2>ASKC TECHNOLOGIES</h2><h3>Confirm your email subscription</h3><p>Click below to confirm promotional updates.</p><p><a href='" + confirmUrl + "' style='display:inline-block;padding:12px 18px;background:#1756a2;color:#fff;text-decoration:none;border-radius:8px'>Confirm subscription</a></p><p>This link expires in 30 minutes.</p></div>",
-    );
-    return res.status(202).json({ message: "Please check your inbox and confirm your email address to complete subscription." });
-  } catch (err) {
-    console.error("Newsletter double opt-in failed:", err);
-    return res.status(500).json({ message: "Could not start newsletter subscription." });
-  }
-});
-
-router.get("/newsletter/confirm", async (req, res) => {
-  try {
-    const token = String(req.query.token || "");
-    if (!/^[a-f0-9]{64}$/i.test(token)) return res.status(400).send("Invalid or expired confirmation link.");
-    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
-    const subscriber = await NewsletterSubscriber.findOne({
-      confirmationTokenHash: tokenHash,
-      confirmationTokenExpiresAt: { $gt: new Date() },
-      status: "pending",
-    }).select("+confirmationTokenHash");
-    if (!subscriber) return res.status(410).send("This confirmation link has expired or was already used. Please subscribe again.");
-    subscriber.status = "subscribed";
-    subscriber.consentedAt = new Date();
-    subscriber.confirmationTokenHash = null;
-    subscriber.confirmationTokenExpiresAt = null;
-    await subscriber.save();
-    await User.updateOne({ email: subscriber.email }, { $set: { marketingConsent: true, marketingConsentAt: subscriber.consentedAt, subscribeOffers: true } });
-    return res.redirect((getPublicSiteOrigin() || "https://askctechnologies.in") + "/?newsletter=confirmed");
-  } catch (error) {
-    console.error("Newsletter confirmation failed:", error);
-    return res.status(500).send("Could not confirm your subscription.");
-  }
-});
-
-// An email address alone is never sufficient to unsubscribe someone.
-router.post("/newsletter/unsubscribe", async (req, res) => {
-  try {
-    const token = String(req.body.token || "");
-    if (!/^[a-f0-9]{64}$/i.test(token)) return res.status(400).json({ message: "A valid unsubscribe link is required." });
-    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
-    const subscriber = await NewsletterSubscriber.findOne({ unsubscribeTokenHash: tokenHash }).select("+unsubscribeTokenHash");
-    if (!subscriber) return res.status(410).json({ message: "This unsubscribe link is invalid or has already been used." });
-    subscriber.status = "unsubscribed";
-    subscriber.consentedAt = null;
-    subscriber.unsubscribeTokenHash = null;
-    await subscriber.save();
-    await User.updateOne({ email: subscriber.email }, { $set: { marketingConsent: false, marketingConsentAt: null, subscribeOffers: false } });
-    return res.json({ message: "You have been unsubscribed successfully." });
-  } catch (err) {
-    console.error("Newsletter unsubscribe failed:", err);
-    return res.status(500).json({ message: "Could not unsubscribe." });
-  }
-});
-
-// Admin: Get all newsletter subscribers (show all with status)
-router.get(
-  "/admin/newsletter-subscribers",
-  authMiddleware,
-  coAdminMiddleware,
-  async (req, res) => {
-    try {
-      const subscribers = await NewsletterSubscriber.find().sort({
-        createdAt: -1,
-      });
-      res.json({ subscribers });
-    } catch (err) {
-      res.status(500).json({ message: "Could not fetch subscribers." });
-    }
-  },
-);
-
-// Admin: Remove an unsubscribe record. This does NOT grant consent; a fresh opt-in is still required.
-router.delete(
-  "/admin/newsletter-unsubscribed/:id",
-  authMiddleware,
-  coAdminMiddleware,
-  async (req, res) => {
-    try {
-      const record = await NewsletterSubscriber.findOne({ _id: req.params.id, status: "unsubscribed" });
-      if (!record) return res.status(404).json({ message: "Unsubscribe record not found." });
-      await NewsletterSubscriber.deleteOne({ _id: record._id });
-      return res.json({ success: true, message: "Unsubscribe record deleted. A new explicit opt-in is required before promotional emails can be sent." });
-    } catch (err) {
-      return res.status(500).json({ message: "Could not delete unsubscribe record." });
-    }
-  },
-);
-
-// Admin: Get unsubscribed newsletter users
-router.get(
-  "/admin/newsletter-unsubscribed",
-  authMiddleware,
-  coAdminMiddleware,
-  async (req, res) => {
-    try {
-      const subscribers = await NewsletterSubscriber.find({
-        status: "unsubscribed",
-      }).sort({ updatedAt: -1 });
-      res.json({ subscribers });
-    } catch (err) {
-      res.status(500).json({ message: "Could not fetch unsubscribed users." });
-    }
-  },
-);
-
-// Redundant definitions removed (moved to top)
-
-
-router.use(cookieParser());
-
-router.post("/register", registerUser);
-router.get("/captcha", getLoginCaptcha);
-router.post("/login", loginUser);
-
-
-// Forgot Password Routes
-router.post("/forgot-password/verify-email", verifyEmailForPasswordReset);
-router.post("/forgot-password/reset", resetPassword);
-
-// Google Auth Routes
-router.get(
-  "/google",
-  passport.authenticate("google", { scope: ["profile", "email"] }),
-);
-
-router.get(
-  "/google/callback",
-  passport.authenticate("google", { failureRedirect: "/login" }),
-  async (req, res) => {
-    // Successful authentication, redirect or send token
-    const sessionId = crypto.randomUUID();
-    const sessionIp = String(req.headers["x-forwarded-for"] || req.ip || "").split(",")[0].slice(0, 100);
-    const sessionAgent = String(req.headers["user-agent"] || "").slice(0, 500);
-    const loginState = await User.findByIdAndUpdate(req.user._id, {
-      $set: { lastLoginAt: new Date(), lastLoginIp: sessionIp, lastLoginUserAgent: sessionAgent },
-      $push: { sessions: { $each: [{ sessionId, createdAt: new Date(), lastSeenAt: new Date(), ip: sessionIp, userAgent: sessionAgent, revokedAt: null }], $slice: -30 } },
-    }, { new: true }).select("sessionVersion");
-    const token = jwt.sign(
-      { id: req.user._id, role: req.user.role, sv: Number(loginState?.sessionVersion || 0), sid: sessionId },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" },
-    );
-    res.cookie("token", token, {
-      httpOnly: true,
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-      secure: process.env.NODE_ENV === "production",
-      path: "/",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
-    // Handle multiple frontend URLs
-    const clientUrl =
-      process.env.CLIENT_URL || "http://localhost:3000/dashboard";
-    res.redirect(clientUrl);
-  },
-);
-
-router.get("/me", authMiddleware, async (req, res) => {
-  try {
-    const user = await User.findById(req.user.id).select("-password");
-    if (!user) return res.status(404).json({ message: "User not found." });
-    res.json({ user });
-  } catch (err) {
-    res.status(500).json({ message: "Server error." });
-  }
-});
-
-// Middleware to protect routes
-async function authMiddleware(req, res, next) {
-  let token;
-  const authHeader = req.headers.authorization;
-  if (authHeader && authHeader.startsWith("Bearer ")) {
-    token = authHeader.split(" ")[1];
-  } else if (req.cookies && req.cookies.token) {
-    token = req.cookies.token;
-  }
-  if (!token) {
-    return res.status(401).json({ message: "No token, authorization denied." });
-  }
-  try {
-    if (!process.env.JWT_SECRET || process.env.JWT_SECRET === "changeme") return res.status(503).json({ message: "Authentication is temporarily unavailable." });
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    if (decoded.purpose === "two-factor-login") return res.status(401).json({ message: "Complete the login verification first." });
-    const account = await User.findById(decoded.id).select("sessionVersion role sessions").lean();
-    if (!account || Number(decoded.sv || 0) !== Number(account.sessionVersion || 0)) {
-      clearAuthCookies(res);
-      return res.status(401).json({ message: "Your session has expired. Please log in again." });
-    }
-    if (!decoded.sid) {
-      clearAuthCookies(res);
-      return res.status(401).json({ message: "Please sign in again to establish a secure device session." });
-    }
-    const activeSession = (account.sessions || []).some((session) => session.sessionId === decoded.sid && !session.revokedAt);
-    if (!activeSession) {
-      clearAuthCookies(res);
-      return res.status(401).json({ message: "This device session has been signed out. Please log in again." });
-    }
-    req.user = { ...decoded, role: account.role };
-    next();
-  } catch (err) {
-    res.status(401).json({ message: "Token is not valid." });
-  }
-}
-
-// Admin middleware (only admin)
-function adminMiddleware(req, res, next) {
-  if (req.user && req.user.role === "admin") return next();
-  return res.status(403).json({ message: "Admin access required." });
-}
-
-// Co-admin middleware (admin or coadmin)
-function coAdminMiddleware(req, res, next) {
-  if (req.user && (req.user.role === "admin" || req.user.role === "coadmin"))
-    return next();
-  return res
-    .status(403)
-    .json({ message: "Admin or Co-admin access required." });
-}
-
-/**
- * Absolute base URL of the public website (scheme + host, no trailing slash).
- * Used for links inside emails so they never point to localhost in production.
- */
-function getPublicSiteOrigin() {
-  const explicit =
-    process.env.PUBLIC_SITE_URL ||
-    process.env.FRONTEND_URL ||
-    process.env.CLIENT_URL ||
-    process.env.PROMOTIONAL_UNSUBSCRIBE_URL ||
-    process.env.REACT_APP_API_URL;
-
-  const canonicalOrigin = "https://askctechnologies.in";
-  if (explicit && String(explicit).trim()) {
-    const raw = String(explicit).trim();
-    try {
-      const u = new URL(raw.includes("://") ? raw : `https://${raw}`);
-      const hostname = u.hostname.toLowerCase().replace(/^www\./, "");
-      // Migrate legacy ASKC Web domains to the official ASKC Technologies domain.
-      if (hostname === "askcweb.in") return canonicalOrigin;
-      if (hostname === "askctechnologies.in") return canonicalOrigin;
-      return u.origin.replace(/\/$/, "");
-    } catch {
-      return null;
-    }
-  }
-
-  if (process.env.NODE_ENV !== "production") {
-    return "http://localhost:3000";
-  }
-
-  return canonicalOrigin;
-}
-
-// Create a new subscription (after payment)
-router.post(
-  "/subscribe",
-  authMiddleware,
-  upload.single("paymentImage"),
-  async (req, res) => {
-    // Keep this legacy duplicate route protected too; never trust frontend-only mode controls.
-    if (await getCheckoutPaymentMode() !== "manual") {
-      return res.status(403).json({ message: "Manual payment submissions are disabled. Complete payment through the configured online gateway." });
-    }
-    if (!(await PaymentOption.countDocuments({ isActive: true }))) {
-      return res.status(503).json({ message: "Manual payment is not configured. Please contact ASKC Technologies." });
-    }
-    // Get data from FormData (req.body) or JSON (req.body)
-    let { plan, transactionId, method } = req.body;
-    const paymentImage = req.file;
-
-    // Debug: Log the entire request
-    console.log("Subscription request body:", req.body);
-    console.log(
-      "Subscription request file:",
-      paymentImage
-        ? { name: paymentImage.originalname, size: paymentImage.size }
-        : "none",
-    );
-    console.log("Subscription request:", {
-      plan,
-      planType: typeof plan,
-      transactionId,
-      method,
-      hasImage: !!paymentImage,
-      userId: req.user.id,
-      userEmail: req.user.email,
-    });
-
-    // More flexible plan validation - handle both string and other types
-    if (!plan) {
-      return res.status(400).json({ message: "Plan is required." });
-    }
-
-    // Convert plan to string if it's not already
-    plan = String(plan).trim();
-
-    if (!plan || plan.length === 0) {
-      return res.status(400).json({ message: "Plan is required." });
-    }
-
-    // Validate transaction ID if provided
-    if (transactionId && typeof transactionId !== "string") {
-      return res
-        .status(400)
-        .json({ message: "Transaction ID must be a string." });
-    }
-
-    // Validate payment method if provided
-    if (method && !["upi", "card", "netbanking"].includes(method)) {
-      return res.status(400).json({ message: "Invalid payment method." });
-    }
-
-    // Find plan by name (case-insensitive)
-    const planDoc = await Plan.findOne({
-      name: { $regex: new RegExp("^" + plan + "$", "i") },
-    });
-
-    if (!planDoc) {
-      console.log("Plan not found:", plan);
-      console.log("Available plans:", await Plan.find().select("name"));
-      return res.status(400).json({ message: "Plan not found." });
-    }
-
-    // Verify user exists
-    const user = await User.findById(req.user.id);
-    if (!user) {
-      return res.status(404).json({ message: "User not found." });
-    }
-
-    // Map plan name to subscription enum values
-    let planEnum;
-    const planNameLower = planDoc.name.toLowerCase();
-    if (planNameLower.includes("starter") || planNameLower.includes("basic")) {
-      planEnum = "starter";
-    } else if (planNameLower.includes("premium")) {
-      planEnum = "premium";
-    } else if (planNameLower.includes("pro")) {
-      planEnum = "pro";
-    } else {
-      // Default to starter if no match found
-      planEnum = "starter";
-    }
-
-    const uniqueId =
-      "SUB-" +
-      Date.now().toString(36) +
-      Math.random().toString(36).substr(2, 6).toUpperCase();
-    const now = new Date();
-
-    // Ensure plan duration is valid
-    const durationInDays = parsePlanDurationDays(planDoc.duration);
-    const expiresAt = new Date(
-      now.getTime() + durationInDays * 24 * 60 * 60 * 1000,
-    );
-
-    // Convert payment image to base64 if provided
-    let paymentImageBase64 = null;
-    if (paymentImage) {
-      paymentImageBase64 = (await uploadImageBuffer(paymentImage.buffer, paymentImage.mimetype, "askc-technologies/payment-proofs")).url;
-    }
-
-    try {
-      const subscription = await Subscription.create({
-        user: req.user.id,
-        plan: planEnum,
-        uniqueId,
-        status: "pending",
-        expiresAt,
-        transactionId: transactionId || null,
-        paymentMethod: method || "upi",
-        paymentImage: paymentImageBase64,
-      });
-      res.status(201).json({ subscription });
-    } catch (err) {
-      console.error("Subscription creation error:", err);
-      console.error("Error details:", {
-        user: req.user.id,
-        plan: planEnum,
-        planDoc: planDoc.name,
-        error: err.message,
-        validationErrors: err.errors,
-      });
-      res.status(500).json({ message: "Could not create subscription." });
-    }
-  },
-);
-
-// Get all subscriptions for the logged-in user
-router.get("/user-subscriptions", authMiddleware, async (req, res) => {
-  try {
-    const subscriptions = await Subscription.find({ user: req.user.id }).sort({
-      createdAt: -1,
-    });
-
-    // Check and update expired subscriptions
-    const now = new Date();
-    for (let subscription of subscriptions) {
-      if (
-        subscription.expiresAt &&
-        subscription.expiresAt < now &&
-        subscription.status === "active"
-      ) {
-        subscription.status = "expired";
-        await subscription.save();
-      }
-    }
-
-    // Fetch updated subscriptions
-    const updatedSubscriptions = await Subscription.find({
-      user: req.user.id,
-    }).sort({ createdAt: -1 });
-    res.json({ subscriptions: updatedSubscriptions });
-  } catch (err) {
-    res.status(500).json({ message: "Could not fetch subscriptions." });
-  }
-});
-
-// Plans endpoints
-router.get("/plans", async (req, res) => {
-  try {
-    const plans = await Plan.find().sort({ createdAt: -1 });
-    res.json({ plans });
-  } catch (err) {
-    res.status(500).json({ message: "Could not fetch plans." });
-  }
-});
-
-router.post("/plans", authMiddleware, coAdminMiddleware, async (req, res) => {
-  try {
-    const plan = await Plan.create(req.body);
-    res.status(201).json({ plan });
-  } catch (err) {
-    res.status(500).json({ message: "Could not create plan." });
-  }
-});
-
-router.put(
-  "/plans/:id",
-  authMiddleware,
-  coAdminMiddleware,
-  async (req, res) => {
-    try {
-      const plan = await Plan.findByIdAndUpdate(req.params.id, req.body, {
-        new: true,
-      });
-      res.json({ plan });
-    } catch (err) {
-      res.status(500).json({ message: "Could not update plan." });
-    }
-  },
-);
-
-// Contact endpoints
-router.post("/contact", async (req, res) => {
-  try {
-    const contact = await Contact.create(req.body);
-    res.status(201).json({ contact });
-  } catch (err) {
-    res.status(500).json({ message: "Could not submit contact." });
-  }
-});
-
-router.get("/contacts", authMiddleware, coAdminMiddleware, async (req, res) => {
-  try {
-    const contacts = await Contact.find().sort({ createdAt: -1 });
-    res.json({ contacts });
-  } catch (err) {
-    res.status(500).json({ message: "Could not fetch contacts." });
-  }
-});
-
-// Admin: Get all pending subscriptions
-router.get(
-  "/admin/pending-subscriptions",
-  authMiddleware,
-  coAdminMiddleware,
-  async (req, res) => {
-    try {
-      const subs = await Subscription.find({ status: "pending" }).populate(
-        "user",
-        "name email",
-      );
-      res.json({ subscriptions: subs });
-    } catch (err) {
-      res
-        .status(500)
-        .json({ message: "Could not fetch pending subscriptions." });
-    }
-  },
-);
-
-// Admin: Get all approved subscriptions
-router.get(
-  "/admin/approved-subscriptions",
-  authMiddleware,
-  coAdminMiddleware,
-  async (req, res) => {
-    try {
-      const { status, search } = req.query;
-      const now = new Date();
-      // Keep the stored status in sync with the expiry date before listing.
-      await Subscription.updateMany(
-        { status: "active", canceled: { $ne: true }, expiresAt: { $ne: null, $lte: now } },
-        { $set: { status: "expired" } }
-      );
-
-      let query = { status: { $in: ["active", "expired"] } };
-      if (status === "cancelled") {
-        query = { $or: [{ canceled: true }, { cancellationStatus: "approved" }] };
-      } else if (status === "active") {
-        query = { status: "active", canceled: { $ne: true }, cancellationStatus: { $ne: "approved" } };
-      } else if (status === "expired") {
-        query = { status: "expired", canceled: { $ne: true }, cancellationStatus: { $ne: "approved" } };
-      } else if (!status || status === "all") {
-        query = { $or: [
-          { status: { $in: ["active", "expired"] }, canceled: { $ne: true }, cancellationStatus: { $ne: "approved" } },
-          { canceled: true },
-          { cancellationStatus: "approved" }
-        ] };
-      }
-
-      if (search) {
-        query.$and = [
-          ...(query.$and || []),
-          { $or: [
-            { uniqueId: { $regex: search, $options: "i" } },
-            { transactionId: { $regex: search, $options: "i" } },
-          ] }
-        ];
-      }
-
-      const subs = await Subscription.find(query)
-        .populate("user", "name email")
-        .sort({ createdAt: -1 });
-
-      res.json({ subscriptions: subs });
-    } catch (err) {
-      console.error("Error fetching approved subscriptions:", err);
-      res
-        .status(500)
-        .json({ message: "Could not fetch approved subscriptions." });
-    }
-  },
-);
-
-// Admin: Approve a subscription
-router.patch(
-  "/admin/approve-subscription/:id",
-  authMiddleware,
-  coAdminMiddleware,
-  async (req, res) => {
-    try {
-      const sub = await Subscription.findById(req.params.id);
-      if (!sub) return res.status(404).json({ message: "Subscription not found." });
-      if (sub.status !== "pending") {
-        return res.status(409).json({ message: "Only a pending manual payment can be approved." });
-      }
-      if (String(sub.paymentMethod || "").toLowerCase() === "cashfree") {
-        return res.status(409).json({ message: "Online payments can only be activated after Cashfree verification." });
-      }
-      if (!String(sub.transactionId || "").trim() && !String(sub.paymentImage || "").trim()) {
-        return res.status(400).json({ message: "Payment proof or a transaction reference is required before manual approval." });
-      }
-      sub.status = "active";
-      sub.paymentStatus = "paid";
-      sub.amountPaid = Number(sub.amountPaid || sub.totalAmount || 0);
-      sub.rejectionReason = "";
-      if (sub.expiresAt && new Date(sub.expiresAt) <= new Date()) {
-        const duration = Number(sub.durationDays || 0);
-        if (duration > 0) sub.expiresAt = new Date(Date.now() + duration * 86400000);
-      }
-      await sub.save();
-      if (sub.couponCode) {
-        try {
-          await Coupon.updateOne(
-            { code: sub.couponCode, usedBy: { $ne: sub.user } },
-            { $addToSet: { usedBy: sub.user }, $inc: { usedCount: 1 } },
-          );
-        } catch (couponError) {
-          console.error("Manual coupon redemption count update failed:", couponError);
-        }
-      }
-      res.json({ subscription: sub, message: "Manual payment approved and marked as paid." });
-    } catch (err) {
-      res.status(500).json({ message: "Could not approve subscription." });
-    }
-  },
-);
-
-// Admin: Reject a subscription with reason
-router.patch(
-  "/admin/reject-subscription/:id",
-  authMiddleware,
-  coAdminMiddleware,
-  async (req, res) => {
-    try {
-      const { reason } = req.body;
-      const sub = await Subscription.findByIdAndUpdate(
-        req.params.id,
-        { status: "rejected", rejectionReason: reason },
-        { new: true },
-      );
-      res.json({ subscription: sub });
-    } catch (err) {
-      res.status(500).json({ message: "Could not reject subscription." });
-    }
-  },
-);
-
-// Admin: Get all users
-router.get(
-  "/admin/users",
-  authMiddleware,
-  adminMiddleware,
-  async (req, res) => {
-    try {
-      const users = await User.find().sort({ createdAt: -1 });
-      res.json({ users });
-    } catch (err) {
-      res.status(500).json({ message: "Could not fetch users." });
-    }
-  },
-);
-
-// Admin: Update user role
-router.put(
-  "/admin/users/:id/role",
-  authMiddleware,
-  adminMiddleware,
-  async (req, res) => {
-    try {
-      const { role } = req.body;
-
-      // Validate role
-      if (!role || !["user", "admin", "coadmin"].includes(role)) {
-        return res.status(400).json({
-          message: 'Invalid role. Must be "user", "admin", or "coadmin".',
-        });
-      }
-
-      // Prevent admin from changing their own role
-      if (req.params.id === req.user.id) {
-        return res
-          .status(400)
-          .json({ message: "You cannot change your own role." });
-      }
-
-      const user = await User.findByIdAndUpdate(
-        req.params.id,
-        { role },
-        { new: true, runValidators: true },
-      ).select("-password");
-
-      if (!user) {
-        return res.status(404).json({ message: "User not found." });
-      }
-
-      res.json({ user, message: "User role updated successfully." });
-    } catch (err) {
-      console.error("Error updating user role:", err);
-      res.status(500).json({ message: "Could not update user role." });
-    }
-  },
-);
-
-// Admin: Get site statistics
-router.get(
-  "/admin/stats",
-  authMiddleware,
-  coAdminMiddleware,
-  async (req, res) => {
-    try {
-      const userCount = await User.countDocuments();
-      const subCount = await Subscription.countDocuments();
-      const activeSubs = await Subscription.countDocuments({
-        status: "active",
-        cancellationStatus: { $ne: "approved" },
-      });
-
-      // Get all plans to map plan names to prices
-      const plans = await Plan.find();
-      const planPriceMap = {};
-      plans.forEach((plan) => {
-        // Map plan name to price (handle different naming conventions)
-        const planNameLower = plan.name.toLowerCase();
-        let planKey = "";
-        if (
-          planNameLower.includes("starter") ||
-          planNameLower.includes("basic")
-        ) {
-          planKey = "starter";
-        } else if (planNameLower.includes("premium")) {
-          planKey = "premium";
-        } else if (planNameLower.includes("pro")) {
-          planKey = "pro";
-        }
-        if (planKey) {
-          planPriceMap[planKey] = parseFloat(plan.price) || 0;
-        }
-      });
-
-      // Calculate total revenue from all approved subscriptions (active, expired, or were active)
-      // Exclude rejected and pending subscriptions
-      const paidSubscriptions = await Subscription.find({
-        status: { $in: ["active", "expired"] },
-        cancellationStatus: { $ne: "approved" }, // Don't count cancelled subscriptions
-      });
-
-      let totalRevenue = 0;
-      paidSubscriptions.forEach((sub) => {
-        const planPrice = planPriceMap[sub.plan] || 0;
-        totalRevenue += planPrice;
-      });
-
-      res.json({
-        userCount,
-        subCount,
-        activeSubs,
-        totalRevenue: Math.round(totalRevenue * 100) / 100, // Round to 2 decimal places
-      });
-    } catch (err) {
-      console.error("Error fetching stats:", err);
-      res.status(500).json({ message: "Could not fetch stats." });
-    }
-  },
-);
-
-// Admin/Co-Admin: Get funds balance and statements
-router.get(
-  "/admin/funds",
-  authMiddleware,
-  coAdminMiddleware,
-  async (req, res) => {
-    try {
-      const transactions = await FundTransaction.find()
-        .populate("createdBy", "name email role")
-        .sort({ createdAt: -1 });
-
-      const balance = transactions.reduce((total, item) => {
-        if (item.type === "add") return total + item.amount;
-        return total - item.amount;
-      }, 0);
-
-      res.json({
-        balance: Math.max(0, Math.round(balance * 100) / 100),
-        transactions,
-      });
-    } catch (err) {
-      console.error("Error fetching funds:", err);
-      res.status(500).json({ message: "Could not fetch funds data." });
-    }
-  },
-);
-
-// Admin/Co-Admin: Add or withdraw funds
-router.post(
-  "/admin/funds",
-  authMiddleware,
-  coAdminMiddleware,
-  async (req, res) => {
-    try {
-      const { type, amount, reason } = req.body;
-      const normalizedType = String(type || "")
-        .trim()
-        .toLowerCase();
-      const parsedAmount = Number(amount);
-      const normalizedReason = String(reason || "").trim();
-
-      if (!["add", "withdraw"].includes(normalizedType)) {
-        return res.status(400).json({ message: "Invalid transaction type." });
-      }
-      if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
-        return res
-          .status(400)
-          .json({ message: "Amount must be greater than zero." });
-      }
-      if (!normalizedReason) {
-        return res.status(400).json({ message: "Reason is required." });
-      }
-
-      const transactions = await FundTransaction.find().sort({ createdAt: -1 });
-      const currentBalance = transactions.reduce((total, item) => {
-        if (item.type === "add") return total + item.amount;
-        return total - item.amount;
-      }, 0);
-
-      if (normalizedType === "withdraw" && parsedAmount > currentBalance) {
-        return res
-          .status(400)
-          .json({ message: "Insufficient funds for withdrawal." });
-      }
-
-      const transaction = await FundTransaction.create({
-        type: normalizedType,
-        amount: Math.round(parsedAmount * 100) / 100,
-        reason: normalizedReason,
-        createdBy: req.user.id,
-      });
-
-      const updatedBalance =
-        normalizedType === "add"
-          ? currentBalance + transaction.amount
-          : currentBalance - transaction.amount;
-
-      const populated = await FundTransaction.findById(
-        transaction._id,
-      ).populate("createdBy", "name email role");
-
-      res.status(201).json({
-        message:
-          normalizedType === "add"
-            ? "Funds added successfully."
-            : "Funds withdrawn successfully.",
-        transaction: populated,
-        balance: Math.max(0, Math.round(updatedBalance * 100) / 100),
-      });
-    } catch (err) {
-      console.error("Error updating funds:", err);
-      res.status(500).json({ message: "Could not process fund transaction." });
-    }
-  },
-);
-
-// Admin: Send notification
-router.post(
-  "/admin/notifications",
-  authMiddleware,
-  coAdminMiddleware,
-  async (req, res) => {
-    try {
-      const { message } = req.body;
-      const notification = await Notification.create({ message });
-      res.status(201).json({ notification });
-    } catch (err) {
-      res.status(500).json({ message: "Could not send notification." });
-    }
-  },
-);
-
-// Admin: Get all notifications
-router.get(
-  "/admin/notifications",
-  authMiddleware,
-  coAdminMiddleware,
-  async (req, res) => {
-    try {
-      const notifications = await Notification.find().sort({ createdAt: -1 });
-      res.json({ notifications });
-    } catch (err) {
-      res.status(500).json({ message: "Could not fetch notifications." });
-    }
-  },
-);
-
-// Admin: Delete a plan
-router.delete(
-  "/plans/:id",
-  authMiddleware,
-  coAdminMiddleware,
-  async (req, res) => {
-    try {
-      await Plan.findByIdAndDelete(req.params.id);
-      res.json({ success: true });
-    } catch (err) {
-      res.status(500).json({ message: "Could not delete plan." });
-    }
-  },
-);
-
-router.post("/user/update", authMiddleware, updateUserProfile);
-router.post("/user/change-password", authMiddleware, changeUserPassword);
-router.get("/notifications", authMiddleware, getUserNotifications);
-router.post("/notifications/read/:id", authMiddleware, markNotificationRead);
-router.post("/cancel-subscription/:id", authMiddleware, cancelUserSubscription);
-router.post("/renew-subscription", authMiddleware, renewUserSubscription);
-
-router.get(
-  "/admin/all-subscriptions",
-  authMiddleware,
-  coAdminMiddleware,
-  async (req, res) => {
-    try {
-      const subs = await Subscription.find()
-        .populate("user", "name email")
-        .sort({ createdAt: -1 });
-
-      // Check and update expired subscriptions
-      const now = new Date();
-      for (let subscription of subs) {
-        if (
-          subscription.expiresAt &&
-          subscription.expiresAt < now &&
-          subscription.status === "active"
-        ) {
-          subscription.status = "expired";
-          await subscription.save();
-        }
-      }
-
-      // Fetch updated subscriptions
-      const updatedSubs = await Subscription.find()
-        .populate("user", "name email")
-        .sort({ createdAt: -1 });
-      res.json({ subscriptions: updatedSubs });
-    } catch (err) {
-      res.status(500).json({ message: "Could not fetch subscriptions." });
-    }
-  },
-);
-
-// Add this route for user notifications
-router.get("/user-notifications", authMiddleware, async (req, res) => {
-  try {
-    const notifications = await Notification.find({
-      $and: [
-        { $or: [{ user: req.user.id }, { user: null }] },
-        {
-          $or: [
-            { expiresAt: { $gt: new Date() } }, // Not expired
-            { expiresAt: { $exists: false } }, // No expiration set (backward compatibility)
-          ],
-        },
-      ],
-    }).sort({ createdAt: -1 });
-
-    res.json({
-      notifications: notifications.map((n) => ({
-        _id: n._id,
-        title: n.title || "Notification",
-        message: n.message,
-        createdAt: n.createdAt,
-        read: n.readBy && n.readBy.includes(req.user.id),
-      })),
-    });
-  } catch (err) {
-    res.status(500).json({ message: "Could not fetch notifications." });
-  }
-});
-
-// User: Submit a complaint
-router.post("/complaints", authMiddleware, async (req, res) => {
-  try {
-    const { message } = req.body;
-    if (!message)
-      return res.status(400).json({ message: "Message is required." });
-    const complaint = await Complaint.create({ user: req.user.id, message });
-    res.status(201).json({ complaint });
-  } catch (err) {
-    res.status(500).json({ message: "Could not submit complaint." });
-  }
-});
-
-// User: Get all their complaints
-router.get("/complaints", authMiddleware, async (req, res) => {
-  try {
-    const complaints = await Complaint.find({ user: req.user.id }).sort({
-      createdAt: -1,
-    });
-    res.json({ complaints });
-  } catch (err) {
-    res.status(500).json({ message: "Could not fetch complaints." });
-  }
-});
-
-// Admin: Get all complaints
-router.get(
-  "/admin/complaints",
-  authMiddleware,
-  coAdminMiddleware,
-  async (req, res) => {
-    try {
-      const complaints = await Complaint.find()
-        .populate("user", "name email")
-        .sort({ createdAt: -1 });
-      res.json({ complaints });
-    } catch (err) {
-      res.status(500).json({ message: "Could not fetch complaints." });
-    }
-  },
-);
-
-// Admin: Update complaint status
-router.patch(
-  "/admin/complaints/:id",
-  authMiddleware,
-  coAdminMiddleware,
-  async (req, res) => {
-    try {
-      const complaint = await Complaint.findByIdAndUpdate(
-        req.params.id,
-        { status: req.body.status, ...(typeof req.body.response === "string" ? { response: req.body.response.trim().slice(0, 3000) } : {}) },
-        { new: true },
-      );
-      res.json({ complaint });
-    } catch (err) {
-      res.status(500).json({ message: "Could not update complaint." });
-    }
-  },
-);
-
-// Helpers to decide complaint access (user vs admin/coadmin)
-function getComplaintQueryForUserOrAdmin(req) {
-  if (req.user && (req.user.role === "admin" || req.user.role === "coadmin")) {
-    return { _id: req.params.id };
-  }
-  return { _id: req.params.id, user: req.user.id };
-}
-
-// User/Admin: Get a specific complaint
-router.get("/complaints/:id", authMiddleware, async (req, res) => {
-  try {
-    const complaint = await Complaint.findOne(
-      getComplaintQueryForUserOrAdmin(req),
-    );
-    if (!complaint) {
-      return res
-        .status(404)
-        .json({ message: "Complaint not found or access denied." });
-    }
-    res.json({ complaint });
-  } catch (err) {
-    res.status(500).json({ message: "Could not fetch complaint." });
-  }
-});
-
-// User/Admin: Get chat messages for a complaint
-router.get("/complaints/:id/chat", authMiddleware, async (req, res) => {
-  try {
-    const complaint = await Complaint.findOne(
-      getComplaintQueryForUserOrAdmin(req),
-    );
-    if (!complaint) {
-      return res
-        .status(404)
-        .json({ message: "Complaint not found or access denied." });
-    }
-    res.json({ chat: complaint.chat || [] });
-  } catch (err) {
-    res.status(500).json({ message: "Could not fetch chat." });
-  }
-});
-
-// User/Admin: Send a message in complaint chat
-router.post("/complaints/:id/chat", authMiddleware, async (req, res) => {
-  try {
-    const { text } = req.body;
-    if (!text) {
-      return res.status(400).json({ message: "Message text is required." });
-    }
-
-    const complaint = await Complaint.findOne(
-      getComplaintQueryForUserOrAdmin(req),
-    );
-    if (!complaint) {
-      return res
-        .status(404)
-        .json({ message: "Complaint not found or access denied." });
-    }
-
-    const from =
-      req.user && (req.user.role === "admin" || req.user.role === "coadmin")
-        ? "admin"
-        : "user";
-    const newMessage = {
-      from,
-      text: text,
-      time: new Date(),
-    };
-
-    complaint.chat.push(newMessage);
-    await complaint.save();
-
-    res.json({ chat: complaint.chat });
-  } catch (err) {
-    res.status(500).json({ message: "Could not send message." });
-  }
-});
-
-// User: Request subscription renewal
-router.post("/renewal-request", authMiddleware, async (req, res) => {
-  try {
-    const { subscriptionId } = req.body;
-    if (!subscriptionId) {
-      return res.status(400).json({ message: "Subscription ID is required." });
-    }
-
-    const subscription = await Subscription.findOne({
-      _id: subscriptionId,
-      user: req.user.id,
-    });
-    if (!subscription) {
-      return res.status(404).json({ message: "Subscription not found." });
-    }
-
-    if (subscription.renewalStatus === "pending") {
-      return res.status(400).json({
-        message: "A renewal request is already pending for this subscription.",
-      });
-    }
-
-    if (subscription.status !== "expired") {
-      return res
-        .status(400)
-        .json({ message: "Only expired subscriptions can be renewed." });
-    }
-
-    subscription.renewalRequested = true;
-    subscription.renewalRequestDate = new Date();
-    subscription.renewalStatus = "pending";
-    subscription.renewalRejectionReason = undefined;
-    await subscription.save();
-
-    res.json({
-      subscription,
-      message: "Renewal request submitted successfully.",
-    });
-  } catch (err) {
-    res.status(500).json({ message: "Could not submit renewal request." });
-  }
-});
-
-// Admin: Get all renewal requests
-router.get(
-  "/admin/renewal-requests",
-  authMiddleware,
-  coAdminMiddleware,
-  async (req, res) => {
-    try {
-      const subscriptions = await Subscription.find({
-        renewalRequested: true,
-        renewalStatus: "pending",
-      })
-        .populate("user", "name email")
-        .sort({ renewalRequestDate: -1 });
-      res.json({ subscriptions });
-    } catch (err) {
-      res.status(500).json({ message: "Could not fetch renewal requests." });
-    }
-  },
-);
-
-// Admin: Approve renewal request
-router.patch(
-  "/admin/renewal-requests/:id/approve",
-  authMiddleware,
-  coAdminMiddleware,
-  async (req, res) => {
-    try {
-      const subscription = await Subscription.findById(req.params.id);
-      if (!subscription) {
-        return res.status(404).json({ message: "Subscription not found." });
-      }
-
-      if (
-        !subscription.renewalRequested ||
-        subscription.renewalStatus !== "pending"
-      ) {
-        return res
-          .status(400)
-          .json({ message: "No pending renewal request found." });
-      }
-
-      const plan = await Plan.findOne({
-        name: new RegExp("^" + subscription.plan + "$", "i"),
-      });
-      if (!plan) {
-        return res.status(400).json({ message: "Plan not found." });
-      }
-
-      const now = new Date();
-      const durationInDays = parsePlanDurationDays(plan.duration);
-      const newExpiryDate = new Date(
-        now.getTime() + durationInDays * 24 * 60 * 60 * 1000,
-      );
-
-      subscription.status = "active";
-      subscription.expiresAt = newExpiryDate;
-      subscription.renewalStatus = "approved";
-      subscription.renewalApprovedDate = now;
-      subscription.renewalRequested = false;
-      await subscription.save();
-
-      res.json({
-        subscription,
-        message: "Renewal request approved successfully.",
-      });
-    } catch (err) {
-      res.status(500).json({ message: "Could not approve renewal request." });
-    }
-  },
-);
-
-// Admin: Reject renewal request
-router.patch(
-  "/admin/renewal-requests/:id/reject",
-  authMiddleware,
-  coAdminMiddleware,
-  async (req, res) => {
-    try {
-      const { reason } = req.body;
-      if (!reason) {
-        return res
-          .status(400)
-          .json({ message: "Rejection reason is required." });
-      }
-
-      const subscription = await Subscription.findById(req.params.id);
-      if (!subscription) {
-        return res.status(404).json({ message: "Subscription not found." });
-      }
-
-      if (
-        !subscription.renewalRequested ||
-        subscription.renewalStatus !== "pending"
-      ) {
-        return res
-          .status(400)
-          .json({ message: "No pending renewal request found." });
-      }
-
-      subscription.renewalStatus = "rejected";
-      subscription.renewalRejectionReason = reason;
-      subscription.renewalRequested = false;
-      await subscription.save();
-
-      res.json({
-        subscription,
-        message: "Renewal request rejected successfully.",
-      });
-    } catch (err) {
-      res.status(500).json({ message: "Could not reject renewal request." });
-    }
-  },
-);
-
-// Newsletter subscribe endpoint
-router.post("/newsletter/subscribe", async (req, res) => {
-  try {
-    const normalizedEmail = String(req.body.email || "")
-      .trim()
-      .toLowerCase();
-    if (!normalizedEmail)
-      return res.status(400).json({ message: "Email is required." });
-    let subscriber = await NewsletterSubscriber.findOne({
-      email: normalizedEmail,
-    });
-    if (subscriber) {
-      if (subscriber.status === "subscribed") {
-        return res.status(400).json({ message: "Already subscribed." });
-      } else {
-        subscriber.status = "subscribed";
-        await subscriber.save();
-        return res.json({ message: "Subscribed successfully." });
-      }
-    }
-    subscriber = await NewsletterSubscriber.create({
-      email: normalizedEmail,
-      status: "subscribed",
-    });
-    res.status(201).json({ message: "Subscribed successfully." });
-  } catch (err) {
-    res.status(500).json({ message: "Could not subscribe." });
-  }
-});
-
-// Newsletter unsubscribe endpoint
-router.post("/newsletter/unsubscribe", async (req, res) => {
-  try {
-    const normalizedEmail = String(req.body.email || "")
-      .trim()
-      .toLowerCase();
-    if (!normalizedEmail)
-      return res.status(400).json({ message: "Email is required." });
-
-    const subscriber = await NewsletterSubscriber.findOne({
-      email: normalizedEmail,
-    });
-    if (!subscriber) {
-      await NewsletterSubscriber.create({
-        email: normalizedEmail,
-        status: "unsubscribed",
-      });
-      return res.json({ message: "Unsubscribed successfully." });
-    }
-    if (subscriber.status === "unsubscribed") {
-      return res.json({ message: "Unsubscribed successfully." });
-    }
-    subscriber.status = "unsubscribed";
-    await subscriber.save();
-    res.json({ message: "Unsubscribed successfully." });
-  } catch (err) {
-    res.status(500).json({ message: "Could not unsubscribe." });
-  }
-});
-
-// Admin: Get all newsletter subscribers (show all with status)
-router.get(
-  "/admin/newsletter-subscribers",
-  authMiddleware,
-  coAdminMiddleware,
-  async (req, res) => {
-    try {
-      const subscribers = await NewsletterSubscriber.find().sort({
-        createdAt: -1,
-      });
-      res.json({ subscribers });
-    } catch (err) {
-      res.status(500).json({ message: "Could not fetch subscribers." });
-    }
-  },
-);
-
-// Admin: Get unsubscribed newsletter users
-router.get(
-  "/admin/newsletter-unsubscribed",
-  authMiddleware,
-  coAdminMiddleware,
-  async (req, res) => {
-    try {
-      const subscribers = await NewsletterSubscriber.find({
-        status: "unsubscribed",
-      }).sort({ updatedAt: -1 });
-      res.json({ subscribers });
-    } catch (err) {
-      res.status(500).json({ message: "Could not fetch unsubscribed users." });
-    }
-  },
-);
+// Duplicate legacy route block removed; canonical route handlers are registered above.
 
 // Admin email diagnostics: never expose secret values in API responses.
 router.get("/admin/email-config", authMiddleware, coAdminMiddleware, async (req, res) => {
@@ -3771,6 +1131,11 @@ router.delete(
   coAdminMiddleware,
   async (req, res) => {
     try {
+      const coupon = await Coupon.findById(req.params.id).select("reservedCount");
+      if (!coupon) return res.status(404).json({ message: "Coupon not found." });
+      if (Number(coupon.reservedCount || 0) > 0) {
+        return res.status(409).json({ message: "This coupon has active checkouts. Deactivate it instead; it can be deleted after those checkouts finish." });
+      }
       await Coupon.findByIdAndDelete(req.params.id);
       res.json({ success: true });
     } catch (err) {
@@ -3785,12 +1150,13 @@ router.post("/coupons/apply", async (req, res) => {
     const code = String(req.body?.code || "").trim().toUpperCase();
     const planId = req.body?.planId;
     if (!code) return res.status(400).json({ message: "Coupon code is required." });
+    await expireAbandonedCouponOrders(code);
     const coupon = await Coupon.findOne({ code, active: true }).lean();
     if (!coupon) return res.status(404).json({ message: "Invalid or expired coupon." });
     if (planId && coupon.eligiblePlans?.length && !coupon.eligiblePlans.some(id => String(id) === String(planId))) {
       return res.status(400).json({ message: "This coupon is not valid for the selected pricing plan." });
     }
-    if (coupon.usageLimit > 0 && coupon.usedCount >= coupon.usageLimit) {
+    if (coupon.usageLimit > 0 && (Number(coupon.usedCount || 0) + Number(coupon.reservedCount || 0)) >= coupon.usageLimit) {
       return res.status(400).json({ message: "Coupon usage limit reached." });
     }
     // This endpoint only previews a coupon. Redemption is recorded after verified payment,
@@ -4880,7 +2246,7 @@ router.get("/admin/refunds", authMiddleware, adminMiddleware, async (req, res) =
       total: refunds.length,
       awaitingReview: refunds.filter((item) => ["not_reviewed", undefined].includes(item.refundStatus)).length,
       approvedAmount: refunds.filter((item) => ["approved", "processed"].includes(item.refundStatus)).reduce((sum, item) => sum + Number(item.refundAmount || 0), 0),
-      pendingPayout: refunds.filter((item) => item.refundStatus === "approved").length,
+      pendingPayout: refunds.filter((item) => ["approved", "processing"].includes(item.refundStatus)).length,
       processed: refunds.filter((item) => item.refundStatus === "processed").length
     };
     res.set("Cache-Control", "no-store");
@@ -4910,6 +2276,90 @@ router.patch("/admin/refunds/:id", authMiddleware, adminMiddleware, async (req, 
     const cleanReason = String(reason || "").trim().slice(0, 1000);
     const cleanReference = String(reference || "").trim().slice(0, 200);
 
+    if (action === "cashfree_initiate" || action === "cashfree_sync") {
+      if (String(sub.paymentMethod || "").toLowerCase() !== "cashfree" || !sub.cashfreeOrderId ||
+          !["paid", "success", "successful"].includes(String(sub.paymentStatus || "").toLowerCase())) {
+        return res.status(409).json({ message: "Only a verified, paid Cashfree order can be refunded through Cashfree." });
+      }
+      if (!["approved", "processing"].includes(sub.refundStatus) || Number(sub.refundAmount || 0) <= 0) {
+        return res.status(409).json({ message: "Approve a valid refund amount before initiating a Cashfree refund." });
+      }
+      let refundId = String(sub.refundProviderRefundId || "");
+      if (action === "cashfree_initiate") {
+        if (sub.refundStatus === "processing" && sub.refundProviderStatus === "SUCCESS") {
+          return res.status(409).json({ message: "Cashfree has already confirmed this refund." });
+        }
+        const now = new Date();
+        const lockCutoff = new Date(now.getTime() - 2 * 60 * 1000);
+        refundId = refundId || "ASKCRF_" + require("crypto").randomBytes(12).toString("hex");
+        const locked = await Subscription.findOneAndUpdate(
+          {
+            _id: sub._id,
+            refundStatus: { $in: ["approved", "processing"] },
+            refundProviderStatus: { $nin: ["SUCCESS", "PENDING"] },
+            $or: [
+              { refundProviderStatus: { $ne: "INITIATING" } },
+              { refundProviderRequestedAt: { $lt: lockCutoff } },
+              { refundProviderRequestedAt: null }
+            ]
+          },
+          { $set: { refundStatus: "processing", refundProviderStatus: "INITIATING", refundProviderRefundId: refundId, refundProviderRequestedAt: now, refundReviewedBy: req.user.id, refundReviewedAt: now } },
+          { new: true }
+        );
+        if (!locked) return res.status(409).json({ message: "A Cashfree refund request is already being processed. Refresh the record before retrying." });
+        try {
+          const provider = await cashfreeRefundRequest({
+            orderId: locked.cashfreeOrderId,
+            refundId,
+            amount: locked.refundAmount,
+            note: locked.refundReason || "ASKC TECHNOLOGIES subscription refund"
+          });
+          const normalized = normalizeRefundStatus(provider.refund_status);
+          const update = {
+            refundProviderStatus: String(provider.refund_status || "UNKNOWN").toUpperCase(),
+            refundProviderCfId: String(provider.cf_refund_id || ""),
+            refundReference: String(provider.cf_refund_id || refundId),
+          };
+          if (normalized === "processed") {
+            update.refundStatus = "processed";
+            update.refundProcessedAt = provider.processed_at ? new Date(provider.processed_at) : new Date();
+          } else if (normalized === "failed") {
+            update.refundStatus = "approved";
+          } else if (normalized === "processing") {
+            update.refundStatus = "processing";
+          }
+          const updated = await Subscription.findByIdAndUpdate(locked._id, { $set: update }, { new: true });
+          return res.json({ message: normalized === "processed" ? "Cashfree confirmed the refund." : normalized === "failed" ? "Cashfree rejected the refund request. Review provider details before retrying." : "Cashfree accepted the refund request; payout status is pending.", refund: updated, providerStatus: update.refundProviderStatus });
+        } catch (providerError) {
+          await Subscription.updateOne(
+            { _id: locked._id, refundProviderRefundId: refundId, refundProviderStatus: "INITIATING" },
+            { $set: { refundProviderStatus: "UNKNOWN" } }
+          );
+          console.error("Cashfree refund initiation failed:", providerError?.message);
+          return res.status(providerError.statusCode === 503 ? 503 : 502).json({ message: "Cashfree refund status could not be confirmed. Use Sync status before retrying to avoid a duplicate payout." });
+        }
+      }
+
+      if (!refundId) return res.status(409).json({ message: "No Cashfree refund request exists for this subscription yet." });
+      const provider = await cashfreeRefundRequest({ orderId: sub.cashfreeOrderId, refundId, method: "GET" });
+      const normalized = normalizeRefundStatus(provider.refund_status);
+      const update = {
+        refundProviderStatus: String(provider.refund_status || "UNKNOWN").toUpperCase(),
+        refundProviderCfId: String(provider.cf_refund_id || sub.refundProviderCfId || ""),
+        refundReference: String(provider.cf_refund_id || refundId),
+      };
+      if (normalized === "processed") {
+        update.refundStatus = "processed";
+        update.refundProcessedAt = provider.processed_at ? new Date(provider.processed_at) : new Date();
+      } else if (normalized === "failed") {
+        update.refundStatus = "approved";
+      } else if (normalized === "processing") {
+        update.refundStatus = "processing";
+      }
+      const updated = await Subscription.findByIdAndUpdate(sub._id, { $set: update }, { new: true });
+      return res.json({ message: "Cashfree refund status synchronized.", refund: updated, providerStatus: update.refundProviderStatus });
+    }
+
     if (action === "not_eligible") {
       sub.refundStatus = "not_eligible";
       sub.refundEligible = false;
@@ -4921,7 +2371,7 @@ router.patch("/admin/refunds/:id", authMiddleware, adminMiddleware, async (req, 
         return res.status(400).json({ message: `Refund amount must be greater than ₹0 and no more than the verified paid amount (₹${paidAmount.toFixed(2)}).` });
       }
       if (cleanReason.length < 5) return res.status(400).json({ message: "Add a short reason for this exceptional refund approval." });
-      if (sub.refundStatus === "processed") return res.status(409).json({ message: "This refund has already been marked as processed." });
+      if (["processed", "processing"].includes(sub.refundStatus)) return res.status(409).json({ message: "A processing or processed refund cannot be re-approved. Sync its provider status first." });
       sub.refundStatus = "approved";
       sub.refundEligible = true;
       sub.refundAmount = Number(refundAmount.toFixed(2));
@@ -4938,6 +2388,7 @@ router.patch("/admin/refunds/:id", authMiddleware, adminMiddleware, async (req, 
       sub.refundReference = "";
       sub.refundProcessedAt = null;
     } else if (action === "processed") {
+      if (String(sub.paymentMethod || "").toLowerCase() === "cashfree") return res.status(409).json({ message: "Cashfree refunds must be confirmed by Cashfree. Use the provider status sync." });
       if (sub.refundStatus !== "approved" || Number(sub.refundAmount || 0) <= 0) {
         return res.status(409).json({ message: "Only an approved refund can be marked as processed." });
       }
@@ -6115,7 +3566,7 @@ async function createSessionForUser(res, user, req) {
   const userAgent = String(req.headers["user-agent"] || "").slice(0, 500);
   await User.findByIdAndUpdate(user._id, {
     $set: { lastLoginAt: new Date(), lastLoginIp: ip, lastLoginUserAgent: userAgent },
-    $push: { sessions: { $each: [{ sessionId, createdAt: new Date(), lastSeenAt: new Date(), ip, userAgent, revokedAt: null }], $slice: -30 } },
+    $push: { sessions: { sessionId, createdAt: new Date(), lastSeenAt: new Date(), ip, userAgent, revokedAt: null } },
   });
   const token = jwt.sign({ id: user._id, role: user.role, sv: Number(user.sessionVersion || 0), sid: sessionId }, process.env.JWT_SECRET, { expiresIn: "7d" });
   res.cookie("token", token, {
@@ -6229,18 +3680,21 @@ router.post("/security/2fa/disable", authMiddleware, async (req, res) => {
 router.post("/2fa/login/verify", async (req, res) => {
   try {
     const challenge = jwt.verify(String(req.body?.challengeToken || ""), process.env.JWT_SECRET);
-    if (challenge.purpose !== "two-factor-login") return res.status(401).json({ message: "Invalid login challenge." });
+    if (challenge.purpose !== "two-factor-login" || typeof challenge.jti !== "string" || !challenge.jti) {
+      return res.status(401).json({ message: "Invalid login challenge." });
+    }
     const user = await User.findById(challenge.id).select("+twoFactorSecret");
     if (!user || !user.twoFactorEnabled) return res.status(401).json({ message: "This login challenge is no longer valid." });
     const code = String(req.body?.code || "").trim();
     let valid = false;
     if (user.twoFactorMethod === "authenticator" && user.twoFactorSecret) valid = twoFactorCrypto.verifyTotp(twoFactorCrypto.decryptSecret(user.twoFactorSecret), code);
     if (user.twoFactorMethod === "email") {
-      const record = await Otp.findOne({ email: user.email.toLowerCase(), otp: code, purpose: "twofactor-login", expiresAt: { $gt: new Date() } });
+      const record = await Otp.findOneAndDelete({ email: user.email.toLowerCase(), otp: code, purpose: "twofactor-login", expiresAt: { $gt: new Date() } });
       valid = Boolean(record);
-      if (record) await Otp.deleteMany({ email: user.email.toLowerCase(), purpose: "twofactor-login" });
     }
     if (!valid) return res.status(400).json({ message: "Invalid or expired verification code." });
+    const consumedChallenge = await consumeTwoFactorChallenge({ Otp, email: user.email, jti: challenge.jti });
+    if (!consumedChallenge) return res.status(401).json({ message: "This login challenge has already been used or has expired. Please sign in again." });
     user.lastLoginAt = new Date();
     user.lastLoginIp = String(req.headers["x-forwarded-for"] || req.ip || "").split(",")[0].slice(0, 100);
     user.lastLoginUserAgent = String(req.headers["user-agent"] || "").slice(0, 500);

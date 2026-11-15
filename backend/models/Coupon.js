@@ -7,6 +7,8 @@ const couponSchema = new mongoose.Schema({
   eligiblePlans: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Plan' }],
   usageLimit: { type: Number, default: 1 },
   usedCount: { type: Number, default: 0 },
+  // Orders in checkout hold a slot until payment succeeds or the order expires.
+  reservedCount: { type: Number, default: 0, min: 0 },
   active: { type: Boolean, default: true },
   usedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 }, { timestamps: true });

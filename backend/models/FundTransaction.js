@@ -23,6 +23,9 @@ const fundTransactionSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    voidedAt: { type: Date, default: null },
+    voidedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+    voidReason: { type: String, trim: true, maxlength: 500, default: "" },
   },
   { timestamps: true },
 );

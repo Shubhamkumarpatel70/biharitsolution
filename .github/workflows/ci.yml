@@ -21,11 +21,11 @@ jobs:
         run: npm ci --prefix frontend
       - name: Install backend dependencies
         run: npm ci --prefix backend
-      - name: Report dependency audit findings
+      - name: Enforce dependency security audit
         run: |
           npm audit --json --prefix frontend > /tmp/frontend-audit.json || true
           npm audit --json --prefix backend > /tmp/backend-audit.json || true
-          node -e "for (const name of ['frontend','backend']) { const report = require('/tmp/' + name + '-audit.json'); console.log(name + ' audit:', JSON.stringify(report.metadata?.vulnerabilities || {})); for (const [pkg, item] of Object.entries(report.vulnerabilities || {})) { if (['high','critical'].includes(item.severity)) console.log(name, item.severity, pkg, 'direct=' + item.isDirect, 'fix=' + JSON.stringify(item.fixAvailable), 'via=' + item.via.map(v => typeof v === 'string' ? v : v.title).join('; ')); } }"
+          node -e "let failed = false; for (const name of ['frontend','backend']) { const report = require('/tmp/' + name + '-audit.json'); const counts = report.metadata?.vulnerabilities || {}; console.log(name + ' audit:', JSON.stringify(counts)); for (const [pkg, item] of Object.entries(report.vulnerabilities || {})) { if (['high','critical'].includes(item.severity)) { failed = true; console.error(name, item.severity, pkg, 'direct=' + item.isDirect, 'fix=' + JSON.stringify(item.fixAvailable), 'via=' + item.via.map(v => typeof v === 'string' ? v : v.title).join('; ')); } } } if (failed) process.exit(1);"
       - name: Check backend JavaScript syntax
         run: |
           node --check backend/routes/auth.js
@@ -33,6 +33,23 @@ jobs:
           node --check backend/controllers/authController.js
           node --check backend/models/Otp.js
           node --check backend/models/Subscription.js
+          node --check backend/models/Coupon.js
+          node --check backend/tests/mongoSessionStore.test.js
+          node --check backend/tests/cookieCsrfOrigin.test.js
+          node --check backend/tests/cashfreeRefund.test.js
+          node --check backend/tests/mongoIntegration.test.js
+          node --check backend/utils/cookieCsrfOrigin.js
+          node --check backend/utils/cashfreeRefund.js
+          node --check backend/utils/twoFactorChallenge.js
+          node --check backend/tests/twoFactorChallenge.test.js
+          node --check backend/scripts/cashfree-sandbox-smoke.js
+          node --check backend/scripts/render-health-smoke.js
+          node --check backend/scripts/resend-smoke.js
+          node --check backend/models/FundTransaction.js
+          node --check backend/utils/mongoSessionStore.js
+          node backend/scripts/check-duplicate-routes.js
+      - name: Run backend regression tests
+        run: npm test --prefix backend
       - name: Build frontend
         run: npm run build --prefix frontend
         env:

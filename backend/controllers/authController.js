@@ -1,4 +1,5 @@
 const crypto = require("crypto");
+const mongoose = require("mongoose");
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
@@ -10,6 +11,7 @@ const PrivacyConsentEvent = require("../models/PrivacyConsentEvent");
 const { parsePlanDurationDays } = require("../utils/planDuration");
 const Otp = require("../models/Otp");
 const { sendEmail } = require("../utils/email");
+const { issueTwoFactorChallenge } = require("../utils/twoFactorChallenge");
 
 async function recordSuccessfulLogin(userId, req) {
   const forwarded = String(req.headers["x-forwarded-for"] || "").split(",")[0].trim();
@@ -29,7 +31,7 @@ async function recordSuccessfulLogin(userId, req) {
       lastLoginIp: session.ip,
       lastLoginUserAgent: session.userAgent,
     },
-    $push: { sessions: { $each: [session], $slice: -30 } },
+    $push: { sessions: session },
   }, { new: true }).select("sessionVersion").lean();
   return { ...user, sessionId };
 }
@@ -96,7 +98,7 @@ exports.sendRegisterOtp = async (req, res) => {
       "Thank you for registering. Please use the verification code below to complete your registration. This code expires in 10 minutes.",
     );
     await sendEmail(email, "Your ASKC TECHNOLOGIES Registration Verification Code", `Your OTP is: ${generatedOtp}. It expires in 10 minutes.`, html);
-    return res.json({ message: "OTP sent to email address." });
+    return res.json({ message: "If an account exists for this email, a verification code will be sent shortly." });
   } catch (err) {
     console.error("Registration OTP delivery failed:", { recipient: email, message: err?.message, code: err?.code });
     if (email && generatedOtp) {
@@ -154,7 +156,9 @@ exports.sendForgotOtp = async (req, res) => {
     }).select("_id email");
 
     if (!user) {
-      return res.status(404).json({ message: "No account was found with this email address." });
+      // Keep the response indistinguishable from a successful request so this
+      // endpoint cannot be used to enumerate registered email addresses.
+      return res.json({ message: "If an account exists for this email, a verification code will be sent shortly." });
     }
 
     generatedOtp = crypto.randomInt(100000, 1000000).toString();
@@ -187,7 +191,8 @@ exports.sendForgotOtp = async (req, res) => {
       recipient: normalizedEmail,
       provider: process.env.RESEND_API_KEY ? "resend" : (process.env.SMTP_USER ? "smtp" : "not-configured"),
     });
-    return res.json({ message: "OTP sent to your email address." });
+    // Keep the response identical to the unknown-account path to prevent email enumeration.
+    return res.json({ message: "If an account exists for this email, a verification code will be sent shortly." });
   } catch (err) {
     console.error("Forgot-password OTP delivery failed:", {
       recipient: normalizedEmail || "not-provided",
@@ -460,11 +465,8 @@ exports.loginUser = async (req, res) => {
 
     // If 2FA is enabled, issue only a short-lived challenge token (never a full session yet).
     if (user.twoFactorEnabled && ["email", "authenticator"].includes(user.twoFactorMethod)) {
-      const challengeToken = jwt.sign(
-        { id: user._id, role: user.role, purpose: "two-factor-login" },
-        process.env.JWT_SECRET,
-        { expiresIn: "5m" },
-      );
+      const challenge = await issueTwoFactorChallenge({ user, Otp, jwtSecret: process.env.JWT_SECRET });
+      const challengeToken = challenge.token;
       if (user.twoFactorMethod === "email") {
         const code = crypto.randomInt(100000, 1000000).toString();
         await Otp.deleteMany({ email: trimmedEmail, purpose: "twofactor-login" });
@@ -473,6 +475,7 @@ exports.loginUser = async (req, res) => {
           await sendEmail(trimmedEmail, "Your ASKC TECHNOLOGIES login verification code", `Your login verification code is ${code}. It expires in 5 minutes.`, generateOtpEmailHtml(code, "Verify your login", "Use this one-time code to finish signing in. Do not share it with anyone."));
         } catch (mailError) {
           await Otp.deleteMany({ email: trimmedEmail, purpose: "twofactor-login" });
+          await Otp.deleteOne({ email: challenge.email, otp: challenge.otpHash, purpose: "twofactor-challenge" });
           return res.status(503).json({ message: "We could not send your login OTP. Please try again." });
         }
       }
@@ -531,18 +534,42 @@ exports.loginUser = async (req, res) => {
 };
 
 exports.registerAdmin = async (req, res) => {
+  const lockId = "initial-admin-bootstrap";
+  const owner = crypto.randomUUID();
+  let lockAcquired = false;
   try {
     const { name, email, password, adminKey } = req.body || {};
     if (!name || !email || !password || !adminKey) return res.status(400).json({ message: "All fields and admin key are required." });
     if (!process.env.ADMIN_REGISTRATION_KEY || adminKey !== process.env.ADMIN_REGISTRATION_KEY) {
       return res.status(403).json({ message: "Admin bootstrap is not enabled or the key is invalid." });
     }
+    const normalizedEmail = String(email).trim().toLowerCase();
+    if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(normalizedEmail)) return res.status(400).json({ message: "Enter a valid email address." });
+    if (String(password).length < 8) return res.status(400).json({ message: "Password must be at least 8 characters long." });
+    if (String(name).trim().length < 2) return res.status(400).json({ message: "Enter a valid name." });
+    if (mongoose.connection.readyState !== 1) return res.status(503).json({ message: "Database is unavailable. Please try again." });
+
+    // A short lease makes the first-admin bootstrap atomic across multiple
+    // server instances. If a process crashes before creating the admin, the
+    // lease expires and a later request can safely retry.
+    const now = new Date();
+    try {
+      const result = await mongoose.connection.collection("system_locks").findOneAndUpdate(
+        { _id: lockId, lockedUntil: { $lt: now } },
+        { $set: { owner, lockedUntil: new Date(now.getTime() + 5 * 60 * 1000), updatedAt: now } },
+        { upsert: true, returnDocument: "after" },
+      );
+      lockAcquired = Boolean(result && result.value && result.value.owner === owner);
+    } catch (lockError) {
+      if (lockError?.code !== 11000) throw lockError;
+    }
+    if (!lockAcquired) return res.status(409).json({ message: "Initial administrator setup is already in progress. Please try again shortly." });
+
     if (await User.exists({ role: { $in: ["admin", "coadmin"] } })) {
       return res.status(403).json({ message: "Admin registration is closed. Ask an existing administrator to create an account." });
     }
-    const normalizedEmail = String(email).trim().toLowerCase();
-    if (await User.findOne({ email: normalizedEmail })) return res.status(400).json({ message: "User already exists." });
-    if (String(password).length < 8) return res.status(400).json({ message: "Password must be at least 8 characters long." });
+    if (await User.exists({ email: normalizedEmail })) return res.status(400).json({ message: "User already exists." });
+
     const user = await User.create({
       name: String(name).trim(),
       email: normalizedEmail,
@@ -558,7 +585,16 @@ exports.registerAdmin = async (req, res) => {
     res.status(201).json({ token, user: { id: user._id, name: user.name, email: user.email, role: user.role } });
   } catch (err) {
     console.error("Admin bootstrap failed:", err?.message);
+    if (err?.code === 11000) return res.status(409).json({ message: "Administrator setup is already completed or in progress." });
     res.status(500).json({ message: "Could not create the initial administrator." });
+  } finally {
+    if (lockAcquired && mongoose.connection.readyState === 1) {
+      try {
+        await mongoose.connection.collection("system_locks").deleteOne({ _id: lockId, owner });
+      } catch (releaseError) {
+        console.error("Admin bootstrap lock release failed:", releaseError?.message);
+      }
+    }
   }
 };
 
