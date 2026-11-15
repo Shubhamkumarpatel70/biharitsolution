@@ -1201,6 +1201,16 @@ router.patch(
         if (duration > 0) sub.expiresAt = new Date(Date.now() + duration * 86400000);
       }
       await sub.save();
+      if (sub.couponCode) {
+        try {
+          await Coupon.updateOne(
+            { code: sub.couponCode, usedBy: { $ne: sub.user } },
+            { $addToSet: { usedBy: sub.user }, $inc: { usedCount: 1 } },
+          );
+        } catch (couponError) {
+          console.error("Manual coupon redemption count update failed:", couponError);
+        }
+      }
       res.json({ subscription: sub, message: "Manual payment approved and marked as paid." });
     } catch (err) {
       res.status(500).json({ message: "Could not approve subscription." });
@@ -2756,6 +2766,16 @@ router.patch(
         if (duration > 0) sub.expiresAt = new Date(Date.now() + duration * 86400000);
       }
       await sub.save();
+      if (sub.couponCode) {
+        try {
+          await Coupon.updateOne(
+            { code: sub.couponCode, usedBy: { $ne: sub.user } },
+            { $addToSet: { usedBy: sub.user }, $inc: { usedCount: 1 } },
+          );
+        } catch (couponError) {
+          console.error("Manual coupon redemption count update failed:", couponError);
+        }
+      }
       res.json({ subscription: sub, message: "Manual payment approved and marked as paid." });
     } catch (err) {
       res.status(500).json({ message: "Could not approve subscription." });
