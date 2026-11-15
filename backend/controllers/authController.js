@@ -29,7 +29,8 @@ async function recordSuccessfulLogin(userId, req) {
       lastLoginIp: session.ip,
       lastLoginUserAgent: session.userAgent,
     },
-    $push: { sessions: { $each: [session], $slice: -30 } },
+    $pull: { sessions: { revokedAt: { $ne: null }, createdAt: { $lt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } } },
+    $push: { sessions: session },
   }, { new: true }).select("sessionVersion").lean();
   return { ...user, sessionId };
 }
@@ -154,7 +155,9 @@ exports.sendForgotOtp = async (req, res) => {
     }).select("_id email");
 
     if (!user) {
-      return res.status(404).json({ message: "No account was found with this email address." });
+      // Keep the response indistinguishable from a successful request so this
+      // endpoint cannot be used to enumerate registered email addresses.
+      return res.json({ message: "If an account exists for this email, a verification code will be sent shortly." });
     }
 
     generatedOtp = crypto.randomInt(100000, 1000000).toString();
