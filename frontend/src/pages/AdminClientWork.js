@@ -82,7 +82,14 @@ function AdminClientWork() {
       resetForm();
       await fetchItems();
     } catch (err) {
-      setError(err.response?.data?.message || 'Could not save this client work item.');
+      const status = err.response?.status;
+      setError(
+        status === 503
+          ? 'Logo upload is temporarily unavailable. Please ask the administrator to check the image storage settings.'
+          : status === 413
+            ? 'The logo file is too large. Please choose an image under 5 MB.'
+            : err.response?.data?.message || 'Could not save this client work item. Please check the logo format and try again.'
+      );
     } finally {
       setSaving(false);
     }
