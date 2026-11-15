@@ -2180,7 +2180,7 @@ router.get(
 router.get(
   "/google/callback",
   passport.authenticate("google", { failureRedirect: "/login" }),
-  (req, res) => {
+  async (req, res) => {
     // Successful authentication, redirect or send token
     const loginState = await User.findByIdAndUpdate(req.user._id, { $set: { lastLoginAt: new Date(), lastLoginIp: String(req.headers["x-forwarded-for"] || req.ip || "").split(",")[0].slice(0, 100), lastLoginUserAgent: String(req.headers["user-agent"] || "").slice(0, 500) } }, { new: true }).select("sessionVersion");
     const token = jwt.sign(
