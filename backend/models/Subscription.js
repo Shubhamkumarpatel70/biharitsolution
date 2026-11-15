@@ -18,9 +18,8 @@ const subscriptionSchema = new mongoose.Schema({
   cancellationStatus: { type: String, enum: ['none', 'pending', 'approved', 'rejected'], default: 'none' },
   cancellationRejectionReason: { type: String },
   cancellationApprovedDate: { type: Date },
-  // Refund review is tracked separately from cancellation approval. Actual payout
-  // is performed outside the dashboard and must be recorded by an admin.
-  refundStatus: { type: String, enum: ['not_reviewed', 'not_eligible', 'approved', 'rejected', 'processed'], default: 'not_reviewed' },
+  // Refund payout is initiated explicitly by an admin and reconciled with Cashfree.
+  refundStatus: { type: String, enum: ['not_reviewed', 'not_eligible', 'approved', 'processing', 'rejected', 'processed'], default: 'not_reviewed' },
   refundEligible: { type: Boolean, default: false },
   refundAmount: { type: Number, min: 0, default: 0 },
   refundReason: { type: String, trim: true, default: '' },
@@ -28,6 +27,10 @@ const subscriptionSchema = new mongoose.Schema({
   refundReviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   refundReviewedAt: { type: Date, default: null },
   refundProcessedAt: { type: Date, default: null },
+  refundProviderRefundId: { type: String, trim: true, default: '' },
+  refundProviderCfId: { type: String, trim: true, default: '' },
+  refundProviderStatus: { type: String, trim: true, default: '' },
+  refundProviderRequestedAt: { type: Date, default: null },
   // Payment fields
   transactionId: { type: String },
   paymentMethod: { type: String, enum: ['upi', 'card', 'netbanking', 'cashfree'], default: 'upi' },
