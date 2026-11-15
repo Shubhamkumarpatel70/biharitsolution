@@ -234,8 +234,8 @@ function Login() {
       setMessage('Please enter both password fields.');
       return;
     }
-    if (newPassword.length < 6) {
-      setMessage('Password must be at least 6 characters long.');
+    if (newPassword.length < 8) {
+      setMessage('Password must be at least 8 characters long.');
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -252,6 +252,7 @@ function Login() {
         setShowForgotPassword(false);
         setForgotEmail('');
         setUserInfo(null);
+        setPasswordResetToken('');
         setNewPassword('');
         setConfirmPassword('');
         setShowForgotOtp(false);
