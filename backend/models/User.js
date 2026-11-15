@@ -11,6 +11,10 @@ const userSchema = new mongoose.Schema(
     subscribeOffers: { type: Boolean, default: false },
     marketingConsent: { type: Boolean, default: false },
     marketingConsentAt: { type: Date, default: null },
+    twoFactorEnabled: { type: Boolean, default: false },
+    twoFactorMethod: { type: String, enum: ["email", "authenticator", ""], default: "" },
+    twoFactorSecret: { type: String, default: "", select: false },
+    twoFactorPendingSecret: { type: String, default: "", select: false },
   },
   {
     timestamps: true,
