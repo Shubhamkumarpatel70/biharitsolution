@@ -57,7 +57,7 @@ const Hero = () => {
 
       setTyped(
         isDeleting
-          ? phrase.slice(0, -1).slice(0, typed.length - 1)
+          ? phrase.slice(0, typed.length - 1)
           : phrase.slice(0, typed.length + 1),
       );
     }, delay);
