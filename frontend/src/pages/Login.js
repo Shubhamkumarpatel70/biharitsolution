@@ -18,6 +18,7 @@ function Login() {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
   const [userInfo, setUserInfo] = useState(null);
+  const [passwordResetToken, setPasswordResetToken] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -169,6 +170,7 @@ function Login() {
         setShowForgotPassword(false);
         setForgotEmail('');
         setUserInfo(null);
+        setPasswordResetToken('');
         setNewPassword('');
         setConfirmPassword('');
         setShowForgotOtp(false);
@@ -216,6 +218,7 @@ function Login() {
     try {
       const res = await axios.post('/api/auth/forgot-password/verify-otp', { email: forgotEmail.trim(), otp: forgotOtp.trim() });
       setUserInfo(res.data.user);
+      setPasswordResetToken(res.data.resetToken || '');
       setShowForgotOtp(false);
       setMessage('');
     } catch (err) {
@@ -242,7 +245,8 @@ function Login() {
     setForgotPasswordLoading(true);
     setMessage('');
     try {
-      await axios.post('/api/auth/forgot-password/reset', { email: forgotEmail.trim(), newPassword });
+      if (!passwordResetToken) { setMessage('Please verify your email OTP again before resetting your password.'); return; }
+      await axios.post('/api/auth/forgot-password/reset', { resetToken: passwordResetToken, newPassword });
       setMessage('Password reset successfully! Redirecting to login...');
       setTimeout(() => {
         setShowForgotPassword(false);
