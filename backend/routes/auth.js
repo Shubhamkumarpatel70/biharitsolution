@@ -2156,70 +2156,83 @@ router.patch(
   },
 );
 
-// Newsletter subscribe endpoint
+// Newsletter sign-up uses double opt-in: consent is recorded only after
+// the mailbox owner follows the short-lived confirmation link.
 router.post("/newsletter/subscribe", async (req, res) => {
   try {
-    const normalizedEmail = String(req.body.email || "")
-      .trim()
-      .toLowerCase();
-    if (!normalizedEmail)
-      return res.status(400).json({ message: "Email is required." });
-    let subscriber = await NewsletterSubscriber.findOne({
-      email: normalizedEmail,
-    });
-    if (subscriber) {
-      if (subscriber.status === "subscribed" && subscriber.consentedAt) {
-        return res.status(400).json({ message: "Already subscribed." });
-      }
-      subscriber.status = "subscribed";
-      subscriber.consentedAt = new Date();
-      await subscriber.save();
-      await User.updateOne({ email: normalizedEmail }, { $set: { marketingConsent: true, marketingConsentAt: new Date(), subscribeOffers: true } });
-      return res.json({ message: "Subscribed successfully." });
+    const normalizedEmail = String(req.body.email || "").trim().toLowerCase();
+    if (!/^[a-z0-9.!#$%&'*+/=?^\`{|}~-]+@[a-z0-9-]+(?:\.[a-z0-9-]+)+$/i.test(normalizedEmail)) {
+      return res.status(400).json({ message: "Enter a valid email address." });
     }
-    subscriber = await NewsletterSubscriber.create({
-      email: normalizedEmail,
-      status: "subscribed",
-      consentedAt: new Date(),
-    });
-    await User.updateOne({ email: normalizedEmail }, { $set: { marketingConsent: true, marketingConsentAt: new Date(), subscribeOffers: true } });
-    res.status(201).json({ message: "Subscribed successfully." });
+    const existing = await NewsletterSubscriber.findOne({ email: normalizedEmail });
+    if (existing?.status === "subscribed" && existing.consentedAt) {
+      return res.json({ message: "This email is already subscribed." });
+    }
+    const token = crypto.randomBytes(32).toString("hex");
+    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+    const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
+    await NewsletterSubscriber.findOneAndUpdate(
+      { email: normalizedEmail },
+      { $set: { status: "pending", consentedAt: null, confirmationTokenHash: tokenHash, confirmationTokenExpiresAt: expiresAt, unsubscribeTokenHash: null, consentSource: "newsletter-double-opt-in" } },
+      { upsert: true, new: true, setDefaultsOnInsert: true },
+    );
+    const siteOrigin = getPublicSiteOrigin();
+    if (!siteOrigin) return res.status(503).json({ message: "Email confirmation is temporarily unavailable." });
+    const confirmUrl = siteOrigin.replace(/\/+$/, "") + "/api/auth/newsletter/confirm?token=" + token;
+    await sendEmail(
+      normalizedEmail,
+      "Confirm your ASKC TECHNOLOGIES email subscription",
+      "Confirm your subscription: " + confirmUrl + "\nThis link expires in 30 minutes. Ignore this email if you did not request it.",
+      "<div style='font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:28px;color:#172033'><h2>ASKC TECHNOLOGIES</h2><h3>Confirm your email subscription</h3><p>Click below to confirm promotional updates.</p><p><a href='" + confirmUrl + "' style='display:inline-block;padding:12px 18px;background:#1756a2;color:#fff;text-decoration:none;border-radius:8px'>Confirm subscription</a></p><p>This link expires in 30 minutes.</p></div>",
+    );
+    return res.status(202).json({ message: "Please check your inbox and confirm your email address to complete subscription." });
   } catch (err) {
-    res.status(500).json({ message: "Could not subscribe." });
+    console.error("Newsletter double opt-in failed:", err);
+    return res.status(500).json({ message: "Could not start newsletter subscription." });
   }
 });
 
-// Newsletter unsubscribe endpoint
+router.get("/newsletter/confirm", async (req, res) => {
+  try {
+    const token = String(req.query.token || "");
+    if (!/^[a-f0-9]{64}$/i.test(token)) return res.status(400).send("Invalid or expired confirmation link.");
+    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+    const subscriber = await NewsletterSubscriber.findOne({
+      confirmationTokenHash: tokenHash,
+      confirmationTokenExpiresAt: { $gt: new Date() },
+      status: "pending",
+    }).select("+confirmationTokenHash");
+    if (!subscriber) return res.status(410).send("This confirmation link has expired or was already used. Please subscribe again.");
+    subscriber.status = "subscribed";
+    subscriber.consentedAt = new Date();
+    subscriber.confirmationTokenHash = null;
+    subscriber.confirmationTokenExpiresAt = null;
+    await subscriber.save();
+    await User.updateOne({ email: subscriber.email }, { $set: { marketingConsent: true, marketingConsentAt: subscriber.consentedAt, subscribeOffers: true } });
+    return res.redirect((getPublicSiteOrigin() || "https://askctechnologies.in") + "/?newsletter=confirmed");
+  } catch (error) {
+    console.error("Newsletter confirmation failed:", error);
+    return res.status(500).send("Could not confirm your subscription.");
+  }
+});
+
+// An email address alone is never sufficient to unsubscribe someone.
 router.post("/newsletter/unsubscribe", async (req, res) => {
   try {
-    const normalizedEmail = String(req.body.email || "")
-      .trim()
-      .toLowerCase();
-    if (!normalizedEmail)
-      return res.status(400).json({ message: "Email is required." });
-
-    const subscriber = await NewsletterSubscriber.findOne({
-      email: normalizedEmail,
-    });
-    if (!subscriber) {
-      await NewsletterSubscriber.create({
-        email: normalizedEmail,
-        status: "unsubscribed",
-        consentedAt: null,
-      });
-      await User.updateOne({ email: normalizedEmail }, { $set: { marketingConsent: false, marketingConsentAt: null, subscribeOffers: false } });
-      return res.json({ message: "Unsubscribed successfully." });
-    }
-    if (subscriber.status === "unsubscribed") {
-      return res.json({ message: "Unsubscribed successfully." });
-    }
+    const token = String(req.body.token || "");
+    if (!/^[a-f0-9]{64}$/i.test(token)) return res.status(400).json({ message: "A valid unsubscribe link is required." });
+    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+    const subscriber = await NewsletterSubscriber.findOne({ unsubscribeTokenHash: tokenHash }).select("+unsubscribeTokenHash");
+    if (!subscriber) return res.status(410).json({ message: "This unsubscribe link is invalid or has already been used." });
     subscriber.status = "unsubscribed";
     subscriber.consentedAt = null;
+    subscriber.unsubscribeTokenHash = null;
     await subscriber.save();
-    await User.updateOne({ email: normalizedEmail }, { $set: { marketingConsent: false, marketingConsentAt: null, subscribeOffers: false } });
-    res.json({ message: "Unsubscribed successfully." });
+    await User.updateOne({ email: subscriber.email }, { $set: { marketingConsent: false, marketingConsentAt: null, subscribeOffers: false } });
+    return res.json({ message: "You have been unsubscribed successfully." });
   } catch (err) {
-    res.status(500).json({ message: "Could not unsubscribe." });
+    console.error("Newsletter unsubscribe failed:", err);
+    return res.status(500).json({ message: "Could not unsubscribe." });
   }
 });
 
@@ -3578,7 +3591,13 @@ router.post(
 
       for (const recipient of emailList) {
         try {
-          const unsubscribeUrl = siteOrigin.replace(/\/+$/, "") + "/unsubscribe-email?email=" + encodeURIComponent(recipient);
+          const unsubscribeToken = crypto.randomBytes(32).toString("hex");
+          const unsubscribeTokenHash = crypto.createHash("sha256").update(unsubscribeToken).digest("hex");
+          await NewsletterSubscriber.updateOne(
+            { email: recipient, status: "subscribed", consentedAt: { $ne: null } },
+            { $set: { unsubscribeTokenHash } },
+          );
+          const unsubscribeUrl = siteOrigin.replace(/\/+$/, "") + "/unsubscribe-email?token=" + encodeURIComponent(unsubscribeToken);
           const html = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="x-apple-disable-message-reformatting"><title>${safeSubject}</title></head>
 <body style="margin:0;padding:0;background:#f3f6fb;font-family:Arial,Helvetica,sans-serif;color:#172033;">
