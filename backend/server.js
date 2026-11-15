@@ -55,7 +55,6 @@ app.use(
         scriptSrc: [
           "'self'",
           "'unsafe-inline'",
-          "'unsafe-eval'",
           "https://www.googletagmanager.com",
           "https://www.google-analytics.com",
           "https://sdk.cashfree.com",
@@ -147,6 +146,26 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
+// Cookie-authenticated state-changing requests require a trusted Origin. Bearer
+// token clients and third-party payment webhooks are not affected.
+app.use((req, res, next) => {
+  if (["GET", "HEAD", "OPTIONS"].includes(req.method)) return next();
+  const authorization = String(req.headers.authorization || "");
+  const cookieHeader = String(req.headers.cookie || "");
+  const hasCookieToken = /(?:^|;\s*)token=/.test(cookieHeader);
+  if (!hasCookieToken || authorization.startsWith("Bearer ")) return next();
+  const origin = req.headers.origin;
+  const referer = req.headers.referer;
+  let sourceOrigin = origin;
+  if (!sourceOrigin && referer) {
+    try { sourceOrigin = new URL(referer).origin; } catch { sourceOrigin = ""; }
+  }
+  if (!sourceOrigin || !allowedOrigins.has(sourceOrigin)) {
+    return res.status(403).json({ message: "Request origin could not be verified. Refresh the page and try again." });
+  }
+  next();
+});
+
 // Preserve the exact Cashfree webhook payload for signature verification.
 app.use("/api/auth/cashfree/webhook", express.raw({ type: "application/json" }));
 
@@ -196,9 +215,10 @@ app.get("/api/health", (req, res) => {
   const dbStatus =
     mongoose.connection.readyState === 1 ? "connected" : "disconnected";
 
-  res.json({
-    status: "OK",
-    message: "Backend is running",
+  const ready = dbStatus === "connected";
+  res.status(ready ? 200 : 503).json({
+    status: ready ? "OK" : "NOT_READY",
+    message: ready ? "Backend is running" : "Database is unavailable",
     timestamp: new Date().toISOString(),
     database: {
       status: dbStatus,
@@ -414,6 +434,9 @@ const io = new Server(server, {
   cors: {
     origin: [
       "http://localhost:3000",
+      "http://127.0.0.1:3000",
+      "https://askctechnologies.in",
+      "https://www.askctechnologies.in",
       "https://custom-web-frontend.onrender.com",
       "https://custom-web-app.onrender.com",
       "https://biharitsolution.onrender.com",
@@ -428,16 +451,39 @@ const io = new Server(server, {
 // Simple in-memory chat (for demo)
 let chatHistory = [];
 
-io.on("connection", (socket) => {
-  // Send chat history to the newly connected client
-  socket.emit("chat history", chatHistory);
+io.use(async (socket, next) => {
+  try {
+    const header = String(socket.handshake.headers.authorization || "");
+    const cookie = String(socket.handshake.headers.cookie || "");
+    const cookieToken = cookie.split(";").map((part) => part.trim()).find((part) => part.startsWith("token="))?.slice(6);
+    const token = socket.handshake.auth?.token || (header.startsWith("Bearer ") ? header.slice(7) : cookieToken);
+    if (!token || !process.env.JWT_SECRET) return next(new Error("Authentication required."));
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (decoded.purpose === "two-factor-login" || !decoded.sid) return next(new Error("Complete sign-in verification first."));
+    const user = await User.findById(decoded.id).select("sessionVersion sessions").lean();
+    const active = user && Number(decoded.sv || 0) === Number(user.sessionVersion || 0) &&
+      (user.sessions || []).some((session) => session.sessionId === decoded.sid && !session.revokedAt);
+    if (!active) return next(new Error("This device session is no longer active."));
+    socket.data.userId = String(decoded.id);
+    return next();
+  } catch (error) {
+    return next(new Error("Invalid or expired session."));
+  }
+});
 
-  // Listen for new messages
-  socket.on("chat message", (msg) => {
-    chatHistory.push(msg);
-    // Limit history size
+io.on("connection", (socket) => {
+  socket.emit("chat history", chatHistory);
+  let lastMessageAt = 0;
+  socket.on("chat message", (payload) => {
+    const now = Date.now();
+    if (now - lastMessageAt < 750) return;
+    lastMessageAt = now;
+    const message = typeof payload === "string" ? payload.trim() : String(payload?.message || "").trim();
+    if (!message || message.length > 1000) return;
+    chatHistory.push(message);
     if (chatHistory.length > 100) chatHistory.shift();
-    io.emit("chat message", msg); // Broadcast to all
+    // Keep the existing string payload contract for connected clients.
+    io.emit("chat message", message);
   });
 });
 

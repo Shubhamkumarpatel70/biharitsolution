@@ -55,6 +55,8 @@ const agreementSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    publicViewTokenHash: { type: String, default: null, select: false },
+    publicViewTokenExpiresAt: { type: Date, default: null },
     status: {
       type: String,
       enum: ["draft", "sent", "accepted", "declined", "signed", "archived"],

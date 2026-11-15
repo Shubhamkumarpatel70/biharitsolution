@@ -15,22 +15,26 @@ export default function AdminTransactions() {
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [selected, setSelected] = useState(null);
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState({ page: 1, limit: 25, total: 0, totalPages: 0 });
 
   const load = useCallback(async () => {
     setLoading(true); setError('');
     try {
-      const params = new URLSearchParams({ search, status, method });
+      const params = new URLSearchParams({ search, status, method, page: String(page), limit: '25' });
       if (from) params.set('from', from);
       if (to) params.set('to', to);
       const token = localStorage.getItem('token');
       const res = await axios.get('/api/auth/admin/transactions?' + params.toString(), { headers: { Authorization: `Bearer ${token}` } });
       setRows(Array.isArray(res.data.transactions) ? res.data.transactions : []);
       setSummary(res.data.summary || {});
+      setPagination(res.data.pagination || { page, limit: 25, total: res.data.transactions?.length || 0, totalPages: 1 });
     } catch (err) {
       setError(err.response?.data?.message || 'Transactions could not be loaded.');
     } finally { setLoading(false); }
-  }, [search, status, method, from, to]);
+  }, [search, status, method, from, to, page]);
 
+  useEffect(() => { setPage(1); }, [search, status, method, from, to]);
   useEffect(() => { load(); }, [load]);
 
   const exportCsv = () => {
@@ -61,7 +65,7 @@ export default function AdminTransactions() {
       </div>
     </div>
     <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <div className="flex items-center justify-between border-b border-slate-100 px-4 py-4"><div><h3 className="font-bold text-slate-900">Payment records</h3><p className="text-xs text-slate-500">{rows.length} records shown (up to 500)</p></div><p className="text-sm font-bold text-slate-800">Gross recorded: {money(summary.grossAmount)}</p></div>
+      <div className="flex items-center justify-between border-b border-slate-100 px-4 py-4"><div><h3 className="font-bold text-slate-900">Payment records</h3><p className="text-xs text-slate-500">{rows.length} on this page · {Number(pagination.total || 0).toLocaleString('en-IN')} total records</p></div><p className="text-sm font-bold text-slate-800">Gross recorded: {money(summary.grossAmount)}</p></div>
       {loading ? <p className="p-10 text-center text-sm text-slate-500">Loading transactions…</p> : error ? <p className="p-8 text-center text-sm text-rose-600">{error}</p> : !rows.length ? <p className="p-10 text-center text-sm text-slate-500">No transactions match these filters.</p> :
       <div className="divide-y divide-slate-100">{rows.map(row=><button key={row._id} onClick={()=>setSelected(row)} className="grid w-full grid-cols-1 gap-2 px-4 py-4 text-left transition hover:bg-slate-50 sm:grid-cols-[1.2fr_1fr_1fr_auto] sm:items-center sm:px-5">
         <span className="min-w-0"><span className="block truncate font-mono text-xs font-bold text-blue-700">{row.transactionId || row.cashfreeOrderId || row.uniqueId || row._id}</span><span className="mt-1 block truncate text-sm font-semibold text-slate-900">{row.user?.name || 'Unknown customer'}</span><span className="block truncate text-xs text-slate-500">{row.user?.email || '—'}</span></span>
@@ -70,6 +74,13 @@ export default function AdminTransactions() {
         <span className={`inline-flex w-fit rounded-full px-2.5 py-1 text-xs font-semibold ${statusStyle(row.paymentStatus || row.status)}`}>{row.paymentStatus || row.status || 'Unknown'}</span>
       </button>)}</div>}
     </section>
+    <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
+      <p className="text-sm text-slate-600">Page {pagination.page || page} of {Math.max(1, pagination.totalPages || 1)} · {Number(pagination.total || 0).toLocaleString('en-IN')} transactions</p>
+      <div className="flex gap-2">
+        <button type="button" onClick={() => setPage(current => Math.max(1, current - 1))} disabled={page <= 1 || loading} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 disabled:opacity-40">Previous</button>
+        <button type="button" onClick={() => setPage(current => Math.min(pagination.totalPages || 1, current + 1))} disabled={loading || page >= (pagination.totalPages || 1)} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 disabled:opacity-40">Next</button>
+      </div>
+    </div>
     {selected && <div className="fixed inset-0 z-[100] flex items-end justify-center bg-slate-950/50 p-0 sm:items-center sm:p-4" onClick={()=>setSelected(null)}><div role="dialog" aria-modal="true" className="max-h-[88vh] w-full max-w-xl overflow-y-auto rounded-t-2xl bg-white p-5 shadow-2xl sm:rounded-2xl" onClick={e=>e.stopPropagation()}><div className="flex items-center justify-between"><h3 className="text-lg font-bold text-slate-900">Transaction details</h3><button onClick={()=>setSelected(null)} className="rounded-lg border px-3 py-1.5 text-sm">Close</button></div><div className="mt-4 grid grid-cols-2 gap-4 text-sm">{[['Transaction ID',selected.transactionId || selected.cashfreeOrderId || selected.uniqueId],['Customer',selected.user?.name],['Email',selected.user?.email],['Plan',selected.planName || selected.plan],['Amount paid',money(selected.amountPaid ?? selected.totalAmount)],['Discount',money(selected.discountAmount)],['Coupon',selected.couponCode || '—'],['Payment method',selected.paymentMethod],['Payment status',selected.paymentStatus],['Refund status',selected.refundStatus],['Refund amount',money(selected.refundAmount)],['Created',dateTime(selected.createdAt)],['Gateway order ID',selected.cashfreeOrderId || '—']].map(([k,v])=><div key={k} className="min-w-0"><p className="text-xs text-slate-500">{k}</p><p className="mt-1 break-words font-semibold text-slate-800">{v || '—'}</p></div>)}</div></div></div>}
   </div>;
 }

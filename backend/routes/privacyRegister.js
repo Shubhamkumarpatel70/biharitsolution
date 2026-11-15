@@ -16,8 +16,11 @@ router.use(async (req, res, next) => {
   if (!process.env.JWT_SECRET) return res.status(503).json({ message: "Authentication is not configured." });
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.id).select("role sessionVersion").lean();
+    if (decoded.purpose === "two-factor-login") return res.status(401).json({ message: "Complete two-factor verification first." });
+    const user = await User.findById(decoded.id).select("role sessionVersion sessions").lean();
     if (!user || Number(decoded.sv || 0) !== Number(user.sessionVersion || 0)) return res.status(401).json({ message: "Session expired. Please log in again." });
+    const activeSession = decoded.sid && (user.sessions || []).some((session) => session.sessionId === decoded.sid && !session.revokedAt);
+    if (!activeSession) return res.status(401).json({ message: "This device session has ended. Please log in again." });
     if (!["admin", "coadmin"].includes(user.role)) return res.status(403).json({ message: "Admin access required." });
     req.actorId = user._id;
     next();

@@ -64,10 +64,11 @@ const upload = multer({
     fileSize: 5 * 1024 * 1024, // 5MB limit
   },
   fileFilter: function (req, file, cb) {
-    if (file.mimetype.startsWith("image/")) {
+    const allowedImageTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+    if (allowedImageTypes.includes(String(file.mimetype || "").toLowerCase())) {
       cb(null, true);
     } else {
-      cb(new Error("Only image files are allowed!"), false);
+      cb(new Error("Only JPG, PNG, WebP and GIF images are allowed."), false);
     }
   },
 });
@@ -583,16 +584,23 @@ router.post("/cashfree/webhook", async (req, res) => {
 // are made inactive before checking whether another purchase is allowed.
 async function getSubscriptionPurchaseBlocker(userId) {
   const now = new Date();
+  const abandonedPendingCutoff = new Date(now.getTime() - 24 * 60 * 60 * 1000);
   await Subscription.updateMany(
     { user: userId, status: "active", canceled: { $ne: true }, expiresAt: { $ne: null, $lte: now } },
     { $set: { status: "expired" } }
+  );
+  // A pending checkout/receipt must not lock a customer's account forever.
+  // Only stale pending requests are expired; recent requests remain protected.
+  await Subscription.updateMany(
+    { user: userId, status: "pending", createdAt: { $lte: abandonedPendingCutoff } },
+    { $set: { status: "expired", paymentStatus: "expired" } }
   );
   return Subscription.findOne({
     user: userId,
     canceled: { $ne: true },
     $or: [
       { status: "active", $or: [{ expiresAt: null }, { expiresAt: { $gt: now } }] },
-      { status: "pending" }
+      { status: "pending", createdAt: { $gt: abandonedPendingCutoff } }
     ]
   }).sort({ createdAt: -1 });
 }
@@ -1174,12 +1182,37 @@ router.patch(
   coAdminMiddleware,
   async (req, res) => {
     try {
-      const sub = await Subscription.findByIdAndUpdate(
-        req.params.id,
-        { status: "active", rejectionReason: "" },
-        { new: true },
-      );
-      res.json({ subscription: sub });
+      const sub = await Subscription.findById(req.params.id);
+      if (!sub) return res.status(404).json({ message: "Subscription not found." });
+      if (sub.status !== "pending") {
+        return res.status(409).json({ message: "Only a pending manual payment can be approved." });
+      }
+      if (String(sub.paymentMethod || "").toLowerCase() === "cashfree") {
+        return res.status(409).json({ message: "Online payments can only be activated after Cashfree verification." });
+      }
+      if (!String(sub.transactionId || "").trim() && !String(sub.paymentImage || "").trim()) {
+        return res.status(400).json({ message: "Payment proof or a transaction reference is required before manual approval." });
+      }
+      sub.status = "active";
+      sub.paymentStatus = "paid";
+      sub.amountPaid = Number(sub.amountPaid || sub.totalAmount || 0);
+      sub.rejectionReason = "";
+      if (sub.expiresAt && new Date(sub.expiresAt) <= new Date()) {
+        const duration = Number(sub.durationDays || 0);
+        if (duration > 0) sub.expiresAt = new Date(Date.now() + duration * 86400000);
+      }
+      await sub.save();
+      if (sub.couponCode) {
+        try {
+          await Coupon.updateOne(
+            { code: sub.couponCode, usedBy: { $ne: sub.user } },
+            { $addToSet: { usedBy: sub.user }, $inc: { usedCount: 1 } },
+          );
+        } catch (couponError) {
+          console.error("Manual coupon redemption count update failed:", couponError);
+        }
+      }
+      res.json({ subscription: sub, message: "Manual payment approved and marked as paid." });
     } catch (err) {
       res.status(500).json({ message: "Could not approve subscription." });
     }
@@ -2137,70 +2170,83 @@ router.patch(
   },
 );
 
-// Newsletter subscribe endpoint
+// Newsletter sign-up uses double opt-in: consent is recorded only after
+// the mailbox owner follows the short-lived confirmation link.
 router.post("/newsletter/subscribe", async (req, res) => {
   try {
-    const normalizedEmail = String(req.body.email || "")
-      .trim()
-      .toLowerCase();
-    if (!normalizedEmail)
-      return res.status(400).json({ message: "Email is required." });
-    let subscriber = await NewsletterSubscriber.findOne({
-      email: normalizedEmail,
-    });
-    if (subscriber) {
-      if (subscriber.status === "subscribed" && subscriber.consentedAt) {
-        return res.status(400).json({ message: "Already subscribed." });
-      }
-      subscriber.status = "subscribed";
-      subscriber.consentedAt = new Date();
-      await subscriber.save();
-      await User.updateOne({ email: normalizedEmail }, { $set: { marketingConsent: true, marketingConsentAt: new Date(), subscribeOffers: true } });
-      return res.json({ message: "Subscribed successfully." });
+    const normalizedEmail = String(req.body.email || "").trim().toLowerCase();
+    if (!/^[a-z0-9.!#$%&'*+/=?^\`{|}~-]+@[a-z0-9-]+(?:\.[a-z0-9-]+)+$/i.test(normalizedEmail)) {
+      return res.status(400).json({ message: "Enter a valid email address." });
     }
-    subscriber = await NewsletterSubscriber.create({
-      email: normalizedEmail,
-      status: "subscribed",
-      consentedAt: new Date(),
-    });
-    await User.updateOne({ email: normalizedEmail }, { $set: { marketingConsent: true, marketingConsentAt: new Date(), subscribeOffers: true } });
-    res.status(201).json({ message: "Subscribed successfully." });
+    const existing = await NewsletterSubscriber.findOne({ email: normalizedEmail });
+    if (existing?.status === "subscribed" && existing.consentedAt) {
+      return res.json({ message: "This email is already subscribed." });
+    }
+    const token = crypto.randomBytes(32).toString("hex");
+    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+    const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
+    await NewsletterSubscriber.findOneAndUpdate(
+      { email: normalizedEmail },
+      { $set: { status: "pending", consentedAt: null, confirmationTokenHash: tokenHash, confirmationTokenExpiresAt: expiresAt, unsubscribeTokenHash: null, consentSource: "newsletter-double-opt-in" } },
+      { upsert: true, new: true, setDefaultsOnInsert: true },
+    );
+    const siteOrigin = getPublicSiteOrigin();
+    if (!siteOrigin) return res.status(503).json({ message: "Email confirmation is temporarily unavailable." });
+    const confirmUrl = siteOrigin.replace(/\/+$/, "") + "/api/auth/newsletter/confirm?token=" + token;
+    await sendEmail(
+      normalizedEmail,
+      "Confirm your ASKC TECHNOLOGIES email subscription",
+      "Confirm your subscription: " + confirmUrl + "\nThis link expires in 30 minutes. Ignore this email if you did not request it.",
+      "<div style='font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:28px;color:#172033'><h2>ASKC TECHNOLOGIES</h2><h3>Confirm your email subscription</h3><p>Click below to confirm promotional updates.</p><p><a href='" + confirmUrl + "' style='display:inline-block;padding:12px 18px;background:#1756a2;color:#fff;text-decoration:none;border-radius:8px'>Confirm subscription</a></p><p>This link expires in 30 minutes.</p></div>",
+    );
+    return res.status(202).json({ message: "Please check your inbox and confirm your email address to complete subscription." });
   } catch (err) {
-    res.status(500).json({ message: "Could not subscribe." });
+    console.error("Newsletter double opt-in failed:", err);
+    return res.status(500).json({ message: "Could not start newsletter subscription." });
   }
 });
 
-// Newsletter unsubscribe endpoint
+router.get("/newsletter/confirm", async (req, res) => {
+  try {
+    const token = String(req.query.token || "");
+    if (!/^[a-f0-9]{64}$/i.test(token)) return res.status(400).send("Invalid or expired confirmation link.");
+    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+    const subscriber = await NewsletterSubscriber.findOne({
+      confirmationTokenHash: tokenHash,
+      confirmationTokenExpiresAt: { $gt: new Date() },
+      status: "pending",
+    }).select("+confirmationTokenHash");
+    if (!subscriber) return res.status(410).send("This confirmation link has expired or was already used. Please subscribe again.");
+    subscriber.status = "subscribed";
+    subscriber.consentedAt = new Date();
+    subscriber.confirmationTokenHash = null;
+    subscriber.confirmationTokenExpiresAt = null;
+    await subscriber.save();
+    await User.updateOne({ email: subscriber.email }, { $set: { marketingConsent: true, marketingConsentAt: subscriber.consentedAt, subscribeOffers: true } });
+    return res.redirect((getPublicSiteOrigin() || "https://askctechnologies.in") + "/?newsletter=confirmed");
+  } catch (error) {
+    console.error("Newsletter confirmation failed:", error);
+    return res.status(500).send("Could not confirm your subscription.");
+  }
+});
+
+// An email address alone is never sufficient to unsubscribe someone.
 router.post("/newsletter/unsubscribe", async (req, res) => {
   try {
-    const normalizedEmail = String(req.body.email || "")
-      .trim()
-      .toLowerCase();
-    if (!normalizedEmail)
-      return res.status(400).json({ message: "Email is required." });
-
-    const subscriber = await NewsletterSubscriber.findOne({
-      email: normalizedEmail,
-    });
-    if (!subscriber) {
-      await NewsletterSubscriber.create({
-        email: normalizedEmail,
-        status: "unsubscribed",
-        consentedAt: null,
-      });
-      await User.updateOne({ email: normalizedEmail }, { $set: { marketingConsent: false, marketingConsentAt: null, subscribeOffers: false } });
-      return res.json({ message: "Unsubscribed successfully." });
-    }
-    if (subscriber.status === "unsubscribed") {
-      return res.json({ message: "Unsubscribed successfully." });
-    }
+    const token = String(req.body.token || "");
+    if (!/^[a-f0-9]{64}$/i.test(token)) return res.status(400).json({ message: "A valid unsubscribe link is required." });
+    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+    const subscriber = await NewsletterSubscriber.findOne({ unsubscribeTokenHash: tokenHash }).select("+unsubscribeTokenHash");
+    if (!subscriber) return res.status(410).json({ message: "This unsubscribe link is invalid or has already been used." });
     subscriber.status = "unsubscribed";
     subscriber.consentedAt = null;
+    subscriber.unsubscribeTokenHash = null;
     await subscriber.save();
-    await User.updateOne({ email: normalizedEmail }, { $set: { marketingConsent: false, marketingConsentAt: null, subscribeOffers: false } });
-    res.json({ message: "Unsubscribed successfully." });
+    await User.updateOne({ email: subscriber.email }, { $set: { marketingConsent: false, marketingConsentAt: null, subscribeOffers: false } });
+    return res.json({ message: "You have been unsubscribed successfully." });
   } catch (err) {
-    res.status(500).json({ message: "Could not unsubscribe." });
+    console.error("Newsletter unsubscribe failed:", err);
+    return res.status(500).json({ message: "Could not unsubscribe." });
   }
 });
 
@@ -2332,10 +2378,19 @@ async function authMiddleware(req, res, next) {
     if (!process.env.JWT_SECRET || process.env.JWT_SECRET === "changeme") return res.status(503).json({ message: "Authentication is temporarily unavailable." });
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     if (decoded.purpose === "two-factor-login") return res.status(401).json({ message: "Complete the login verification first." });
-    const account = await User.findById(decoded.id).select("sessionVersion role").lean();
+    const account = await User.findById(decoded.id).select("sessionVersion role sessions").lean();
     if (!account || Number(decoded.sv || 0) !== Number(account.sessionVersion || 0)) {
       clearAuthCookies(res);
       return res.status(401).json({ message: "Your session has expired. Please log in again." });
+    }
+    if (!decoded.sid) {
+      clearAuthCookies(res);
+      return res.status(401).json({ message: "Please sign in again to establish a secure device session." });
+    }
+    const activeSession = (account.sessions || []).some((session) => session.sessionId === decoded.sid && !session.revokedAt);
+    if (!activeSession) {
+      clearAuthCookies(res);
+      return res.status(401).json({ message: "This device session has been signed out. Please log in again." });
     }
     req.user = { ...decoded, role: account.role };
     next();
@@ -2692,12 +2747,37 @@ router.patch(
   coAdminMiddleware,
   async (req, res) => {
     try {
-      const sub = await Subscription.findByIdAndUpdate(
-        req.params.id,
-        { status: "active", rejectionReason: "" },
-        { new: true },
-      );
-      res.json({ subscription: sub });
+      const sub = await Subscription.findById(req.params.id);
+      if (!sub) return res.status(404).json({ message: "Subscription not found." });
+      if (sub.status !== "pending") {
+        return res.status(409).json({ message: "Only a pending manual payment can be approved." });
+      }
+      if (String(sub.paymentMethod || "").toLowerCase() === "cashfree") {
+        return res.status(409).json({ message: "Online payments can only be activated after Cashfree verification." });
+      }
+      if (!String(sub.transactionId || "").trim() && !String(sub.paymentImage || "").trim()) {
+        return res.status(400).json({ message: "Payment proof or a transaction reference is required before manual approval." });
+      }
+      sub.status = "active";
+      sub.paymentStatus = "paid";
+      sub.amountPaid = Number(sub.amountPaid || sub.totalAmount || 0);
+      sub.rejectionReason = "";
+      if (sub.expiresAt && new Date(sub.expiresAt) <= new Date()) {
+        const duration = Number(sub.durationDays || 0);
+        if (duration > 0) sub.expiresAt = new Date(Date.now() + duration * 86400000);
+      }
+      await sub.save();
+      if (sub.couponCode) {
+        try {
+          await Coupon.updateOne(
+            { code: sub.couponCode, usedBy: { $ne: sub.user } },
+            { $addToSet: { usedBy: sub.user }, $inc: { usedCount: 1 } },
+          );
+        } catch (couponError) {
+          console.error("Manual coupon redemption count update failed:", couponError);
+        }
+      }
+      res.json({ subscription: sub, message: "Manual payment approved and marked as paid." });
     } catch (err) {
       res.status(500).json({ message: "Could not approve subscription." });
     }
@@ -3538,7 +3618,13 @@ router.post(
 
       for (const recipient of emailList) {
         try {
-          const unsubscribeUrl = siteOrigin.replace(/\/+$/, "") + "/unsubscribe-email?email=" + encodeURIComponent(recipient);
+          const unsubscribeToken = crypto.randomBytes(32).toString("hex");
+          const unsubscribeTokenHash = crypto.createHash("sha256").update(unsubscribeToken).digest("hex");
+          await NewsletterSubscriber.updateOne(
+            { email: recipient, status: "subscribed", consentedAt: { $ne: null } },
+            { $set: { unsubscribeTokenHash } },
+          );
+          const unsubscribeUrl = siteOrigin.replace(/\/+$/, "") + "/unsubscribe-email?token=" + encodeURIComponent(unsubscribeToken);
           const html = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="x-apple-disable-message-reformatting"><title>${safeSubject}</title></head>
 <body style="margin:0;padding:0;background:#f3f6fb;font-family:Arial,Helvetica,sans-serif;color:#172033;">
@@ -5128,10 +5214,17 @@ router.post(
   }
 );
 
-// PUBLIC: Serve agreement HTML page (no auth — for email links)
+// PUBLIC: Serve agreement HTML only with its random, expiring email-share token.
 router.get("/public/agreements/:id/view", async (req, res) => {
   try {
-    const agreement = await Agreement.findById(req.params.id);
+    const viewToken = String(req.query.token || "");
+    if (!/^[a-f0-9]{64}$/i.test(viewToken)) return res.status(401).send("A valid agreement access link is required.");
+    const viewTokenHash = crypto.createHash("sha256").update(viewToken).digest("hex");
+    const agreement = await Agreement.findOne({
+      _id: req.params.id,
+      publicViewTokenHash: viewTokenHash,
+      publicViewTokenExpiresAt: { $gt: new Date() },
+    }).select("+publicViewTokenHash");
     if (!agreement) {
       return res.status(404).send(`
         <!DOCTYPE html><html><head><title>Not Found</title>
@@ -5401,9 +5494,17 @@ router.post(
       const greeting = greetings[agreement.documentType] || `Please find your document — <strong>${agreement.documentTitle}</strong> — from ASKC TECHNOLOGIES.`;
 
       // Public view link — use the base URL from env or a default
-      const baseUrl = process.env.PUBLIC_SITE_URL || process.env.FRONTEND_URL || (process.env.CLIENT_URL ? process.env.CLIENT_URL.replace(/\/dashboard\/?$/, "") : "https://askctechnologies.in");
+      const baseUrl = getPublicSiteOrigin() || "https://askctechnologies.in";
 
-      const viewLink = `${baseUrl}/api/auth/public/agreements/${agreement._id}/view`;
+      const publicViewToken = crypto.randomBytes(32).toString("hex");
+      const publicViewTokenHash = crypto.createHash("sha256").update(publicViewToken).digest("hex");
+      await Agreement.findByIdAndUpdate(agreement._id, {
+        $set: {
+          publicViewTokenHash,
+          publicViewTokenExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        },
+      });
+      const viewLink = `${baseUrl}/api/auth/public/agreements/${agreement._id}/view?token=${publicViewToken}`;
 
       const htmlEmail = `
 <!DOCTYPE html>
@@ -5927,6 +6028,8 @@ router.get("/admin/transactions", authMiddleware, coAdminMiddleware, async (req,
     const query = String(req.query.search || "").trim().slice(0, 120);
     const status = String(req.query.status || "all");
     const method = String(req.query.method || "all");
+    const page = Math.max(1, Math.min(100000, Number.parseInt(req.query.page, 10) || 1));
+    const limit = Math.max(10, Math.min(100, Number.parseInt(req.query.limit, 10) || 25));
     const from = req.query.from ? new Date(req.query.from) : null;
     const to = req.query.to ? new Date(req.query.to) : null;
     const filter = {};
@@ -5939,33 +6042,70 @@ router.get("/admin/transactions", authMiddleware, coAdminMiddleware, async (req,
     }
     if (["cashfree", "upi", "card", "netbanking"].includes(method)) filter.paymentMethod = method;
     if (from && !Number.isNaN(from.getTime())) filter.createdAt = { ...(filter.createdAt || {}), $gte: from };
-    if (to && !Number.isNaN(to.getTime())) { const end = new Date(to); end.setHours(23,59,59,999); filter.createdAt = { ...(filter.createdAt || {}), $lte: end }; }
-    const records = await Subscription.find(filter).populate("user", "name email").sort({ createdAt: -1 }).limit(1000).lean();
-    const normalizedQuery = query.toLowerCase();
-    const matches = normalizedQuery ? records.filter((row) => [
-      row.transactionId, row.cashfreeOrderId, row.uniqueId, row.user?.name,
-      row.user?.email, row.planName, row.plan, row.couponCode, row.paymentMethod,
-    ].join(" ").toLowerCase().includes(normalizedQuery)) : records;
-    const transactions = matches.map((row) => ({
-      ...row,
-      transactionId: row.transactionId || row.cashfreeOrderId || row.uniqueId,
-      amountPaid: row.amountPaid ?? row.totalAmount ?? 0,
-      paymentStatus: row.paymentStatus || row.status || "pending",
-    }));
-    const summary = {
-      total: transactions.length,
-      successful: transactions.filter((row) => ["paid", "success", "completed", "confirmed", "active"].includes(String(row.paymentStatus).toLowerCase())).length,
-      pending: transactions.filter((row) => String(row.paymentStatus).toLowerCase() === "pending").length,
-      failed: transactions.filter((row) => ["failed", "rejected"].includes(String(row.paymentStatus).toLowerCase())).length,
-      refunded: transactions.filter((row) => row.refundStatus === "processed").length,
-    };
-    return res.json({ transactions, summary });
+    if (to && !Number.isNaN(to.getTime())) {
+      const endOfDay = new Date(to);
+      endOfDay.setHours(23, 59, 59, 999);
+      filter.createdAt = { ...(filter.createdAt || {}), $lte: endOfDay };
+    }
+    const pipeline = [
+      { $match: filter },
+      { $lookup: { from: User.collection.name, let: { userId: "$user" }, pipeline: [
+        { $match: { $expr: { $eq: ["$_id", "$$userId"] } } },
+        { $project: { name: 1, email: 1 } },
+      ], as: "user" } },
+      { $unwind: { path: "$user", preserveNullAndEmptyArrays: true } },
+    ];
+    if (query) {
+      const escaped = query.replace(/[.*+?^\${}()|[\]\\]/g, "\\$&");
+      const searchRegex = new RegExp(escaped, "i");
+      pipeline.push({ $match: { $or: [
+        { transactionId: searchRegex }, { cashfreeOrderId: searchRegex }, { uniqueId: searchRegex },
+        { "user.name": searchRegex }, { "user.email": searchRegex }, { planName: searchRegex },
+        { plan: searchRegex }, { couponCode: searchRegex }, { paymentMethod: searchRegex },
+      ] } });
+    }
+    pipeline.push(
+      { $addFields: {
+        normalizedPaymentStatus: { $toLower: { $ifNull: ["$paymentStatus", { $ifNull: ["$status", "pending"] }] } },
+        normalizedAmountPaid: { $ifNull: ["$amountPaid", { $ifNull: ["$totalAmount", 0] }] },
+      } },
+      { $facet: {
+        metadata: [{ $count: "total" }],
+        summary: [{ $group: {
+          _id: null,
+          total: { $sum: 1 },
+          successful: { $sum: { $cond: [{ $in: ["$normalizedPaymentStatus", ["paid", "success", "completed", "confirmed", "active"]] }, 1, 0] } },
+          pending: { $sum: { $cond: [{ $eq: ["$normalizedPaymentStatus", "pending"] }, 1, 0] } },
+          failed: { $sum: { $cond: [{ $in: ["$normalizedPaymentStatus", ["failed", "rejected"]] }, 1, 0] } },
+          refunded: { $sum: { $cond: [{ $eq: ["$refundStatus", "processed"] }, 1, 0] } },
+          grossAmount: { $sum: "$normalizedAmountPaid" },
+        } }],
+        transactions: [
+          { $sort: { createdAt: -1, _id: -1 } },
+          { $skip: (page - 1) * limit },
+          { $limit: limit },
+          { $addFields: {
+            transactionId: { $ifNull: ["$transactionId", { $ifNull: ["$cashfreeOrderId", "$uniqueId"] }] },
+            amountPaid: "$normalizedAmountPaid",
+            paymentStatus: "$normalizedPaymentStatus",
+          } },
+          { $project: { normalizedPaymentStatus: 0, normalizedAmountPaid: 0 } },
+        ],
+      } },
+    );
+    const [result] = await Subscription.aggregate(pipeline).allowDiskUse(true);
+    const summary = result?.summary?.[0] || { total: 0, successful: 0, pending: 0, failed: 0, refunded: 0, grossAmount: 0 };
+    const total = result?.metadata?.[0]?.total || 0;
+    return res.json({
+      transactions: result?.transactions || [],
+      summary,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    });
   } catch (error) {
     console.error("Admin transactions fetch failed:", error);
     return res.status(500).json({ message: "Could not load transaction records." });
   }
 });
-
 
 /* Two-factor authentication: TOTP authenticator or registered-email OTP. */
 const twoFactorCrypto = require("../utils/twoFactor");

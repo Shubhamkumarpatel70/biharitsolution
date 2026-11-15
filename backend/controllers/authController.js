@@ -728,34 +728,14 @@ exports.cancelUserSubscription = async (req, res) => {
   }
 };
 
+// Legacy renewal endpoint must never grant an active subscription without a
+// verified payment. New purchases must use the payment-verified checkout flow.
 exports.renewUserSubscription = async (req, res) => {
-  try {
-    const { plan } = req.body;
-    if (!plan) return res.status(400).json({ message: "Plan required." });
-    const PlanModel = require("../models/Plan");
-    const planDoc = await PlanModel.findOne({
-      name: new RegExp("^" + plan + "$", "i"),
-    });
-    if (!planDoc) return res.status(400).json({ message: "Plan not found." });
-    const uniqueId =
-      "SUB-" + Math.random().toString(36).substr(2, 9).toUpperCase();
-    const now = new Date();
-    const durationInDays = parsePlanDurationDays(planDoc.duration);
-    const expiresAt = new Date(
-      now.getTime() + durationInDays * 24 * 60 * 60 * 1000,
-    );
-    const subscription = await Subscription.create({
-      user: req.user.id,
-      plan,
-      uniqueId,
-      status: "active",
-      expiresAt,
-      canceled: false,
-    });
-    res.status(201).json({ subscription });
-  } catch (err) {
-    res.status(500).json({ message: "Could not renew subscription." });
-  }
+  return res.status(410).json({
+    success: false,
+    code: "PAYMENT_REQUIRED",
+    message: "Direct subscription activation is disabled. Please renew through the secure checkout page.",
+  });
 };
 
 exports.autoExpiryNotifications = async (req, res) => {
