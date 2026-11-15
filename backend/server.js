@@ -434,6 +434,9 @@ const io = new Server(server, {
   cors: {
     origin: [
       "http://localhost:3000",
+      "http://127.0.0.1:3000",
+      "https://askctechnologies.in",
+      "https://www.askctechnologies.in",
       "https://custom-web-frontend.onrender.com",
       "https://custom-web-app.onrender.com",
       "https://biharitsolution.onrender.com",
@@ -477,10 +480,10 @@ io.on("connection", (socket) => {
     lastMessageAt = now;
     const message = typeof payload === "string" ? payload.trim() : String(payload?.message || "").trim();
     if (!message || message.length > 1000) return;
-    const item = { message, userId: socket.data.userId, createdAt: new Date().toISOString() };
-    chatHistory.push(item);
+    chatHistory.push(message);
     if (chatHistory.length > 100) chatHistory.shift();
-    io.emit("chat message", item);
+    // Keep the existing string payload contract for connected clients.
+    io.emit("chat message", message);
   });
 });
 
