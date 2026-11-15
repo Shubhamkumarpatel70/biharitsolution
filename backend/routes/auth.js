@@ -452,6 +452,8 @@ router.post("/cashfree/create-order", authMiddleware, async (req, res) => {
       normalizedCouponCode = String(couponCode).trim().toUpperCase();
       const coupon = await Coupon.findOne({ code: normalizedCouponCode, active: true });
       if (!coupon) return res.status(400).json({ message: "Coupon is invalid or expired." });
+      if (coupon.eligiblePlans?.length && !coupon.eligiblePlans.some(id => String(id) === String(planDoc._id)))
+        return res.status(400).json({ message: "This coupon is not valid for the selected pricing plan." });
       if (coupon.usageLimit > 0 && coupon.usedCount >= coupon.usageLimit) return res.status(400).json({ message: "Coupon usage limit reached." });
       if (coupon.usedBy.some(id => String(id) === String(user._id))) return res.status(400).json({ message: "You have already used this coupon." });
       discountAmount = coupon.discountType === 'percentage'
@@ -708,6 +710,8 @@ router.post(
       normalizedCouponCode = String(couponCode).trim().toUpperCase();
       const couponDoc = await Coupon.findOne({ code: normalizedCouponCode, active: true });
       if (!couponDoc) return res.status(400).json({ message: "Coupon is invalid or expired." });
+      if (couponDoc.eligiblePlans?.length && !couponDoc.eligiblePlans.some(id => String(id) === String(planDoc._id)))
+        return res.status(400).json({ message: "This coupon is not valid for the selected pricing plan." });
       if (couponDoc.usageLimit > 0 && couponDoc.usedCount >= couponDoc.usageLimit) {
         return res.status(400).json({ message: "Coupon usage limit reached." });
       }
@@ -3393,7 +3397,7 @@ router.patch(
 // Admin: Create a new coupon
 router.post("/coupons", authMiddleware, coAdminMiddleware, async (req, res) => {
   try {
-    const { code, amount, discountType = "fixed", usageLimit } = req.body;
+    const { code, amount, discountType = "fixed", usageLimit, eligiblePlans = [] } = req.body;
     const type = discountType === "percentage" ? "percentage" : "fixed";
     const value = Number(amount);
     if (!code || !Number.isFinite(value) || value <= 0)
@@ -3402,10 +3406,19 @@ router.post("/coupons", authMiddleware, coAdminMiddleware, async (req, res) => {
       return res.status(400).json({ message: "Percentage discount must be between 1 and 100." });
     if (usageLimit !== undefined && (!Number.isInteger(Number(usageLimit)) || Number(usageLimit) < 1))
       return res.status(400).json({ message: "Usage limit must be at least 1." });
+    if (!Array.isArray(eligiblePlans))
+      return res.status(400).json({ message: "Select valid pricing plans." });
+    const validPlanIds = [...new Set(eligiblePlans.map(id => String(id)))];
+    if (validPlanIds.length) {
+      const validPlans = await Plan.countDocuments({ _id: { $in: validPlanIds } });
+      if (validPlans !== validPlanIds.length)
+        return res.status(400).json({ message: "One or more selected pricing plans are invalid." });
+    }
     const coupon = await Coupon.create({
       code: String(code).trim().toUpperCase(),
       amount: value,
       discountType: type,
+      eligiblePlans: validPlanIds,
       usageLimit: usageLimit === undefined ? 1 : Number(usageLimit),
     });
     res.status(201).json({ coupon });
@@ -3463,7 +3476,7 @@ router.delete(
 // User: Apply a coupon (with usage tracking and per-user limit)
 router.post("/coupons/apply", async (req, res, next) => {
   try {
-    const { code, use } = req.body;
+    const { code, use, planId } = req.body;
     if (!code)
       return res.status(400).json({ message: "Coupon code is required." });
     const coupon = await Coupon.findOne({
@@ -3472,6 +3485,9 @@ router.post("/coupons/apply", async (req, res, next) => {
     });
     if (!coupon)
       return res.status(404).json({ message: "Invalid or expired coupon." });
+    if (planId && coupon.eligiblePlans?.length && !coupon.eligiblePlans.some(id => String(id) === String(planId))) {
+      return res.status(400).json({ message: "This coupon is not valid for the selected pricing plan." });
+    }
     if (coupon.usageLimit > 0 && coupon.usedCount >= coupon.usageLimit) {
       return res.status(400).json({ message: "Coupon usage limit reached." });
     }
