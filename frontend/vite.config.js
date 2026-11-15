@@ -10,6 +10,10 @@ export default defineConfig(({ mode }) => {
         env.VITE_API_URL || env.REACT_APP_API_URL || ""
       )
     },
+    esbuild: {
+      loader: "jsx",
+      include: /frontend\\/src\\/.*\\.js$/
+    },
     server: {
       host: "0.0.0.0",
       port: 3000,
