@@ -2,6 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link, useSearchParams, useLocation } from 'react-router-dom';
 import axios from '../axios';
 
+const parseMoney = value => {
+  if (value === null || value === undefined || String(value).trim() === '') return null;
+  const normalized = String(value).replace(/[₹,\s]/g, '');
+  if (!/^\\d+(?:\\.\\d{1,2})?$/.test(normalized)) return null;
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+};
+const formatMoney = value => new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2 }).format(Number(value) || 0);
+
 const Payment = () => {
   const { plan } = useParams();
   const navigate = useNavigate();
@@ -56,9 +65,16 @@ const Payment = () => {
         });
 
         if (found) {
-          setAmount(Number(found.price) || 0);
-          setPlanObj(found);
-          setError('');
+          const parsedPrice = parseMoney(found.price);
+          if (parsedPrice === null) {
+            setPlanObj(found);
+            setAmount('');
+            setError('This plan has an invalid price configured. Please contact ASKC TECHNOLOGIES before making payment.');
+          } else {
+            setAmount(parsedPrice);
+            setPlanObj(found);
+            setError('');
+          }
         } else {
           setError('The selected pricing plan could not be found. Please return to Pricing and select a plan again.');
           console.warn('Pricing plan lookup failed:', { requestedPlan: plan, selectedPlanId, availablePlans: availablePlans.map(p => ({ id: p._id, name: p.name })) });
@@ -221,6 +237,7 @@ const Payment = () => {
 
   const handleCashfreePayment = async () => {
     if (paymentMode !== 'cashfree') { setError('Cashfree checkout is disabled by the administrator.'); return; }
+    if (!Number.isFinite(totalAmount) || totalAmount <= 0) { setError('The payable amount must be greater than ₹0. Please contact support.'); return; }
     const token = localStorage.getItem('token');
     if (!token) { navigate('/login'); return; }
     if (!/^\d{10}$/.test(phone.replace(/\D/g, '').slice(-10))) {
@@ -276,6 +293,7 @@ const Payment = () => {
 
   const handlePayment = async () => {
     if (paymentMode !== 'manual') { setError('Manual payment is disabled. Please use the configured online gateway.'); return; }
+    if (!Number.isFinite(totalAmount) || totalAmount <= 0) { setError('The payable amount must be greater than ₹0. Please contact support.'); return; }
     if (!transactionId) {
       setError('Please enter your transaction ID.');
       return;
@@ -390,17 +408,17 @@ const Payment = () => {
               </div>
               <div className="flex justify-between items-center mb-2">
                 <span className="text-slate-600">Amount:</span>
-                <span>₹{amount}</span>
+                <span>₹{formatMoney(amount)}</span>
               </div>
               {discount > 0 && (
                 <>
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-slate-600">Discount:</span>
-                    <span className="text-blue-700 font-medium">-₹{discount}</span>
+                    <span className="text-blue-700 font-medium">-₹{formatMoney(discount)}</span>
                   </div>
                   <div className="flex justify-between items-center pt-2 border-t border-slate-200">
                     <span className="text-slate-600 font-medium">Total:</span>
-                    <span className="text-slate-900 font-bold">₹{totalAmount}</span>
+                    <span className="text-slate-900 font-bold">₹{formatMoney(totalAmount)}</span>
                   </div>
                 </>
               )}
@@ -412,7 +430,7 @@ const Payment = () => {
                 <p className="text-sm text-slate-600 mb-4">UPI, cards, net banking and supported methods. Your subscription activates automatically after Cashfree confirms payment.</p>
                 <label className="block text-sm font-medium text-slate-700 mb-2" htmlFor="cashfree-phone">Mobile number</label>
                 <input id="cashfree-phone" type="tel" inputMode="numeric" maxLength={10} value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0,10))} placeholder="10-digit mobile number" className="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
-                <button type="button" onClick={handleCashfreePayment} disabled={status === 'processing' || phone.length !== 10} className="mt-4 w-full rounded-xl bg-blue-700 px-4 py-3 font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50">{status === 'processing' ? 'Connecting to Cashfree…' : `Pay ₹${totalAmount} securely`}</button>
+                <button type="button" onClick={handleCashfreePayment} disabled={status === 'processing' || phone.length !== 10 || !Number.isFinite(totalAmount) || totalAmount <= 0} className="mt-4 w-full rounded-xl bg-blue-700 px-4 py-3 font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50">{status === 'processing' ? 'Connecting to Cashfree…' : `Pay ₹${formatMoney(totalAmount)} securely`}</button>
               </div>
             )}
 
@@ -445,7 +463,7 @@ const Payment = () => {
                 ) : (
                   <button
                     onClick={handleApplyCoupon}
-                    disabled={applyingCoupon || !coupon}
+                    disabled={applyingCoupon || !coupon || !Number.isFinite(Number(amount)) || Number(amount) <= 0}
                     className="shrink-0 whitespace-nowrap bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:opacity-50 text-white px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors"
                   >
                     {applyingCoupon ? '...' : 'Apply'}
