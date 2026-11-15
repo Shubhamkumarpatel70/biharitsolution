@@ -15,7 +15,7 @@ test("creates Cashfree refund using sandbox host, amount and stable idempotency 
       return { ok: true, json: async () => ({ refund_status: "PENDING", cf_refund_id: "cf_123" }) };
     },
   });
-  assert.equal(captured.url, "https://sandbox.cashfree.com/pg/orders/order%2F123/refunds/ASKCRF_test123");
+  assert.equal(captured.url, "https://sandbox.cashfree.com/pg/orders/order%2F123/refunds");
   assert.equal(captured.options.headers["x-idempotency-key"], "ASKCRF_test123");
   assert.deepEqual(JSON.parse(captured.options.body), { refund_amount: 125.5, refund_id: "ASKCRF_test123", refund_note: "Approved refund" });
   assert.equal(result.refund_status, "PENDING");
