@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { Icon } from "./icons";
 
 const STORAGE_KEY = "askc_cookie_consent_v1";
 const defaultChoices = { essential: true, preferences: false, analytics: false, marketing: false };
@@ -35,7 +36,7 @@ export default function CookieConsent() {
   return <div className="fixed inset-x-0 bottom-0 z-[120] p-3 sm:p-5" role="dialog" aria-modal="false" aria-labelledby="cookie-consent-title">
     <div className="mx-auto max-w-5xl rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl shadow-slate-900/20 sm:p-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="max-w-2xl"><p className="text-xs font-bold uppercase tracking-wider text-sky-700">ASKC TECHNOLOGIES</p><h2 id="cookie-consent-title" className="mt-1 text-lg font-bold text-slate-900">Your privacy choices</h2><p className="mt-2 text-sm leading-relaxed text-slate-600">We use essential storage to make this website work. Optional preferences, analytics and marketing storage will only be used if you allow them. You can change your choice at any time.</p><Link to="/cookies" className="mt-2 inline-block text-sm font-semibold text-sky-700 underline">Read our Cookie Policy</Link></div>
+        <div className="max-w-2xl"><div className="flex items-center gap-2"><span className="flex h-9 w-9 items-center justify-center rounded-lg bg-sky-50 text-sky-700"><Icon name="cookie" className="h-5 w-5" /></span><div><p className="text-xs font-bold uppercase tracking-wider text-sky-700">ASKC TECHNOLOGIES</p><h2 id="cookie-consent-title" className="text-lg font-bold text-slate-900">Your privacy choices</h2></div></div><p className="mt-2 text-sm leading-relaxed text-slate-600">We use essential storage to make this website work. Optional preferences, analytics and marketing storage will only be used if you allow them. You can change your choice at any time.</p><Link to="/cookies" className="mt-2 inline-block text-sm font-semibold text-sky-700 underline">Read our Cookie Policy</Link></div>
         <div className="flex shrink-0 flex-wrap gap-2">
           <button type="button" onClick={() => save(defaultChoices)} className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">Reject optional</button>
           <button type="button" onClick={() => { setChoices(consent?.categories || defaultChoices); setSettings(v => !v); }} className="rounded-xl border border-sky-200 px-4 py-2.5 text-sm font-semibold text-sky-800 hover:bg-sky-50">Preferences</button>
