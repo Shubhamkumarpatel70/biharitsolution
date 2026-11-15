@@ -454,7 +454,9 @@ router.post("/cashfree/create-order", authMiddleware, async (req, res) => {
       if (!coupon) return res.status(400).json({ message: "Coupon is invalid or expired." });
       if (coupon.usageLimit > 0 && coupon.usedCount >= coupon.usageLimit) return res.status(400).json({ message: "Coupon usage limit reached." });
       if (coupon.usedBy.some(id => String(id) === String(user._id))) return res.status(400).json({ message: "You have already used this coupon." });
-      discountAmount = Math.min(Number(coupon.amount) || 0, Number(planDoc.price));
+      discountAmount = coupon.discountType === 'percentage'
+        ? Number((Number(planDoc.price) * Math.min(100, Number(coupon.amount) || 0) / 100).toFixed(2))
+        : Math.min(Number(coupon.amount) || 0, Number(planDoc.price));
     }
     const amount = Number(Math.max(0, Number(planDoc.price) - discountAmount).toFixed(2));
     if (amount <= 0) return res.status(400).json({ message: "Coupon discount must leave a payable amount greater than zero." });
@@ -712,7 +714,9 @@ router.post(
       if (couponDoc.usedBy.some(id => String(id) === String(user._id))) {
         return res.status(400).json({ message: "You have already used this coupon." });
       }
-      discountAmount = Math.min(Number(couponDoc.amount) || 0, Number(planDoc.price) || 0);
+      discountAmount = couponDoc.discountType === 'percentage'
+        ? Number(((Number(planDoc.price) || 0) * Math.min(100, Number(couponDoc.amount) || 0) / 100).toFixed(2))
+        : Math.min(Number(couponDoc.amount) || 0, Number(planDoc.price) || 0);
     }
     const payableAmount = Math.max(0, Number(planDoc.price || 0) - discountAmount);
     if (payableAmount <= 0) return res.status(400).json({ message: "Coupon discount must leave a payable amount greater than zero." });
@@ -3389,13 +3393,20 @@ router.patch(
 // Admin: Create a new coupon
 router.post("/coupons", authMiddleware, coAdminMiddleware, async (req, res) => {
   try {
-    const { code, amount, usageLimit } = req.body;
-    if (!code || !amount)
-      return res.status(400).json({ message: "Code and amount are required." });
+    const { code, amount, discountType = "fixed", usageLimit } = req.body;
+    const type = discountType === "percentage" ? "percentage" : "fixed";
+    const value = Number(amount);
+    if (!code || !Number.isFinite(value) || value <= 0)
+      return res.status(400).json({ message: "Enter a valid coupon code and discount value." });
+    if (type === "percentage" && value > 100)
+      return res.status(400).json({ message: "Percentage discount must be between 1 and 100." });
+    if (usageLimit !== undefined && (!Number.isInteger(Number(usageLimit)) || Number(usageLimit) < 1))
+      return res.status(400).json({ message: "Usage limit must be at least 1." });
     const coupon = await Coupon.create({
-      code: code.toUpperCase(),
-      amount,
-      usageLimit,
+      code: String(code).trim().toUpperCase(),
+      amount: value,
+      discountType: type,
+      usageLimit: usageLimit === undefined ? 1 : Number(usageLimit),
     });
     res.status(201).json({ coupon });
   } catch (err) {
@@ -3482,7 +3493,7 @@ router.post("/coupons/apply", async (req, res, next) => {
           coupon.active = false;
         }
         await coupon.save();
-        return res.json({ amount: coupon.amount, coupon });
+        return res.json({ amount: coupon.amount, discountType: coupon.discountType || 'fixed', coupon });
       });
       return;
     }
