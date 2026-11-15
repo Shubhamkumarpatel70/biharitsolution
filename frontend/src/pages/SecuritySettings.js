@@ -2,71 +2,80 @@ import React, { useEffect, useState } from 'react';
 import axios from '../axios';
 import { useNavigate } from 'react-router-dom';
 
-
 function SessionLoginInfo() {
   const navigate = useNavigate();
   const [info, setInfo] = useState(null);
   const [loadingInfo, setLoadingInfo] = useState(true);
+  const [busySession, setBusySession] = useState('');
   const [logoutBusy, setLogoutBusy] = useState(false);
   const [sessionError, setSessionError] = useState('');
   const auth = () => ({ headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
 
   const loadInfo = async () => {
-    setLoadingInfo(true);
-    setSessionError('');
-    try {
-      const response = await axios.get('/api/auth/sessions', auth());
-      setInfo(response.data);
-    } catch (error) {
-      setSessionError(error.response?.data?.message || 'Login information could not be loaded.');
-    } finally {
-      setLoadingInfo(false);
-    }
+    setLoadingInfo(true); setSessionError('');
+    try { const response = await axios.get('/api/auth/sessions', auth()); setInfo(response.data); }
+    catch (error) { setSessionError(error.response?.data?.message || 'Login sessions could not be loaded.'); }
+    finally { setLoadingInfo(false); }
   };
-
   useEffect(() => { loadInfo(); }, []);
 
-  const logoutAll = async () => {
-    if (!window.confirm('This will sign out this account from every device, including this one. Continue?')) return;
-    setLogoutBusy(true);
-    setSessionError('');
-    try {
-      await axios.post('/api/auth/sessions/logout-all', {}, auth());
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      delete axios.defaults.headers.common.Authorization;
-      navigate('/login', { replace: true, state: { message: 'You have been signed out from all devices. Please log in again.' } });
-    } catch (error) {
-      setSessionError(error.response?.data?.message || 'Could not sign out all devices. Please try again.');
-      setLogoutBusy(false);
-    }
-  };
-
-  const lastLogin = info?.lastLogin || {};
   const browser = (ua = '') => {
-    if (!ua) return 'Not available';
+    if (!ua) return 'Unknown browser';
     const name = ua.includes('Edg/') ? 'Microsoft Edge' : ua.includes('Chrome/') ? 'Google Chrome' : ua.includes('Firefox/') ? 'Mozilla Firefox' : ua.includes('Safari/') && !ua.includes('Chrome/') ? 'Safari' : 'Browser';
     const device = /Android/i.test(ua) ? 'Android device' : /iPhone|iPad/i.test(ua) ? 'Apple device' : /Windows/i.test(ua) ? 'Windows device' : /Mac OS/i.test(ua) ? 'Mac device' : /Linux/i.test(ua) ? 'Linux device' : 'Device';
     return name + ' · ' + device;
   };
 
+  const logoutDevice = async session => {
+    if (!window.confirm(`Sign out ${session.current ? 'this device' : 'the selected device'}? That device will need to log in again.`)) return;
+    setBusySession(session.sessionId); setSessionError('');
+    try {
+      await axios.post(`/api/auth/sessions/${encodeURIComponent(session.sessionId)}/logout`, {}, auth());
+      if (session.current) {
+        localStorage.removeItem('token'); localStorage.removeItem('user');
+        delete axios.defaults.headers.common.Authorization;
+        navigate('/login', { replace: true, state: { message: 'This device has been signed out.' } });
+        return;
+      }
+      await loadInfo();
+    } catch (error) { setSessionError(error.response?.data?.message || 'Could not sign out this device.'); }
+    finally { setBusySession(''); }
+  };
+
+  const logoutAll = async () => {
+    if (!window.confirm('This will sign out every device, including this one. Continue?')) return;
+    setLogoutBusy(true); setSessionError('');
+    try {
+      await axios.post('/api/auth/sessions/logout-all', {}, auth());
+      localStorage.removeItem('token'); localStorage.removeItem('user'); delete axios.defaults.headers.common.Authorization;
+      navigate('/login', { replace: true, state: { message: 'You have been signed out from all devices. Please log in again.' } });
+    } catch (error) { setSessionError(error.response?.data?.message || 'Could not sign out all devices.'); setLogoutBusy(false); }
+  };
+
+  const sessions = info?.sessions || [];
   return <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
     <div className="flex flex-wrap items-start justify-between gap-3">
-      <div><p className="text-xs font-bold uppercase tracking-widest text-blue-600">Account activity</p><h3 className="mt-1 text-lg font-bold text-slate-900">Session &amp; Login Info</h3><p className="mt-1 text-sm text-slate-500">Review the latest sign-in details and securely sign out from all devices.</p></div>
-      <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">Protected session</span>
+      <div><p className="text-xs font-bold uppercase tracking-widest text-blue-600">Account activity</p><h3 className="mt-1 text-lg font-bold text-slate-900">Session &amp; Login Info</h3><p className="mt-1 text-sm text-slate-500">Review every device signed in to your account and manage sessions individually.</p></div>
+      <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">{sessions.length} active {sessions.length === 1 ? 'session' : 'sessions'}</span>
     </div>
-    {loadingInfo ? <p className="mt-5 text-sm text-slate-500">Loading login information…</p> : info ? <div className="mt-5 grid gap-3 sm:grid-cols-2">
-      <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4"><p className="text-xs font-medium text-slate-500">Account</p><p className="mt-1 break-all text-sm font-semibold text-slate-900">{info.user?.email || '—'}</p><p className="mt-1 text-xs capitalize text-slate-500">{info.user?.role || 'Account'}</p></div>
-      <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4"><p className="text-xs font-medium text-slate-500">Latest successful login</p><p className="mt-1 text-sm font-semibold text-slate-900">{lastLogin.at ? new Date(lastLogin.at).toLocaleString() : 'Not recorded yet'}</p><p className="mt-1 text-xs text-slate-500">{browser(lastLogin.userAgent)}</p></div>
-      <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4"><p className="text-xs font-medium text-slate-500">Login IP address</p><p className="mt-1 break-all text-sm font-semibold text-slate-900">{lastLogin.ip || 'Not available'}</p></div>
-      <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-4"><p className="text-xs font-medium text-emerald-700">Current session</p><p className="mt-1 text-sm font-semibold text-emerald-900">Active on this device</p><p className="mt-1 text-xs text-emerald-700">Session started: {info.currentSession?.issuedAt ? new Date(info.currentSession.issuedAt).toLocaleString() : 'Current login'}</p></div>
-    </div> : null}
+    <div className="mt-5 space-y-3">
+      {loadingInfo ? <p className="text-sm text-slate-500">Loading login sessions…</p> : sessions.length ? sessions.map(session => <article key={session.sessionId} className="rounded-xl border border-slate-200 p-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h4 className="text-sm font-bold text-slate-900">{browser(session.userAgent)}</h4>{session.current && <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700">This Device</span>}</div>
+            <p className="mt-2 text-xs text-slate-500">Signed in: {session.createdAt ? new Date(session.createdAt).toLocaleString() : 'Unknown'}</p>
+            <p className="mt-1 text-xs text-slate-500">Last active: {session.lastSeenAt ? new Date(session.lastSeenAt).toLocaleString() : 'Unknown'}</p>
+            <p className="mt-1 break-all text-xs text-slate-500">IP address: {session.ip || 'Not available'}</p>
+          </div>
+          <button type="button" onClick={() => logoutDevice(session)} disabled={!!busySession || logoutBusy} className="inline-flex shrink-0 items-center justify-center rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-50">{busySession === session.sessionId ? 'Signing out…' : 'Logout This Device'}</button>
+        </div>
+      </article>) : <div className="rounded-xl border border-dashed border-slate-300 p-5 text-center text-sm text-slate-500">No tracked sessions found. Sign in again to register this device.</div>}
+    </div>
     {sessionError && <p role="alert" className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm text-rose-700">{sessionError}</p>}
     <div className="mt-5 flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
-      <p className="max-w-xl text-xs leading-relaxed text-slate-500">Logout All immediately invalidates existing sign-in tokens on every device. You will also be signed out from this device and need to log in again.</p>
-      <button type="button" onClick={logoutAll} disabled={logoutBusy || loadingInfo} className="inline-flex shrink-0 items-center justify-center rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-50">{logoutBusy ? 'Signing out…' : 'Logout All'}</button>
+      <p className="max-w-xl text-xs leading-relaxed text-slate-500">Signing out a device immediately revokes that device's session. Logout All signs out every device.</p>
+      <button type="button" onClick={logoutAll} disabled={logoutBusy || loadingInfo} className="inline-flex shrink-0 items-center justify-center rounded-xl border border-rose-200 bg-white px-4 py-2.5 text-sm font-semibold text-rose-700 transition hover:bg-rose-50 disabled:opacity-50">{logoutBusy ? 'Signing out…' : 'Logout All'}</button>
     </div>
-    <button type="button" onClick={loadInfo} disabled={loadingInfo} className="mt-3 text-xs font-semibold text-blue-700 hover:text-blue-900 disabled:opacity-50">Refresh login info</button>
+    <button type="button" onClick={loadInfo} disabled={loadingInfo} className="mt-3 text-xs font-semibold text-blue-700 hover:text-blue-900 disabled:opacity-50">Refresh sessions</button>
   </section>;
 }
 
