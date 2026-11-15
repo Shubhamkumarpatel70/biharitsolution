@@ -583,16 +583,23 @@ router.post("/cashfree/webhook", async (req, res) => {
 // are made inactive before checking whether another purchase is allowed.
 async function getSubscriptionPurchaseBlocker(userId) {
   const now = new Date();
+  const abandonedPendingCutoff = new Date(now.getTime() - 24 * 60 * 60 * 1000);
   await Subscription.updateMany(
     { user: userId, status: "active", canceled: { $ne: true }, expiresAt: { $ne: null, $lte: now } },
     { $set: { status: "expired" } }
+  );
+  // A pending checkout/receipt must not lock a customer's account forever.
+  // Only stale pending requests are expired; recent requests remain protected.
+  await Subscription.updateMany(
+    { user: userId, status: "pending", createdAt: { $lte: abandonedPendingCutoff } },
+    { $set: { status: "expired", paymentStatus: "expired" } }
   );
   return Subscription.findOne({
     user: userId,
     canceled: { $ne: true },
     $or: [
       { status: "active", $or: [{ expiresAt: null }, { expiresAt: { $gt: now } }] },
-      { status: "pending" }
+      { status: "pending", createdAt: { $gt: abandonedPendingCutoff } }
     ]
   }).sort({ createdAt: -1 });
 }
@@ -1174,12 +1181,24 @@ router.patch(
   coAdminMiddleware,
   async (req, res) => {
     try {
-      const sub = await Subscription.findByIdAndUpdate(
-        req.params.id,
-        { status: "active", rejectionReason: "" },
-        { new: true },
-      );
-      res.json({ subscription: sub });
+      const sub = await Subscription.findById(req.params.id);
+      if (!sub) return res.status(404).json({ message: "Subscription not found." });
+      if (sub.status !== "pending") {
+        return res.status(409).json({ message: "Only a pending manual payment can be approved." });
+      }
+      if (String(sub.paymentMethod || "").toLowerCase() === "cashfree") {
+        return res.status(409).json({ message: "Online payments can only be activated after Cashfree verification." });
+      }
+      sub.status = "active";
+      sub.paymentStatus = "paid";
+      sub.amountPaid = Number(sub.amountPaid || sub.totalAmount || 0);
+      sub.rejectionReason = "";
+      if (sub.expiresAt && new Date(sub.expiresAt) <= new Date()) {
+        const duration = Number(sub.durationDays || 0);
+        if (duration > 0) sub.expiresAt = new Date(Date.now() + duration * 86400000);
+      }
+      await sub.save();
+      res.json({ subscription: sub, message: "Manual payment approved and marked as paid." });
     } catch (err) {
       res.status(500).json({ message: "Could not approve subscription." });
     }
@@ -2332,10 +2351,19 @@ async function authMiddleware(req, res, next) {
     if (!process.env.JWT_SECRET || process.env.JWT_SECRET === "changeme") return res.status(503).json({ message: "Authentication is temporarily unavailable." });
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     if (decoded.purpose === "two-factor-login") return res.status(401).json({ message: "Complete the login verification first." });
-    const account = await User.findById(decoded.id).select("sessionVersion role").lean();
+    const account = await User.findById(decoded.id).select("sessionVersion role sessions").lean();
     if (!account || Number(decoded.sv || 0) !== Number(account.sessionVersion || 0)) {
       clearAuthCookies(res);
       return res.status(401).json({ message: "Your session has expired. Please log in again." });
+    }
+    if (!decoded.sid) {
+      clearAuthCookies(res);
+      return res.status(401).json({ message: "Please sign in again to establish a secure device session." });
+    }
+    const activeSession = (account.sessions || []).some((session) => session.sessionId === decoded.sid && !session.revokedAt);
+    if (!activeSession) {
+      clearAuthCookies(res);
+      return res.status(401).json({ message: "This device session has been signed out. Please log in again." });
     }
     req.user = { ...decoded, role: account.role };
     next();
@@ -2692,12 +2720,24 @@ router.patch(
   coAdminMiddleware,
   async (req, res) => {
     try {
-      const sub = await Subscription.findByIdAndUpdate(
-        req.params.id,
-        { status: "active", rejectionReason: "" },
-        { new: true },
-      );
-      res.json({ subscription: sub });
+      const sub = await Subscription.findById(req.params.id);
+      if (!sub) return res.status(404).json({ message: "Subscription not found." });
+      if (sub.status !== "pending") {
+        return res.status(409).json({ message: "Only a pending manual payment can be approved." });
+      }
+      if (String(sub.paymentMethod || "").toLowerCase() === "cashfree") {
+        return res.status(409).json({ message: "Online payments can only be activated after Cashfree verification." });
+      }
+      sub.status = "active";
+      sub.paymentStatus = "paid";
+      sub.amountPaid = Number(sub.amountPaid || sub.totalAmount || 0);
+      sub.rejectionReason = "";
+      if (sub.expiresAt && new Date(sub.expiresAt) <= new Date()) {
+        const duration = Number(sub.durationDays || 0);
+        if (duration > 0) sub.expiresAt = new Date(Date.now() + duration * 86400000);
+      }
+      await sub.save();
+      res.json({ subscription: sub, message: "Manual payment approved and marked as paid." });
     } catch (err) {
       res.status(500).json({ message: "Could not approve subscription." });
     }
