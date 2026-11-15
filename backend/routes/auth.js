@@ -49,6 +49,7 @@ const Career = require("../models/Career");
 const CareerApplication = require("../models/CareerApplication");
 const FundTransaction = require("../models/FundTransaction");
 const { cashfreeRefundRequest, normalizeRefundStatus } = require("../utils/cashfreeRefund");
+const { issueTwoFactorChallenge, consumeTwoFactorChallenge } = require("../utils/twoFactorChallenge");
 const IDCard = require("../models/IDCard");
 const Agreement = require("../models/Agreement");
 const FounderProfile = require("../models/FounderProfile");
@@ -361,11 +362,8 @@ router.get(
   async (req, res) => {
     // Google sign-in must respect the same second-factor requirement as password sign-in.
     if (req.user?.twoFactorEnabled && ["email", "authenticator"].includes(req.user.twoFactorMethod)) {
-      const challengeToken = jwt.sign(
-        { id: req.user._id, role: req.user.role, purpose: "two-factor-login" },
-        process.env.JWT_SECRET,
-        { expiresIn: "5m" },
-      );
+      const challenge = await issueTwoFactorChallenge({ user: req.user, Otp, jwtSecret: process.env.JWT_SECRET });
+      const challengeToken = challenge.token;
       if (req.user.twoFactorMethod === "email") {
         const code = require("crypto").randomInt(100000, 1000000).toString();
         const email = String(req.user.email).toLowerCase();
@@ -375,6 +373,7 @@ router.get(
           await sendEmail(email, "Your ASKC TECHNOLOGIES login verification code", `Your login verification code is ${code}. It expires in 5 minutes.`, `<div style="margin:0;background:#f3f6fb;padding:28px 12px;font-family:Arial,sans-serif;color:#172033"><div style="max-width:520px;margin:auto;background:#fff;border:1px solid #e2e8f0;border-radius:16px;overflow:hidden"><div style="background:#102b55;padding:24px 28px;color:#fff"><div style="font-size:22px;font-weight:800">ASKC<br><span style="color:#8fc5ff">TECHNOLOGIES</span></div><div style="font-size:10px;letter-spacing:2px;color:#c2d5ee;margin-top:8px">ACCOUNT SECURITY</div></div><div style="padding:28px"><h2 style="color:#102b55">Verify your login</h2><p style="color:#536174;line-height:1.7">Use this one-time code to finish signing in. Do not share it with anyone.</p><div style="background:#f5f8fc;border:1px solid #dce6f2;border-radius:12px;padding:22px;text-align:center"><p style="font-size:11px;letter-spacing:2px;color:#718096">YOUR VERIFICATION CODE</p><div style="font-size:34px;font-weight:800;letter-spacing:8px;color:#1763b1">${code}</div></div><p style="font-size:12px;color:#64748b;margin-top:22px">This code expires in 5 minutes.</p></div><div style="background:#f8fafc;padding:18px 28px;color:#748196;font-size:11px">ASKC TECHNOLOGIES · <a href="https://askctechnologies.in" style="color:#1756a2">askctechnologies.in</a></div></div></div>`);
         } catch (error) {
           await Otp.deleteMany({ email, purpose: "twofactor-login" });
+          await Otp.deleteOne({ email: challenge.email, otp: challenge.otpHash, purpose: "twofactor-challenge" });
           const errorLoginUrl = new URL("/login", process.env.CLIENT_URL || "https://askctechnologies.in");
           errorLoginUrl.searchParams.set("twoFactorError", "email");
           return res.redirect(errorLoginUrl.toString());
@@ -3567,7 +3566,7 @@ async function createSessionForUser(res, user, req) {
   const userAgent = String(req.headers["user-agent"] || "").slice(0, 500);
   await User.findByIdAndUpdate(user._id, {
     $set: { lastLoginAt: new Date(), lastLoginIp: ip, lastLoginUserAgent: userAgent },
-    $push: { sessions: { $each: [{ sessionId, createdAt: new Date(), lastSeenAt: new Date(), ip, userAgent, revokedAt: null }], $slice: -30 } },
+    $push: { sessions: { sessionId, createdAt: new Date(), lastSeenAt: new Date(), ip, userAgent, revokedAt: null } },
   });
   const token = jwt.sign({ id: user._id, role: user.role, sv: Number(user.sessionVersion || 0), sid: sessionId }, process.env.JWT_SECRET, { expiresIn: "7d" });
   res.cookie("token", token, {
@@ -3681,18 +3680,21 @@ router.post("/security/2fa/disable", authMiddleware, async (req, res) => {
 router.post("/2fa/login/verify", async (req, res) => {
   try {
     const challenge = jwt.verify(String(req.body?.challengeToken || ""), process.env.JWT_SECRET);
-    if (challenge.purpose !== "two-factor-login") return res.status(401).json({ message: "Invalid login challenge." });
+    if (challenge.purpose !== "two-factor-login" || typeof challenge.jti !== "string" || !challenge.jti) {
+      return res.status(401).json({ message: "Invalid login challenge." });
+    }
     const user = await User.findById(challenge.id).select("+twoFactorSecret");
     if (!user || !user.twoFactorEnabled) return res.status(401).json({ message: "This login challenge is no longer valid." });
     const code = String(req.body?.code || "").trim();
     let valid = false;
     if (user.twoFactorMethod === "authenticator" && user.twoFactorSecret) valid = twoFactorCrypto.verifyTotp(twoFactorCrypto.decryptSecret(user.twoFactorSecret), code);
     if (user.twoFactorMethod === "email") {
-      const record = await Otp.findOne({ email: user.email.toLowerCase(), otp: code, purpose: "twofactor-login", expiresAt: { $gt: new Date() } });
+      const record = await Otp.findOneAndDelete({ email: user.email.toLowerCase(), otp: code, purpose: "twofactor-login", expiresAt: { $gt: new Date() } });
       valid = Boolean(record);
-      if (record) await Otp.deleteMany({ email: user.email.toLowerCase(), purpose: "twofactor-login" });
     }
     if (!valid) return res.status(400).json({ message: "Invalid or expired verification code." });
+    const consumedChallenge = await consumeTwoFactorChallenge({ Otp, email: user.email, jti: challenge.jti });
+    if (!consumedChallenge) return res.status(401).json({ message: "This login challenge has already been used or has expired. Please sign in again." });
     user.lastLoginAt = new Date();
     user.lastLoginIp = String(req.headers["x-forwarded-for"] || req.ip || "").split(",")[0].slice(0, 100);
     user.lastLoginUserAgent = String(req.headers["user-agent"] || "").slice(0, 500);
