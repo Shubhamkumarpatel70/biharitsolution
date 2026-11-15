@@ -400,7 +400,7 @@ const AdminCoupons = () => {
                 <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Explore our website</p>
                 <a href="https://askctechnologies.in" target="_blank" rel="noreferrer" className="block break-all text-sm font-semibold text-blue-700 underline">https://askctechnologies.in</a>
                 <a href="https://askctechnologies.in/plans" target="_blank" rel="noreferrer" className="block break-all text-sm font-semibold text-blue-700 underline">https://askctechnologies.in/plans</a>
-                <button type="button" onClick={() => copyCouponCode(sharingCoupon.code)} className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-bold text-blue-800 transition hover:bg-blue-100">
+                <button type="button" onClick={async () => { await copyCouponCode(sharingCoupon.code); setSharingCoupon(null); }} className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-bold text-blue-800 transition hover:bg-blue-100">
                   <span aria-hidden="true">▢</span> Copy Coupon Code
                 </button>
               </div>
