@@ -12,7 +12,7 @@ export default defineConfig(({ mode }) => {
     },
     esbuild: {
       loader: "jsx",
-      include: /frontend\\/src\\/.*\\.js$/
+      include: /src.*\.js$/
     },
     server: {
       host: "0.0.0.0",
