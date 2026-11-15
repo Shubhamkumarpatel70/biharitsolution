@@ -23,3 +23,16 @@
 .askc-admin-page input::placeholder,.askc-admin-page textarea::placeholder{color:#94a3b8}
 .askc-admin-page .askc-mobile-scroll{overflow-x:auto;max-width:100%;-webkit-overflow-scrolling:touch}
 @media(max-width:640px){.askc-admin-page{padding:.65rem}.askc-admin-page .askc-page-header{display:block}.askc-admin-page .askc-panel{border-radius:.8rem}.askc-admin-page button{min-height:40px}}
+
+/* Light theme overrides for Manage Users and Manage Plans */
+.askc-admin-page.admin-redesign-page{color:#1e293b!important;background:transparent!important}
+.askc-admin-page.admin-redesign-page .bg-gray-800,.askc-admin-page.admin-redesign-page .bg-gray-900,.askc-admin-page.admin-redesign-page .bg-slate-900{background:#fff!important;color:#1e293b!important;border:1px solid #e2e8f0!important;box-shadow:0 4px 18px rgba(15,23,42,.045)!important}
+.askc-admin-page.admin-redesign-page .text-gray-200,.askc-admin-page.admin-redesign-page .text-gray-100,.askc-admin-page.admin-redesign-page .text-white{color:#1e293b!important}
+.askc-admin-page.admin-redesign-page .text-gray-300,.askc-admin-page.admin-redesign-page .text-gray-400,.askc-admin-page.admin-redesign-page .text-gray-500{color:#64748b!important}
+.askc-admin-page.admin-redesign-page .text-success-500,.askc-admin-page.admin-redesign-page .text-success-400{color:#1756a2!important}
+.askc-admin-page.admin-redesign-page .border-gray-700,.askc-admin-page.admin-redesign-page .border-gray-600{border-color:#e2e8f0!important}
+.askc-admin-page.admin-redesign-page input,.askc-admin-page.admin-redesign-page select,.askc-admin-page.admin-redesign-page textarea{background:#fff!important;color:#0f172a!important;border-color:#cbd5e1!important}
+.askc-admin-page.admin-redesign-page input::placeholder,.askc-admin-page.admin-redesign-page textarea::placeholder{color:#94a3b8!important}
+.askc-admin-page.admin-redesign-page table thead{background:#f8fafc!important;color:#475569!important}
+.askc-admin-page.admin-redesign-page table tbody tr{border-color:#e2e8f0!important}
+.askc-admin-page.admin-redesign-page table tbody tr:hover{background:#f8fafc!important}
