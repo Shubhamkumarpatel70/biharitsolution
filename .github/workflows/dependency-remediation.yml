@@ -1,0 +1,54 @@
+name: Dependency Security Remediation
+
+on:
+  push:
+    branches:
+      - dependency-security-remediation
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  remediate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout remediation branch
+        uses: actions/checkout@v4
+        with:
+          ref: dependency-security-remediation
+          fetch-depth: 0
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Apply non-breaking security updates
+        shell: bash
+        run: |
+          set -e
+          for dir in frontend backend; do
+            echo "::group::${dir} npm audit fix"
+            npm audit fix --prefix "$dir" || true
+            npm audit --json --prefix "$dir" > "/tmp/${dir}-audit.json" || true
+            node -e "const r=require('/tmp/${dir}-audit.json'); console.log('${dir} remaining:', JSON.stringify(r.metadata?.vulnerabilities || {}))"
+            echo "::endgroup::"
+          done
+      - name: Validate backend and frontend build
+        run: |
+          node --check backend/server.js
+          node --check backend/routes/auth.js
+          npm run build --prefix frontend
+        env:
+          CI: "false"
+      - name: Commit updated lockfiles
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add frontend/package-lock.json backend/package-lock.json
+          if git diff --cached --quiet; then
+            echo "No lockfile changes to commit."
+          else
+            git commit -m "chore(security): apply compatible dependency patches"
+            git push origin dependency-security-remediation
+          fi
