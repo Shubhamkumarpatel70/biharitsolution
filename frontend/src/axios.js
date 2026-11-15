@@ -32,7 +32,7 @@ const getFriendlyError = (error) => {
   if (!error?.response) {
     return "Unable to connect right now. Please check your internet connection and try again.";
   }
-  if (status === 400 || status === 422) {
+  if (status === 408) {\n    return "The request is taking longer than expected. Please try again in a moment.";\n  }\n  if (status === 400 || status === 422) {
     return safeBackendMessage || "Please check the information you entered and try again.";
   }
   if (status === 401) {
