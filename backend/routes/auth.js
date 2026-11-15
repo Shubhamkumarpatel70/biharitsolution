@@ -250,7 +250,9 @@ router.get(
           await sendEmail(email, "Your ASKC TECHNOLOGIES login verification code", `Your login verification code is ${code}. It expires in 5 minutes.`, `<div style="font-family:Arial,sans-serif;padding:24px"><h2>ASKC TECHNOLOGIES</h2><p>Your login verification code:</p><h1 style="letter-spacing:8px">${code}</h1><p>This code expires in 5 minutes. Do not share it.</p></div>`);
         } catch (error) {
           await Otp.deleteMany({ email, purpose: "twofactor-login" });
-          return res.redirect((process.env.CLIENT_URL || "https://askctechnologies.in").replace(/\\/dashboard.*$/, "") + "/login?twoFactorError=email");
+          const errorLoginUrl = new URL("/login", process.env.CLIENT_URL || "https://askctechnologies.in");
+          errorLoginUrl.searchParams.set("twoFactorError", "email");
+          return res.redirect(errorLoginUrl.toString());
         }
       }
       const frontendOrigin = process.env.CLIENT_URL || "https://askctechnologies.in";
