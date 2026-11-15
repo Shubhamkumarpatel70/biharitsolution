@@ -714,6 +714,8 @@ router.post(
       planEnum = "starter";
     }
 
+    const basePlanPrice = parseStoredPlanPrice(planDoc.price);
+    if (basePlanPrice === null) return res.status(400).json({ message: "Selected plan has an invalid price. Please contact ASKC Technologies." });
     let discountAmount = 0;
     let normalizedCouponCode = "";
     if (couponCode) {
@@ -729,10 +731,10 @@ router.post(
         return res.status(400).json({ message: "You have already used this coupon." });
       }
       discountAmount = couponDoc.discountType === 'percentage'
-        ? Number(((Number(planDoc.price) || 0) * Math.min(100, Number(couponDoc.amount) || 0) / 100).toFixed(2))
-        : Math.min(Number(couponDoc.amount) || 0, Number(planDoc.price) || 0);
+        ? Number((basePlanPrice * Math.min(100, Number(couponDoc.amount) || 0) / 100).toFixed(2))
+        : Math.min(Number(couponDoc.amount) || 0, basePlanPrice);
     }
-    const payableAmount = Math.max(0, Number(planDoc.price || 0) - discountAmount);
+    const payableAmount = Number(Math.max(0, basePlanPrice - discountAmount).toFixed(2));
     if (payableAmount <= 0) return res.status(400).json({ message: "Coupon discount must leave a payable amount greater than zero." });
 
     const uniqueId =
@@ -761,7 +763,7 @@ router.post(
         status: "pending",
         planName: planDoc.name,
         sourcePlan: planDoc._id,
-        totalAmount: Number(planDoc.price) || 0,
+        totalAmount: basePlanPrice,
         amountPaid: payableAmount,
         discountAmount,
         couponCode: normalizedCouponCode,
