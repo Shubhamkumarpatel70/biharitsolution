@@ -26,8 +26,9 @@
 
 /* Light theme overrides for Manage Users and Manage Plans */
 .askc-admin-page.admin-redesign-page{color:#1e293b!important;background:transparent!important}
-.askc-admin-page.admin-redesign-page .bg-gray-800,.askc-admin-page.admin-redesign-page .bg-gray-900,.askc-admin-page.admin-redesign-page .bg-slate-900{background:#fff!important;color:#1e293b!important;border:1px solid #e2e8f0!important;box-shadow:0 4px 18px rgba(15,23,42,.045)!important}
-.askc-admin-page.admin-redesign-page .text-gray-200,.askc-admin-page.admin-redesign-page .text-gray-100,.askc-admin-page.admin-redesign-page .text-white{color:#1e293b!important}
+.askc-admin-page.admin-redesign-page .bg-gray-800:not(button):not(a),.askc-admin-page.admin-redesign-page .bg-gray-900:not(button):not(a){background:#fff!important;color:#1e293b!important;border:1px solid #e2e8f0!important;box-shadow:0 4px 18px rgba(15,23,42,.045)!important}
+.askc-admin-page.admin-redesign-page .bg-gray-800:not(button):not(a) .text-white,.askc-admin-page.admin-redesign-page .bg-gray-900:not(button):not(a) .text-white{color:#1e293b!important}
+.askc-admin-page.admin-redesign-page .text-gray-200,.askc-admin-page.admin-redesign-page .text-gray-100{color:#1e293b!important}
 .askc-admin-page.admin-redesign-page .text-gray-300,.askc-admin-page.admin-redesign-page .text-gray-400,.askc-admin-page.admin-redesign-page .text-gray-500{color:#64748b!important}
 .askc-admin-page.admin-redesign-page .text-success-500,.askc-admin-page.admin-redesign-page .text-success-400{color:#1756a2!important}
 .askc-admin-page.admin-redesign-page .border-gray-700,.askc-admin-page.admin-redesign-page .border-gray-600{border-color:#e2e8f0!important}
