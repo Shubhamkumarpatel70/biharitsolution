@@ -359,8 +359,9 @@ exports.registerUser = async (req, res) => {
     );
     res.cookie("token", token, {
       httpOnly: true,
-      sameSite: "None",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
       secure: process.env.NODE_ENV === "production",
+      path: "/",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
     res.status(201).json({
@@ -494,8 +495,9 @@ exports.loginUser = async (req, res) => {
     // Set cookie
     res.cookie("token", token, {
       httpOnly: true,
-      sameSite: "None",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
       secure: process.env.NODE_ENV === "production",
+      path: "/",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
@@ -590,7 +592,8 @@ exports.changeUserPassword = async (req, res) => {
     user.lastLogoutAllAt = new Date();
     user.sessions.forEach(session => { if (!session.revokedAt) session.revokedAt = new Date(); });
     await user.save();
-    res.clearCookie("token", { httpOnly: true, sameSite: "None", secure: process.env.NODE_ENV === "production", path: "/" });
+    res.clearCookie("token", { httpOnly: true, sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", secure: process.env.NODE_ENV === "production", path: "/" });
+    res.clearCookie("token", { httpOnly: true, sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", secure: process.env.NODE_ENV === "production", path: "/api/auth" });
     res.set("Cache-Control", "no-store");
     return res.json({ success: true, message: "Password changed. Please sign in again on your devices." });
   } catch (err) {
