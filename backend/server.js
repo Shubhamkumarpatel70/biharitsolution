@@ -15,6 +15,7 @@ const http = require("http");
 const { Server } = require("socket.io");
 const passport = require("passport");
 const session = require("express-session");
+const MongoSessionStore = require("./utils/mongoSessionStore");
 
 require("./config/passport"); // Google strategy configuration
 
@@ -176,6 +177,7 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 // Session middleware for Passport
 app.use(
   session({
+    store: new MongoSessionStore(),
     secret: process.env.SESSION_SECRET || process.env.JWT_SECRET,
     resave: false,
     saveUninitialized: false,
