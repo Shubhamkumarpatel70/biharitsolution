@@ -306,7 +306,7 @@ router.post("/sessions/logout-all", authMiddleware, async (req, res) => {
       $inc: { sessionVersion: 1 },
       $set: { lastLogoutAllAt: new Date(), "sessions.$[].revokedAt": new Date() },
     });
-    res.clearCookie("token", { httpOnly: true, sameSite: "None", secure: process.env.NODE_ENV === "production" });
+    res.clearCookie("token", { httpOnly: true, sameSite: "None", secure: process.env.NODE_ENV === "production", path: "/" });
     res.json({ success: true, message: "All sessions have been signed out. Please log in again." });
   } catch (error) {
     console.error("Logout all sessions failed:", error);
@@ -404,7 +404,8 @@ async function authMiddleware(req, res, next) {
     return res.status(401).json({ message: "No token, authorization denied." });
   }
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "changeme");
+    if (!process.env.JWT_SECRET || process.env.JWT_SECRET === "changeme") return res.status(503).json({ message: "Authentication is temporarily unavailable." });
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     if (decoded.purpose === "two-factor-login") return res.status(401).json({ message: "Complete the login verification first." });
     const account = await User.findById(decoded.id).select("sessionVersion role sessions").lean();
     if (!account || Number(decoded.sv || 0) !== Number(account.sessionVersion || 0)) {
@@ -511,12 +512,6 @@ router.post("/cashfree/webhook", async (req, res) => {
       console.error("Cashfree webhook amount mismatch:", orderId);
       return res.status(200).json({ received: true });
     }
-    if (subscription.couponCode) {
-      await Coupon.findOneAndUpdate(
-        { code: subscription.couponCode, active: true, usedBy: { $ne: subscription.user }, $or: [{ usageLimit: 0 }, { $expr: { $lt: ["$usedCount", "$usageLimit"] } }] },
-        { $addToSet: { usedBy: subscription.user }, $inc: { usedCount: 1 } }
-      );
-    }
     const duration = Number(subscription.durationDays);
     const safeDuration = Number.isFinite(duration) && duration > 0 ? duration : 30;
     const activatedSubscription = await Subscription.findOneAndUpdate(
@@ -531,6 +526,21 @@ router.post("/cashfree/webhook", async (req, res) => {
       },
       { new: true }
     );
+    if (activatedSubscription && subscription.couponCode) {
+      const redeemedCoupon = await Coupon.findOneAndUpdate(
+        {
+          code: subscription.couponCode,
+          active: true,
+          usedBy: { $ne: subscription.user },
+          $or: [{ usageLimit: 0 }, { $expr: { $lt: ["$usedCount", "$usageLimit"] } }],
+        },
+        { $addToSet: { usedBy: subscription.user }, $inc: { usedCount: 1 } },
+        { new: true },
+      );
+      if (redeemedCoupon?.usageLimit > 0 && redeemedCoupon.usedCount >= redeemedCoupon.usageLimit) {
+        await Coupon.updateOne({ _id: redeemedCoupon._id }, { $set: { active: false } });
+      }
+    }
     if (activatedSubscription) await notifyCashfreePaymentSuccess(activatedSubscription);
     return res.status(200).json({ received: true });
   } catch (err) {
@@ -2223,7 +2233,7 @@ router.use(cookieParser());
 router.post("/register", registerUser);
 router.get("/captcha", getLoginCaptcha);
 router.post("/login", loginUser);
-router.post("/register-admin", registerAdmin);
+
 
 // Forgot Password Routes
 router.post("/forgot-password/verify-email", verifyEmailForPasswordReset);
@@ -3652,64 +3662,29 @@ router.delete(
 );
 
 // User: Apply a coupon (with usage tracking and per-user limit)
-router.post("/coupons/apply", async (req, res, next) => {
+router.post("/coupons/apply", async (req, res) => {
   try {
-    const { code, use, planId } = req.body;
-    if (!code)
-      return res.status(400).json({ message: "Coupon code is required." });
-    const coupon = await Coupon.findOne({
-      code: code.toUpperCase(),
-      active: true,
-    });
-    if (!coupon)
-      return res.status(404).json({ message: "Invalid or expired coupon." });
+    const code = String(req.body?.code || "").trim().toUpperCase();
+    const planId = req.body?.planId;
+    if (!code) return res.status(400).json({ message: "Coupon code is required." });
+    const coupon = await Coupon.findOne({ code, active: true }).lean();
+    if (!coupon) return res.status(404).json({ message: "Invalid or expired coupon." });
     if (planId && coupon.eligiblePlans?.length && !coupon.eligiblePlans.some(id => String(id) === String(planId))) {
       return res.status(400).json({ message: "This coupon is not valid for the selected pricing plan." });
     }
     if (coupon.usageLimit > 0 && coupon.usedCount >= coupon.usageLimit) {
       return res.status(400).json({ message: "Coupon usage limit reached." });
     }
-    let userId = null;
-    // If use=true, require authentication and track user
-    if (use) {
-      // Require authentication
-      authMiddleware(req, res, async () => {
-        userId = req.user.id;
-        // Check if user has already used this coupon
-        if (coupon.usedBy.includes(userId)) {
-          return res
-            .status(400)
-            .json({ message: "You have already used this coupon." });
-        }
-        coupon.usedBy.push(userId);
-        coupon.usedCount += 1;
-        if (coupon.usageLimit > 0 && coupon.usedCount >= coupon.usageLimit) {
-          coupon.active = false;
-        }
-        await coupon.save();
-        return res.json({ amount: coupon.amount, discountType: coupon.discountType || 'fixed', coupon });
-      });
-      return;
-    }
-    // If not use=true, just check if user is authenticated and has not used coupon (optional, for preview)
-    if (req.headers.authorization) {
-      try {
-        authMiddleware(req, res, () => {
-          userId = req.user.id;
-          if (coupon.usedBy.includes(userId)) {
-            return res
-              .status(400)
-              .json({ message: "You have already used this coupon." });
-          }
-          return res.json({ amount: coupon.amount, discountType: coupon.discountType || 'fixed', coupon });
-        });
-        return;
-      } catch {}
-    }
-    // If not authenticated, just return coupon info (for preview)
-    res.json({ amount: coupon.amount, discountType: coupon.discountType || 'fixed', coupon });
+    // This endpoint only previews a coupon. Redemption is recorded after verified payment,
+    // never when a customer merely checks or applies a code in the UI.
+    return res.json({
+      amount: coupon.amount,
+      discountType: coupon.discountType || "fixed",
+      coupon: { code: coupon.code, amount: coupon.amount, discountType: coupon.discountType || "fixed" },
+    });
   } catch (err) {
-    res.status(500).json({ message: "Could not apply coupon." });
+    console.error("Coupon validation failed:", err?.message);
+    return res.status(500).json({ message: "Could not validate coupon." });
   }
 });
 
