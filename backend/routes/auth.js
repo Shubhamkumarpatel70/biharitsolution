@@ -31,6 +31,7 @@ const Plan = require("../models/Plan");
 const Contact = require("../models/Contact");
 const Notification = require("../models/Notification");
 const User = require("../models/User");
+const Otp = require("../models/Otp");
 const cookieParser = require("cookie-parser");
 const Complaint = require("../models/Complaint");
 const passport = require("passport");
