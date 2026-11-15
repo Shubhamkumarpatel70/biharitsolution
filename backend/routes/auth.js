@@ -5986,6 +5986,8 @@ router.get("/admin/transactions", authMiddleware, coAdminMiddleware, async (req,
     const query = String(req.query.search || "").trim().slice(0, 120);
     const status = String(req.query.status || "all");
     const method = String(req.query.method || "all");
+    const page = Math.max(1, Math.min(100000, Number.parseInt(req.query.page, 10) || 1));
+    const limit = Math.max(10, Math.min(100, Number.parseInt(req.query.limit, 10) || 25));
     const from = req.query.from ? new Date(req.query.from) : null;
     const to = req.query.to ? new Date(req.query.to) : null;
     const filter = {};
@@ -5998,33 +6000,70 @@ router.get("/admin/transactions", authMiddleware, coAdminMiddleware, async (req,
     }
     if (["cashfree", "upi", "card", "netbanking"].includes(method)) filter.paymentMethod = method;
     if (from && !Number.isNaN(from.getTime())) filter.createdAt = { ...(filter.createdAt || {}), $gte: from };
-    if (to && !Number.isNaN(to.getTime())) { const end = new Date(to); end.setHours(23,59,59,999); filter.createdAt = { ...(filter.createdAt || {}), $lte: end }; }
-    const records = await Subscription.find(filter).populate("user", "name email").sort({ createdAt: -1 }).limit(1000).lean();
-    const normalizedQuery = query.toLowerCase();
-    const matches = normalizedQuery ? records.filter((row) => [
-      row.transactionId, row.cashfreeOrderId, row.uniqueId, row.user?.name,
-      row.user?.email, row.planName, row.plan, row.couponCode, row.paymentMethod,
-    ].join(" ").toLowerCase().includes(normalizedQuery)) : records;
-    const transactions = matches.map((row) => ({
-      ...row,
-      transactionId: row.transactionId || row.cashfreeOrderId || row.uniqueId,
-      amountPaid: row.amountPaid ?? row.totalAmount ?? 0,
-      paymentStatus: row.paymentStatus || row.status || "pending",
-    }));
-    const summary = {
-      total: transactions.length,
-      successful: transactions.filter((row) => ["paid", "success", "completed", "confirmed", "active"].includes(String(row.paymentStatus).toLowerCase())).length,
-      pending: transactions.filter((row) => String(row.paymentStatus).toLowerCase() === "pending").length,
-      failed: transactions.filter((row) => ["failed", "rejected"].includes(String(row.paymentStatus).toLowerCase())).length,
-      refunded: transactions.filter((row) => row.refundStatus === "processed").length,
-    };
-    return res.json({ transactions, summary });
+    if (to && !Number.isNaN(to.getTime())) {
+      const endOfDay = new Date(to);
+      endOfDay.setHours(23, 59, 59, 999);
+      filter.createdAt = { ...(filter.createdAt || {}), $lte: endOfDay };
+    }
+    const pipeline = [
+      { $match: filter },
+      { $lookup: { from: User.collection.name, let: { userId: "$user" }, pipeline: [
+        { $match: { $expr: { $eq: ["$_id", "$$userId"] } } },
+        { $project: { name: 1, email: 1 } },
+      ], as: "user" } },
+      { $unwind: { path: "$user", preserveNullAndEmptyArrays: true } },
+    ];
+    if (query) {
+      const escaped = query.replace(/[.*+?^\${}()|[\]\\]/g, "\\$&");
+      const searchRegex = new RegExp(escaped, "i");
+      pipeline.push({ $match: { $or: [
+        { transactionId: searchRegex }, { cashfreeOrderId: searchRegex }, { uniqueId: searchRegex },
+        { "user.name": searchRegex }, { "user.email": searchRegex }, { planName: searchRegex },
+        { plan: searchRegex }, { couponCode: searchRegex }, { paymentMethod: searchRegex },
+      ] } });
+    }
+    pipeline.push(
+      { $addFields: {
+        normalizedPaymentStatus: { $toLower: { $ifNull: ["$paymentStatus", { $ifNull: ["$status", "pending"] }] } },
+        normalizedAmountPaid: { $ifNull: ["$amountPaid", { $ifNull: ["$totalAmount", 0] }] },
+      } },
+      { $facet: {
+        metadata: [{ $count: "total" }],
+        summary: [{ $group: {
+          _id: null,
+          total: { $sum: 1 },
+          successful: { $sum: { $cond: [{ $in: ["$normalizedPaymentStatus", ["paid", "success", "completed", "confirmed", "active"]] }, 1, 0] } },
+          pending: { $sum: { $cond: [{ $eq: ["$normalizedPaymentStatus", "pending"] }, 1, 0] } },
+          failed: { $sum: { $cond: [{ $in: ["$normalizedPaymentStatus", ["failed", "rejected"]] }, 1, 0] } },
+          refunded: { $sum: { $cond: [{ $eq: ["$refundStatus", "processed"] }, 1, 0] } },
+          grossAmount: { $sum: "$normalizedAmountPaid" },
+        } }],
+        transactions: [
+          { $sort: { createdAt: -1, _id: -1 } },
+          { $skip: (page - 1) * limit },
+          { $limit: limit },
+          { $addFields: {
+            transactionId: { $ifNull: ["$transactionId", { $ifNull: ["$cashfreeOrderId", "$uniqueId"] }] },
+            amountPaid: "$normalizedAmountPaid",
+            paymentStatus: "$normalizedPaymentStatus",
+          } },
+          { $project: { normalizedPaymentStatus: 0, normalizedAmountPaid: 0 } },
+        ],
+      } },
+    );
+    const [result] = await Subscription.aggregate(pipeline).allowDiskUse(true);
+    const summary = result?.summary?.[0] || { total: 0, successful: 0, pending: 0, failed: 0, refunded: 0, grossAmount: 0 };
+    const total = result?.metadata?.[0]?.total || 0;
+    return res.json({
+      transactions: result?.transactions || [],
+      summary,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    });
   } catch (error) {
     console.error("Admin transactions fetch failed:", error);
     return res.status(500).json({ message: "Could not load transaction records." });
   }
 });
-
 
 /* Two-factor authentication: TOTP authenticator or registered-email OTP. */
 const twoFactorCrypto = require("../utils/twoFactor");
