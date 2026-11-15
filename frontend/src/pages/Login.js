@@ -461,7 +461,7 @@ function Login() {
             onClick={(e) => e.stopPropagation()}
             className="relative my-auto w-full max-w-lg overflow-hidden rounded-[2rem] border border-white/70 bg-white text-slate-800 shadow-[0_30px_100px_-25px_rgba(2,6,23,0.65)]"
           >
-            <div className="relative overflow-hidden bg-gradient-to-br from-primary-950 via-primary-900 to-slate-900 px-6 pb-8 pt-7 text-white sm:px-9">
+            <div className="relative overflow-hidden bg-gradient-to-br from-[#102b55] via-[#153b70] to-[#0b1e3b] px-6 pb-8 pt-7 text-white sm:px-9">
               <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full border-[28px] border-white/5" />
               <div className="pointer-events-none absolute -bottom-24 -left-12 h-48 w-48 rounded-full bg-accent-400/10 blur-2xl" />
               <button
@@ -486,7 +486,7 @@ function Login() {
                   <Icon name="lock" className="h-6 w-6" />
                 </div>
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-accent-300">ASKC Technologies</p>
+                  <div className="leading-tight"><p className="text-sm font-extrabold tracking-wide text-white">ASKC</p><p className="mt-0.5 text-sm font-extrabold tracking-wide text-accent-300">TECHNOLOGIES</p></div>
                   <p className="mt-1 text-sm text-white/65">Account recovery</p>
                 </div>
               </div>
