@@ -50,6 +50,29 @@ function App() {
   const { setUser } = useContext(UserContext);
 
   useEffect(() => {
+    let heartbeatTimer;
+    const sendHeartbeat = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      try {
+        await axios.post('/api/auth/activity/heartbeat', {}, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      } catch (error) {
+        // Presence is best-effort; normal authentication handles expired sessions.
+      }
+    };
+    sendHeartbeat();
+    heartbeatTimer = window.setInterval(sendHeartbeat, 45000);
+    const onVisible = () => { if (document.visibilityState === 'visible') sendHeartbeat(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      window.clearInterval(heartbeatTimer);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, []);
+
+  useEffect(() => {
     const checkUser = async () => {
       try {
         const token = localStorage.getItem('token');
