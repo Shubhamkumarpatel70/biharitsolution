@@ -38,6 +38,7 @@ const agreementSchema = new mongoose.Schema(
       required: true,
       enum: [
         "nda",
+        "service_agreement",
         "quotation",
         "invoice",
         "welcome",
