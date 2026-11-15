@@ -2301,66 +2301,7 @@ router.get(
   },
 );
 
-// Redundant definitions removed (moved to top)
-
-
-router.use(cookieParser());
-
-router.post("/register", registerUser);
-router.get("/captcha", getLoginCaptcha);
-router.post("/login", loginUser);
-
-
-// Forgot Password Routes
-router.post("/forgot-password/verify-email", verifyEmailForPasswordReset);
-router.post("/forgot-password/reset", resetPassword);
-
-// Google Auth Routes
-router.get(
-  "/google",
-  passport.authenticate("google", { scope: ["profile", "email"] }),
-);
-
-router.get(
-  "/google/callback",
-  passport.authenticate("google", { failureRedirect: "/login" }),
-  async (req, res) => {
-    // Successful authentication, redirect or send token
-    const sessionId = crypto.randomUUID();
-    const sessionIp = String(req.headers["x-forwarded-for"] || req.ip || "").split(",")[0].slice(0, 100);
-    const sessionAgent = String(req.headers["user-agent"] || "").slice(0, 500);
-    const loginState = await User.findByIdAndUpdate(req.user._id, {
-      $set: { lastLoginAt: new Date(), lastLoginIp: sessionIp, lastLoginUserAgent: sessionAgent },
-      $push: { sessions: { sessionId, createdAt: new Date(), lastSeenAt: new Date(), ip: sessionIp, userAgent: sessionAgent, revokedAt: null } },
-    }, { new: true }).select("sessionVersion");
-    const token = jwt.sign(
-      { id: req.user._id, role: req.user.role, sv: Number(loginState?.sessionVersion || 0), sid: sessionId },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" },
-    );
-    res.cookie("token", token, {
-      httpOnly: true,
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-      secure: process.env.NODE_ENV === "production",
-      path: "/",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
-    // Handle multiple frontend URLs
-    const clientUrl =
-      process.env.CLIENT_URL || "http://localhost:3000/dashboard";
-    res.redirect(clientUrl);
-  },
-);
-
-router.get("/me", authMiddleware, async (req, res) => {
-  try {
-    const user = await User.findById(req.user.id).select("-password");
-    if (!user) return res.status(404).json({ message: "User not found." });
-    res.json({ user });
-  } catch (err) {
-    res.status(500).json({ message: "Server error." });
-  }
-});
+// Legacy duplicate route registrations removed. The canonical handlers are defined above.
 
 // Middleware to protect routes
 async function authMiddleware(req, res, next) {
