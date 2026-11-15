@@ -88,7 +88,7 @@ exports.sendRegisterOtp = async (req, res) => {
 
     generatedOtp = crypto.randomInt(100000, 1000000).toString();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
-    await Otp.deleteMany({ email, purpose: "register" });
+    await Otp.deleteMany({ email, purpose: { $in: ["register", "registration-verified"] } });
     await Otp.create({ email, otp: generatedOtp, purpose: "register", expiresAt });
     const html = generateOtpEmailHtml(
       generatedOtp,
@@ -113,16 +113,27 @@ exports.verifyRegisterOtp = async (req, res) => {
   try {
     const email = String(req.body?.email || "").trim().toLowerCase();
     const otp = String(req.body?.otp || "").trim();
-    if (!email || !otp)
-      return res.status(400).json({ message: "Email and OTP required." });
-    const record = await Otp.findOne({ email, otp, purpose: "register" });
-    if (!record || record.expiresAt < new Date()) {
-      return res.status(400).json({ message: "Invalid or expired OTP." });
-    }
-    await Otp.deleteMany({ email, purpose: "register" });
-    res.json({ message: "OTP verified." });
+    if (!email || !/^\d{6}$/.test(otp)) return res.status(400).json({ message: "Enter your email and the 6-digit code." });
+    const record = await Otp.findOneAndDelete({
+      email, otp, purpose: "register", expiresAt: { $gt: new Date() },
+    });
+    if (!record) return res.status(400).json({ message: "Invalid or expired OTP. Please request a new code." });
+    const existingUser = await User.findOne({ $expr: { $eq: [{ $toLower: "$email" }, email] } }).select("_id");
+    if (existingUser) return res.status(409).json({ message: "An account with this email already exists." });
+    const registrationToken = jwt.sign(
+      { email, purpose: "registration-verified" },
+      process.env.JWT_SECRET,
+      { expiresIn: "10m" },
+    );
+    const tokenHash = crypto.createHash("sha256").update(registrationToken).digest("hex");
+    await Otp.create({
+      email, otp: tokenHash, purpose: "registration-verified",
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+    });
+    return res.json({ message: "OTP verified.", registrationToken });
   } catch (err) {
-    res.status(500).json({ message: "Could not verify OTP." });
+    console.error("Registration OTP verification failed:", err?.message);
+    return res.status(500).json({ message: "Could not verify OTP." });
   }
 };
 
@@ -297,11 +308,19 @@ exports.getLoginCaptcha = async (req, res) => {
 
 exports.registerUser = async (req, res) => {
   try {
-    const { name, email, password, subscribeOffers, marketingConsent } = req.body;
+    const { name, email, password, subscribeOffers, marketingConsent, registrationToken } = req.body || {};
     if (!name || !email || !password) {
       return res.status(400).json({ message: "All fields are required." });
     }
-    const existingUser = await User.findOne({ email });
+    if (!registrationToken || !process.env.JWT_SECRET) return res.status(403).json({ message: "Please verify your email address before creating an account." });
+    let verified;
+    try { verified = jwt.verify(registrationToken, process.env.JWT_SECRET); } catch { return res.status(403).json({ message: "Email verification expired. Please request a new OTP." }); }
+    const normalizedEmail = String(email).trim().toLowerCase();
+    if (verified.purpose !== "registration-verified" || verified.email !== normalizedEmail) return res.status(403).json({ message: "Email verification does not match this account." });
+    const tokenHash = crypto.createHash("sha256").update(String(registrationToken)).digest("hex");
+    const verifiedRecord = await Otp.findOneAndDelete({ email: normalizedEmail, otp: tokenHash, purpose: "registration-verified", expiresAt: { $gt: new Date() } });
+    if (!verifiedRecord) return res.status(403).json({ message: "Email verification has already been used or expired. Please request a new OTP." });
+    const existingUser = await User.findOne({ email: normalizedEmail });
     if (existingUser) {
       return res.status(400).json({ message: "User already exists." });
     }
