@@ -222,7 +222,7 @@ async function authMiddleware(req, res, next) {
   const authHeader = req.headers.authorization || "";
   const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
   if (!token) return res.status(401).json({ message: "No token, authorization denied." });
-  if (!process.env.JWT_SECRET) return res.status(503).json({ message: "Authentication is temporarily unavailable." });
+  if (!process.env.JWT_SECRET || process.env.JWT_SECRET === "changeme") return res.status(503).json({ message: "Authentication is temporarily unavailable." });
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     if (!decoded.id || !decoded.sid || decoded.purpose === "two-factor-login") {
