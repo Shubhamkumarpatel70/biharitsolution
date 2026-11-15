@@ -215,6 +215,19 @@ function normalizeResumeMime(mimetype, originalname) {
 
 router.use(cookieParser());
 
+const authCookieOptions = {
+  httpOnly: true,
+  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+  secure: process.env.NODE_ENV === "production",
+  path: "/",
+};
+
+function clearAuthCookies(res) {
+  // Clear both the root-path cookie and legacy cookies scoped to /api/auth.
+  res.clearCookie("token", authCookieOptions);
+  res.clearCookie("token", { ...authCookieOptions, path: "/api/auth" });
+}
+
 router.post("/register", registerUser);
 router.get("/captcha", getLoginCaptcha);
 router.post("/login", loginUser);
@@ -266,6 +279,27 @@ router.get("/sessions", authMiddleware, async (req, res) => {
   }
 });
 
+// Sign out only the current browser/device session.
+router.post("/logout", authMiddleware, async (req, res) => {
+  try {
+    const result = await User.updateOne(
+      { _id: req.user.id, sessions: { $elemMatch: { sessionId: req.user.sid, revokedAt: null } } },
+      { $set: { "sessions.$.revokedAt": new Date() } },
+    );
+    if (!result.modifiedCount) {
+      clearAuthCookies(res);
+      res.set("Cache-Control", "no-store");
+      return res.status(401).json({ success: false, message: "This device session has already ended. Please sign in again." });
+    }
+    clearAuthCookies(res);
+    res.set("Cache-Control", "no-store");
+    return res.json({ success: true, current: true, message: "You have been signed out from this device." });
+  } catch (error) {
+    console.error("Current session logout failed:", error);
+    return res.status(500).json({ success: false, message: "Could not sign out this device." });
+  }
+});
+
 router.post("/sessions/:sessionId/logout", authMiddleware, async (req, res) => {
   try {
     const sessionId = String(req.params.sessionId || "");
@@ -280,12 +314,7 @@ router.post("/sessions/:sessionId/logout", authMiddleware, async (req, res) => {
     // signs itself out, otherwise the browser can silently authenticate again
     // from the still-present cookie after localStorage has been cleared.
     if (isCurrentSession) {
-      res.clearCookie("token", {
-        httpOnly: true,
-        sameSite: "None",
-        secure: process.env.NODE_ENV === "production",
-        path: "/",
-      });
+      clearAuthCookies(res);
     }
     res.set("Cache-Control", "no-store");
     res.json({
@@ -306,7 +335,7 @@ router.post("/sessions/logout-all", authMiddleware, async (req, res) => {
       $inc: { sessionVersion: 1 },
       $set: { lastLogoutAllAt: new Date(), "sessions.$[].revokedAt": new Date() },
     });
-    res.clearCookie("token", { httpOnly: true, sameSite: "None", secure: process.env.NODE_ENV === "production", path: "/" });
+    clearAuthCookies(res);
     res.json({ success: true, message: "All sessions have been signed out. Please log in again." });
   } catch (error) {
     console.error("Logout all sessions failed:", error);
@@ -370,8 +399,9 @@ router.get(
     );
     res.cookie("token", token, {
       httpOnly: true,
-      sameSite: "None",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
       secure: process.env.NODE_ENV === "production",
+      path: "/",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
     // Handle multiple frontend URLs
@@ -409,16 +439,16 @@ async function authMiddleware(req, res, next) {
     if (decoded.purpose === "two-factor-login") return res.status(401).json({ message: "Complete the login verification first." });
     const account = await User.findById(decoded.id).select("sessionVersion role sessions").lean();
     if (!account || Number(decoded.sv || 0) !== Number(account.sessionVersion || 0)) {
-      res.clearCookie("token", { httpOnly: true, sameSite: "None", secure: process.env.NODE_ENV === "production" });
+      clearAuthCookies(res);
       return res.status(401).json({ message: "Your session has expired. Please log in again." });
     }
     if (!decoded.sid) {
-      res.clearCookie("token", { httpOnly: true, sameSite: "None", secure: process.env.NODE_ENV === "production" });
+      clearAuthCookies(res);
       return res.status(401).json({ message: "Please log in again to activate secure device session tracking." });
     }
     const activeSession = (account.sessions || []).find((session) => session.sessionId === decoded.sid && !session.revokedAt);
     if (!activeSession) {
-      res.clearCookie("token", { httpOnly: true, sameSite: "None", secure: process.env.NODE_ENV === "production" });
+      clearAuthCookies(res);
       return res.status(401).json({ message: "This device session has been signed out. Please log in again." });
     }
     req.user = { ...decoded, role: account.role };
@@ -2264,8 +2294,9 @@ router.get(
     );
     res.cookie("token", token, {
       httpOnly: true,
-      sameSite: "None",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
       secure: process.env.NODE_ENV === "production",
+      path: "/",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
     // Handle multiple frontend URLs
@@ -2303,7 +2334,7 @@ async function authMiddleware(req, res, next) {
     if (decoded.purpose === "two-factor-login") return res.status(401).json({ message: "Complete the login verification first." });
     const account = await User.findById(decoded.id).select("sessionVersion role").lean();
     if (!account || Number(decoded.sv || 0) !== Number(account.sessionVersion || 0)) {
-      res.clearCookie("token", { httpOnly: true, sameSite: "None", secure: process.env.NODE_ENV === "production" });
+      clearAuthCookies(res);
       return res.status(401).json({ message: "Your session has expired. Please log in again." });
     }
     req.user = { ...decoded, role: account.role };
@@ -5947,7 +5978,13 @@ async function createSessionForUser(res, user, req) {
     $push: { sessions: { $each: [{ sessionId, createdAt: new Date(), lastSeenAt: new Date(), ip, userAgent, revokedAt: null }], $slice: -30 } },
   });
   const token = jwt.sign({ id: user._id, role: user.role, sv: Number(user.sessionVersion || 0), sid: sessionId }, process.env.JWT_SECRET, { expiresIn: "7d" });
-  res.cookie("token", token, { httpOnly: true, sameSite: "None", secure: process.env.NODE_ENV === "production", maxAge: 7 * 24 * 60 * 60 * 1000 });
+  res.cookie("token", token, {
+    httpOnly: true,
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
   return token;
 }
 router.get("/security/2fa", authMiddleware, async (req, res) => {
