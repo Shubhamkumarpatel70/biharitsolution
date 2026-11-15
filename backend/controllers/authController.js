@@ -190,7 +190,8 @@ exports.sendForgotOtp = async (req, res) => {
       recipient: normalizedEmail,
       provider: process.env.RESEND_API_KEY ? "resend" : (process.env.SMTP_USER ? "smtp" : "not-configured"),
     });
-    return res.json({ message: "OTP sent to your email address." });
+    // Keep the response identical to the unknown-account path to prevent email enumeration.
+    return res.json({ message: "If an account exists for this email, a verification code will be sent shortly." });
   } catch (err) {
     console.error("Forgot-password OTP delivery failed:", {
       recipient: normalizedEmail || "not-provided",
