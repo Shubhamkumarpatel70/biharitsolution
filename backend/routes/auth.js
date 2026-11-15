@@ -394,12 +394,14 @@ async function authMiddleware(req, res, next) {
       res.clearCookie("token", { httpOnly: true, sameSite: "None", secure: process.env.NODE_ENV === "production" });
       return res.status(401).json({ message: "Your session has expired. Please log in again." });
     }
-    if (decoded.sid) {
-      const activeSession = (account.sessions || []).find((session) => session.sessionId === decoded.sid && !session.revokedAt);
-      if (!activeSession) {
-        res.clearCookie("token", { httpOnly: true, sameSite: "None", secure: process.env.NODE_ENV === "production" });
-        return res.status(401).json({ message: "This device session has been signed out. Please log in again." });
-      }
+    if (!decoded.sid) {
+      res.clearCookie("token", { httpOnly: true, sameSite: "None", secure: process.env.NODE_ENV === "production" });
+      return res.status(401).json({ message: "Please log in again to activate secure device session tracking." });
+    }
+    const activeSession = (account.sessions || []).find((session) => session.sessionId === decoded.sid && !session.revokedAt);
+    if (!activeSession) {
+      res.clearCookie("token", { httpOnly: true, sameSite: "None", secure: process.env.NODE_ENV === "production" });
+      return res.status(401).json({ message: "This device session has been signed out. Please log in again." });
     }
     req.user = { ...decoded, role: account.role };
     next();
