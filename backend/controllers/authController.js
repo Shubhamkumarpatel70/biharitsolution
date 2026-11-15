@@ -81,7 +81,7 @@ exports.sendRegisterOtp = async (req, res) => {
   const email = String(req.body?.email || "").trim().toLowerCase();
   let generatedOtp = "";
   try {
-    const emailPattern = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!email || !emailPattern.test(email)) {
       return res.status(400).json({ message: "Please enter a valid email address." });
     }
