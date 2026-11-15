@@ -233,7 +233,32 @@ router.get(
 router.get(
   "/google/callback",
   passport.authenticate("google", { failureRedirect: "/login" }),
-  (req, res) => {
+  async (req, res) => {
+    // Google sign-in must respect the same second-factor requirement as password sign-in.
+    if (req.user?.twoFactorEnabled && ["email", "authenticator"].includes(req.user.twoFactorMethod)) {
+      const challengeToken = jwt.sign(
+        { id: req.user._id, role: req.user.role, purpose: "two-factor-login" },
+        process.env.JWT_SECRET,
+        { expiresIn: "5m" },
+      );
+      if (req.user.twoFactorMethod === "email") {
+        const code = require("crypto").randomInt(100000, 1000000).toString();
+        const email = String(req.user.email).toLowerCase();
+        await Otp.deleteMany({ email, purpose: "twofactor-login" });
+        await Otp.create({ email, otp: code, purpose: "twofactor-login", expiresAt: new Date(Date.now() + 5 * 60 * 1000) });
+        try {
+          await sendEmail(email, "Your ASKC TECHNOLOGIES login verification code", `Your login verification code is ${code}. It expires in 5 minutes.`, `<div style="font-family:Arial,sans-serif;padding:24px"><h2>ASKC TECHNOLOGIES</h2><p>Your login verification code:</p><h1 style="letter-spacing:8px">${code}</h1><p>This code expires in 5 minutes. Do not share it.</p></div>`);
+        } catch (error) {
+          await Otp.deleteMany({ email, purpose: "twofactor-login" });
+          return res.redirect((process.env.CLIENT_URL || "https://askctechnologies.in").replace(/\\/dashboard.*$/, "") + "/login?twoFactorError=email");
+        }
+      }
+      const frontendOrigin = process.env.CLIENT_URL || "https://askctechnologies.in";
+      const loginUrl = new URL("/login", frontendOrigin);
+      loginUrl.searchParams.set("twoFactorToken", challengeToken);
+      loginUrl.searchParams.set("twoFactorMethod", req.user.twoFactorMethod);
+      return res.redirect(loginUrl.toString());
+    }
     // Successful authentication, redirect or send token
     const token = jwt.sign(
       { id: req.user._id, role: req.user.role },
