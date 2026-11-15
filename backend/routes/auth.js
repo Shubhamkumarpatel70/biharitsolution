@@ -247,7 +247,7 @@ router.get(
         await Otp.deleteMany({ email, purpose: "twofactor-login" });
         await Otp.create({ email, otp: code, purpose: "twofactor-login", expiresAt: new Date(Date.now() + 5 * 60 * 1000) });
         try {
-          await sendEmail(email, "Your ASKC TECHNOLOGIES login verification code", `Your login verification code is ${code}. It expires in 5 minutes.`, `<div style="font-family:Arial,sans-serif;padding:24px"><h2>ASKC TECHNOLOGIES</h2><p>Your login verification code:</p><h1 style="letter-spacing:8px">${code}</h1><p>This code expires in 5 minutes. Do not share it.</p></div>`);
+          await sendEmail(email, "Your ASKC TECHNOLOGIES login verification code", `Your login verification code is ${code}. It expires in 5 minutes.`, `<div style="margin:0;background:#f3f6fb;padding:28px 12px;font-family:Arial,sans-serif;color:#172033"><div style="max-width:520px;margin:auto;background:#fff;border:1px solid #e2e8f0;border-radius:16px;overflow:hidden"><div style="background:#102b55;padding:24px 28px;color:#fff"><div style="font-size:22px;font-weight:800">ASKC<br><span style="color:#8fc5ff">TECHNOLOGIES</span></div><div style="font-size:10px;letter-spacing:2px;color:#c2d5ee;margin-top:8px">ACCOUNT SECURITY</div></div><div style="padding:28px"><h2 style="color:#102b55">Verify your login</h2><p style="color:#536174;line-height:1.7">Use this one-time code to finish signing in. Do not share it with anyone.</p><div style="background:#f5f8fc;border:1px solid #dce6f2;border-radius:12px;padding:22px;text-align:center"><p style="font-size:11px;letter-spacing:2px;color:#718096">YOUR VERIFICATION CODE</p><div style="font-size:34px;font-weight:800;letter-spacing:8px;color:#1763b1">${code}</div></div><p style="font-size:12px;color:#64748b;margin-top:22px">This code expires in 5 minutes.</p></div><div style="background:#f8fafc;padding:18px 28px;color:#748196;font-size:11px">ASKC TECHNOLOGIES · <a href="https://askctechnologies.in" style="color:#1756a2">askctechnologies.in</a></div></div></div>`);
         } catch (error) {
           await Otp.deleteMany({ email, purpose: "twofactor-login" });
           const errorLoginUrl = new URL("/login", process.env.CLIENT_URL || "https://askctechnologies.in");
@@ -3363,9 +3363,9 @@ router.post(
 <body style="margin:0;padding:0;background:#f3f6fb;font-family:Arial,Helvetica,sans-serif;color:#172033;">
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#f3f6fb;padding:28px 12px;"><tr><td align="center">
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:620px;background:#fff;border:1px solid #e5ebf3;border-radius:18px;overflow:hidden;">
-<tr><td style="background:#102b55;padding:28px 30px;"><div style="font-size:21px;font-weight:800;letter-spacing:.3px;color:#fff;">ASKC <span style="color:#8fc5ff;">TECHNOLOGIES</span></div><div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#c2d5ee;margin-top:7px;">Ideas to digital impact</div></td></tr>
+<tr><td style="background:#102b55;padding:28px 30px;"><div style="font-size:23px;line-height:1.05;font-weight:800;letter-spacing:.4px;color:#fff;">ASKC</div><div style="font-size:23px;line-height:1.05;font-weight:800;letter-spacing:.4px;color:#8fc5ff;margin-top:3px;">TECHNOLOGIES</div><div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#c2d5ee;margin-top:9px;">Ideas to digital impact</div></td></tr>
 <tr><td style="padding:34px 30px 28px;"><div style="display:inline-block;padding:7px 11px;border-radius:20px;background:#edf5ff;color:#1756a2;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;">News & updates</div><h1 style="font-size:25px;line-height:1.3;color:#102b55;margin:18px 0 14px;">${safeSubject}</h1><div style="font-size:15px;line-height:1.85;color:#475569;">${safeMessage}</div>
-<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:24px 0 4px;"><tr><td style="border-radius:9px;background:#1756a2;"><a href="https://askctechnologies.in" style="display:inline-block;padding:13px 20px;color:#ffffff;text-decoration:none;font-size:13px;font-weight:700;">Explore ASKC Technologies</a></td></tr></table>
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:24px 0 4px;"><tr><td style="border-radius:9px;background:#1756a2;"><a href="https://askctechnologies.in/plans" style="display:inline-block;padding:13px 20px;color:#ffffff;text-decoration:none;font-size:13px;font-weight:700;">Explore ASKC Technologies</a></td></tr></table>
 <div style="margin-top:28px;padding:18px;background:#f6f9fd;border:1px solid #e3ebf5;border-radius:12px;"><p style="font-size:12px;line-height:1.7;color:#66758a;margin:0;">You're receiving this email because you explicitly opted in to receive updates and offers from ASKC TECHNOLOGIES.</p><p style="font-size:12px;margin:12px 0 0;"><a href="${unsubscribeUrl}" style="color:#1756a2;font-weight:700;text-decoration:underline;">Unsubscribe from promotional emails</a></p></div></td></tr>
 <tr><td style="padding:20px 30px;background:#f8fafc;border-top:1px solid #e8edf4;"><p style="font-size:11px;color:#748196;line-height:1.7;margin:0;">ASKC TECHNOLOGIES · <a href="https://askctechnologies.in" style="color:#1756a2;text-decoration:none;">askctechnologies.in</a><br/><a href="mailto:askctechnologies@gmail.com" style="color:#1756a2;text-decoration:none;">askctechnologies@gmail.com</a> · +91 79923 65197</p><p style="font-size:10px;color:#9aa5b4;margin:12px 0 0;">© ${new Date().getFullYear()} ASKC TECHNOLOGIES. All rights reserved.</p></td></tr>
 </table></td></tr></table></body></html>`;
@@ -5255,9 +5255,7 @@ router.post(
       const greeting = greetings[agreement.documentType] || `Please find your document — <strong>${agreement.documentTitle}</strong> — from ASKC TECHNOLOGIES.`;
 
       // Public view link — use the base URL from env or a default
-      const baseUrl = process.env.CLIENT_URL
-        ? process.env.CLIENT_URL.replace("/dashboard", "")
-        : "https://askcweb.in";
+      const baseUrl = process.env.PUBLIC_SITE_URL || process.env.FRONTEND_URL || (process.env.CLIENT_URL ? process.env.CLIENT_URL.replace(/\/dashboard\/?$/, "") : "https://askctechnologies.in");
 
       const viewLink = `${baseUrl}/api/auth/public/agreements/${agreement._id}/view`;
 
@@ -5277,8 +5275,8 @@ router.post(
         <!-- Header -->
         <tr>
           <td style="background:#061d4b;border-radius:16px 16px 0 0;padding:30px 40px;text-align:center;">
-            <h1 style="color:#ffffff;font-size:22px;font-weight:800;margin:0;letter-spacing:-0.5px;">ASKC <span style="color:#60a5fa;">Digital Web</span></h1>
-            <p style="color:#94a3b8;font-size:11px;margin:6px 0 0;text-transform:uppercase;letter-spacing:1px;">Digital Excellence</p>
+            <h1 style="color:#ffffff;font-size:25px;line-height:1.05;font-weight:800;margin:0;letter-spacing:-0.3px;">ASKC<br><span style="color:#8fc5ff;">TECHNOLOGIES</span></h1>
+            <p style="color:#c2d5ee;font-size:10px;margin:9px 0 0;text-transform:uppercase;letter-spacing:2px;">Ideas to digital impact</p>
           </td>
         </tr>
 
@@ -5316,7 +5314,7 @@ router.post(
         <!-- Footer -->
         <tr>
           <td style="background:#061d4b;border-radius:0 0 16px 16px;padding:20px 40px;text-align:center;">
-            <p style="color:#94a3b8;font-size:11px;margin:0 0 6px;">📧 askctechnologies@gmail.com &nbsp;|&nbsp; 🌐 www.askcweb.in &nbsp;|&nbsp; 📞 +91 79923 65197</p>
+            <p style="color:#94a3b8;font-size:11px;margin:0 0 6px;">📧 askctechnologies@gmail.com &nbsp;|&nbsp; 🌐 askctechnologies.in &nbsp;|&nbsp; 📞 +91 79923 65197</p>
             <p style="color:#475569;font-size:10px;margin:0;">Bihar IT Solution, Main Road, Near City Center, Patna, Bihar - 800001</p>
             <p style="color:#334155;font-size:10px;margin:8px 0 0;">© ${new Date().getFullYear()} ASKC TECHNOLOGIES. All rights reserved.</p>
           </td>
