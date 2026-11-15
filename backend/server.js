@@ -125,51 +125,27 @@ const authLimiter = rateLimit({
 // Apply rate limiting to auth routes
 app.use("/api/auth", authLimiter);
 
-// CORS configuration - Handle multiple frontend URLs
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      const allowedOrigins = [
-        "http://localhost:3000",
-        "https://custom-web-frontend.onrender.com",
-        "https://askcweb.in",
-        "https://capitalcove.me",
-        "https://www.capitalcove.me",
-      ];
-
-      console.log("CORS Origin Check:", origin);
-
-      // Allow requests with no origin (like mobile apps or curl requests)
-      if (!origin) {
-        console.log("No origin provided, allowing request");
-        return callback(null, true);
-      }
-
-      // Check if origin is in allowed list
-      if (allowedOrigins.includes(origin)) {
-        console.log("Origin allowed:", origin);
-        callback(null, true);
-      } else {
-        console.log("Origin not allowed:", origin);
-        // For debugging, allow all origins but log them
-        console.log("Allowing origin for debugging:", origin);
-        callback(null, true);
-      }
-    },
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-    allowedHeaders: [
-      "Content-Type",
-      "Authorization",
-      "X-Requested-With",
-      "Accept",
-      "Origin",
-    ],
-    exposedHeaders: ["Content-Length", "X-Requested-With"],
-    optionsSuccessStatus: 200,
-    preflightContinue: false,
-  }),
-);
+// Strict CORS allowlist for the ASKC Technologies production site and local development.
+const allowedOrigins = new Set([
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+  "https://askctechnologies.in",
+  "https://www.askctechnologies.in",
+  "https://biharitsolution.onrender.com",
+  "https://custom-web-app.onrender.com",
+  "https://custom-web-frontend.onrender.com",
+]);
+const corsOptions = {
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.has(origin)) return callback(null, true);
+    return callback(new Error("Origin is not allowed by CORS"));
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+  optionsSuccessStatus: 204,
+};
+app.use(cors(corsOptions));
 
 // Preserve the exact Cashfree webhook payload for signature verification.
 app.use("/api/auth/cashfree/webhook", express.raw({ type: "application/json" }));
@@ -181,7 +157,7 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 // Session middleware for Passport
 app.use(
   session({
-    secret: process.env.SESSION_SECRET || "your_session_secret",
+    secret: process.env.SESSION_SECRET || process.env.JWT_SECRET,
     resave: false,
     saveUninitialized: false,
     cookie: {
@@ -202,49 +178,6 @@ app.use((req, res, next) => {
     res.status(408).json({ message: "Request timeout" });
   });
   next();
-});
-
-// Handle preflight requests
-app.options("*", cors());
-
-// Manual CORS headers as backup - Handle multiple frontend URLs
-app.use((req, res, next) => {
-  const allowedOrigins = [
-    "http://localhost:3000",
-    "https://custom-web-frontend.onrender.com",
-    "https://custom-web-app.onrender.com",
-    "https://biharitsolution.onrender.com",
-    "https://askcweb.in",
-    "https://capitalcove.me",
-    "https://www.capitalcove.me",
-  ];
-
-  const origin = req.headers.origin;
-  console.log("Manual CORS - Request Origin:", origin);
-  console.log("Manual CORS - Request Method:", req.method);
-
-  // Set CORS headers for all origins during debugging
-  if (origin) {
-    res.header("Access-Control-Allow-Origin", origin);
-    console.log("Manual CORS - Origin allowed:", origin);
-  }
-
-  res.header(
-    "Access-Control-Allow-Methods",
-    "GET, POST, PUT, DELETE, OPTIONS, PATCH",
-  );
-  res.header(
-    "Access-Control-Allow-Headers",
-    "Content-Type, Authorization, X-Requested-With, Accept, Origin",
-  );
-  res.header("Access-Control-Allow-Credentials", "true");
-
-  if (req.method === "OPTIONS") {
-    console.log("Manual CORS - Handling OPTIONS request");
-    res.sendStatus(200);
-  } else {
-    next();
-  }
 });
 
 // CORS test route
@@ -279,24 +212,36 @@ app.get("/api/health", (req, res) => {
       nodeEnv: process.env.NODE_ENV,
       clientUrl: process.env.CLIENT_URL,
       hasJwtSecret: !!process.env.JWT_SECRET,
-      hasMongoUri: !!process.env.MONGO_URI,
+      hasMongoUri: !!(process.env.MONGO_URI || process.env.MONGODB_URI),
     },
   });
 });
 
-// JWT middleware
-function authMiddleware(req, res, next) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ message: "No token, authorization denied." });
-  }
-  const token = authHeader.split(" ")[1];
+// Dashboard authentication uses the same per-device session checks as /api/auth.
+async function authMiddleware(req, res, next) {
+  const authHeader = req.headers.authorization || "";
+  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+  if (!token) return res.status(401).json({ message: "No token, authorization denied." });
+  if (!process.env.JWT_SECRET) return res.status(503).json({ message: "Authentication is temporarily unavailable." });
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "changeme");
-    req.user = decoded;
-    next();
-  } catch (err) {
-    res.status(401).json({ message: "Token is not valid." });
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (!decoded.id || !decoded.sid || decoded.purpose === "two-factor-login") {
+      return res.status(401).json({ message: "Please sign in again." });
+    }
+    const account = await User.findById(decoded.id).select("sessionVersion role sessions").lean();
+    if (!account || Number(decoded.sv || 0) !== Number(account.sessionVersion || 0)) {
+      res.set("Cache-Control", "no-store");
+      return res.status(401).json({ message: "Your session has expired. Please sign in again." });
+    }
+    const activeSession = (account.sessions || []).some(session => session.sessionId === decoded.sid && !session.revokedAt);
+    if (!activeSession) {
+      res.set("Cache-Control", "no-store");
+      return res.status(401).json({ message: "This device has been signed out. Please sign in again." });
+    }
+    req.user = { ...decoded, role: account.role };
+    return next();
+  } catch (error) {
+    return res.status(401).json({ message: "Token is not valid." });
   }
 }
 
@@ -315,7 +260,9 @@ const connectMongoDB = async (retries = 5, delay = 5000) => {
         await mongoose.disconnect();
       }
 
-      await mongoose.connect(process.env.MONGO_URI, {
+      const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI;
+      if (!mongoUri) throw new Error("Missing required MONGO_URI (or MONGODB_URI) environment variable.");
+      await mongoose.connect(mongoUri, {
         maxPoolSize: 10, // Maintain up to 10 socket connections
         serverSelectionTimeoutMS: 10000, // Keep trying to send operations for 10 seconds
         socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
