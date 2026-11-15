@@ -326,8 +326,8 @@ exports.registerUser = async (req, res) => {
     }
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = new User({
-      name,
-      email,
+      name: String(name).trim(),
+      email: normalizedEmail,
       password: hashedPassword,
       role: "user",
       subscribeOffers: subscribeOffers === true || marketingConsent === true,
@@ -600,33 +600,12 @@ exports.changeUserPassword = async (req, res) => {
 };
 
 // Forgot Password - Verify Email
+// Legacy endpoint retained for compatibility but does not disclose account existence.
 exports.verifyEmailForPasswordReset = async (req, res) => {
-  try {
-    console.log("Forgot password verify email endpoint called");
-    const { email } = req.body;
-    if (!email) {
-      return res.status(400).json({ message: "Email is required." });
-    }
-
-    const user = await User.findOne({ email: email.trim().toLowerCase() });
-    if (!user) {
-      return res
-        .status(404)
-        .json({ message: "User not found with this email address." });
-    }
-
-    // Return user info (without password)
-    res.json({
-      user: {
-        name: user.name,
-        email: user.email,
-      },
-      message: "Email verified successfully.",
-    });
-  } catch (err) {
-    console.error("Error verifying email:", err);
-    res.status(500).json({ message: "Could not verify email." });
-  }
+  res.set("Cache-Control", "no-store");
+  return res.status(410).json({
+    message: "Email-only verification is no longer supported. Request and verify the email OTP instead.",
+  });
 };
 
 // Forgot Password - Reset Password
