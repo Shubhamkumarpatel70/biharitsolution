@@ -442,7 +442,7 @@ function Login() {
 
       {showForgotPassword && (
         <div
-          className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-primary-900/60 backdrop-blur-sm"
+          className="fixed inset-0 z-[10000] flex items-center justify-center overflow-y-auto bg-slate-950/70 px-4 py-8 backdrop-blur-md"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
               setShowForgotPassword(false);
@@ -459,147 +459,165 @@ function Login() {
           <form
             onSubmit={userInfo ? handleResetPassword : (showForgotOtp ? handleVerifyForgotOtp : handleSendForgotOtp)}
             onClick={(e) => e.stopPropagation()}
-            className="relative w-full max-w-md max-h-[90vh] overflow-y-auto bg-primary-950 border border-primary-700/50 rounded-2xl p-6 sm:p-8 shadow-2xl flex flex-col gap-4 text-gray-100"
+            className="relative my-auto w-full max-w-lg overflow-hidden rounded-[2rem] border border-white/70 bg-white text-slate-800 shadow-[0_30px_100px_-25px_rgba(2,6,23,0.65)]"
           >
-            <button
-              type="button"
-              onClick={() => {
-                setShowForgotPassword(false);
-                setForgotEmail('');
-                setUserInfo(null);
-                setNewPassword('');
-                setConfirmPassword('');
-                setShowForgotOtp(false);
-                setForgotOtp('');
-                setMessage('');
-              }}
-              className="absolute top-4 right-4 p-2 rounded-lg bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white transition-colors"
-              aria-label="Close"
-            >
-              <Icon name="close" className="w-5 h-5" />
-            </button>
+            <div className="relative overflow-hidden bg-gradient-to-br from-primary-950 via-primary-900 to-slate-900 px-6 pb-8 pt-7 text-white sm:px-9">
+              <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full border-[28px] border-white/5" />
+              <div className="pointer-events-none absolute -bottom-24 -left-12 h-48 w-48 rounded-full bg-accent-400/10 blur-2xl" />
+              <button
+                type="button"
+                onClick={() => {
+                  setShowForgotPassword(false);
+                  setForgotEmail('');
+                  setUserInfo(null);
+                  setNewPassword('');
+                  setConfirmPassword('');
+                  setShowForgotOtp(false);
+                  setForgotOtp('');
+                  setMessage('');
+                }}
+                className="absolute right-5 top-5 z-10 rounded-full border border-white/15 bg-white/10 p-2.5 text-white/80 transition hover:bg-white/20 hover:text-white"
+                aria-label="Close forgot password"
+              >
+                <Icon name="close" className="h-5 w-5" />
+              </button>
+              <div className="relative flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-accent-300/25 bg-accent-400/15 text-accent-300 shadow-inner">
+                  <Icon name="lock" className="h-6 w-6" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-accent-300">ASKC Technologies</p>
+                  <p className="mt-1 text-sm text-white/65">Account recovery</p>
+                </div>
+              </div>
+              <h2 className="relative mt-7 pr-8 text-2xl font-extrabold tracking-tight sm:text-3xl">
+                {userInfo ? 'Create a new password' : (showForgotOtp ? 'Verify your email' : 'Forgot your password?')}
+              </h2>
+              <p className="relative mt-2 max-w-sm text-sm leading-6 text-white/70">
+                {userInfo
+                  ? 'Choose a strong password to secure your account.'
+                  : (showForgotOtp
+                    ? 'Enter the 6-digit code we sent to your registered email address.'
+                    : 'No worries. We’ll help you get back into your account in a few simple steps.')}
+              </p>
+              <div className="relative mt-7 flex items-center gap-2">
+                {['Email', 'Verify', 'Reset'].map((step, index) => {
+                  const activeIndex = userInfo ? 2 : (showForgotOtp ? 1 : 0);
+                  const completed = index < activeIndex;
+                  const active = index === activeIndex;
+                  return (
+                    <div key={step} className="flex flex-1 items-center gap-2">
+                      <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-bold ${completed ? 'border-accent-300 bg-accent-300 text-primary-950' : active ? 'border-accent-300 bg-accent-300/15 text-accent-200' : 'border-white/20 bg-white/5 text-white/45'}`}>
+                        {completed ? '✓' : index + 1}
+                      </div>
+                      <span className={`hidden text-xs font-semibold sm:inline ${active ? 'text-white' : completed ? 'text-accent-200' : 'text-white/45'}`}>{step}</span>
+                      {index < 2 && <div className={`h-px flex-1 ${completed ? 'bg-accent-300/70' : 'bg-white/15'}`} />}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
 
-            <h2 className="text-xl font-bold text-center text-white pr-8">{userInfo ? 'Reset password' : (showForgotOtp ? 'Verify OTP' : 'Forgot password')}</h2>
-
-            {!userInfo ? (
-              !showForgotOtp ? (
-                <>
-                  <p className="text-sm text-gray-400 text-center">Enter your email and we&apos;ll send an OTP to reset your password.</p>
-                  <div className="relative">
-                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" aria-hidden>
-                      <Icon name="mail" className="w-5 h-5" />
-                    </span>
-                    <input
-                      id="forgot-email"
-                      type="email"
-                      placeholder="Your email"
-                      value={forgotEmail}
-                      onChange={(e) => setForgotEmail(e.target.value)}
-                      required
-                      disabled={forgotPasswordLoading}
-                      className={inputDarkClass}
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={forgotPasswordLoading || !forgotEmail.trim()}
-                    className="btn btn-primary w-full justify-center rounded-xl bg-accent-500 hover:bg-accent-400 text-primary-900 border-0"
-                  >
-                    {forgotPasswordLoading ? 'Sending…' : 'Send OTP'}
-                  </button>
-                </>
+            <div className="space-y-5 px-6 py-7 sm:px-9 sm:py-8">
+              {!userInfo ? (
+                !showForgotOtp ? (
+                  <>
+                    <div className="space-y-1">
+                      <label htmlFor="forgot-email" className="text-sm font-bold text-slate-700">Registered email address</label>
+                      <p className="text-xs leading-5 text-slate-500">We’ll send a one-time verification code to this email.</p>
+                    </div>
+                    <div className="relative">
+                      <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                        <Icon name="mail" className="h-5 w-5" />
+                      </span>
+                      <input
+                        id="forgot-email"
+                        type="email"
+                        placeholder="you@example.com"
+                        value={forgotEmail}
+                        onChange={(e) => setForgotEmail(e.target.value)}
+                        required
+                        disabled={forgotPasswordLoading}
+                        autoComplete="email"
+                        className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3.5 pl-12 pr-4 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-primary-500 focus:bg-white focus:ring-4 focus:ring-primary-500/10 disabled:opacity-60"
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={forgotPasswordLoading || !forgotEmail.trim()}
+                      className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-primary-800 to-primary-600 px-5 py-3.5 text-sm font-bold text-white shadow-lg shadow-primary-900/15 transition hover:-translate-y-0.5 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {forgotPasswordLoading ? <><span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" /> Sending code…</> : <>Send verification code <Icon name="arrowRight" className="h-4 w-4" /></>}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <div className="rounded-2xl border border-primary-100 bg-primary-50/70 p-4">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-primary-500">Code sent to</p>
+                      <p className="mt-1 break-all text-sm font-bold text-primary-950">{forgotEmail}</p>
+                    </div>
+                    <div className="space-y-3">
+                      <label className="block text-sm font-bold text-slate-700">6-digit verification code</label>
+                      <OtpInput length={6} value={forgotOtp} onChange={setForgotOtp} disabled={forgotPasswordLoading} />
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={forgotPasswordLoading || forgotOtp.trim().length !== 6}
+                      className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-primary-800 to-primary-600 px-5 py-3.5 text-sm font-bold text-white shadow-lg shadow-primary-900/15 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {forgotPasswordLoading ? 'Verifying code…' : <>Verify code <Icon name="arrowRight" className="h-4 w-4" /></>}
+                    </button>
+                    <button type="button" onClick={() => { setShowForgotOtp(false); setForgotOtp(''); setMessage(''); }} className="w-full text-sm font-semibold text-primary-700 transition hover:text-primary-900">
+                      Change email address
+                    </button>
+                  </>
+                )
               ) : (
                 <>
-                  <p className="text-sm text-gray-400 text-center">Enter the 6-digit verification code sent to your email.</p>
-                  <OtpInput 
-                    length={6} 
-                    value={forgotOtp} 
-                    onChange={setForgotOtp} 
-                    disabled={forgotPasswordLoading} 
-                  />
-                  <button
-                    type="submit"
-                    disabled={forgotPasswordLoading || !forgotOtp.trim()}
-                    className="btn btn-primary w-full justify-center rounded-xl bg-accent-500 hover:bg-accent-400 text-primary-900 border-0"
-                  >
-                    {forgotPasswordLoading ? 'Verifying…' : 'Verify OTP'}
+                  <div className="flex items-center gap-3 rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+                      <Icon name="check" className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Verified account</p>
+                      <p className="truncate text-sm font-bold text-slate-800">{userInfo.name}</p>
+                      <p className="truncate text-xs text-slate-500">{userInfo.email}</p>
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <label htmlFor="new-password" className="text-sm font-bold text-slate-700">New password</label>
+                    <div className="relative">
+                      <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"><Icon name="lock" className="h-5 w-5" /></span>
+                      <input id="new-password" type={showNewPassword ? 'text' : 'password'} placeholder="At least 6 characters" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required disabled={forgotPasswordLoading} autoComplete="new-password" className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3.5 pl-12 pr-12 text-sm text-slate-800 outline-none transition focus:border-primary-500 focus:bg-white focus:ring-4 focus:ring-primary-500/10 disabled:opacity-60" />
+                      <button type="button" onClick={() => !forgotPasswordLoading && setShowNewPassword((s) => !s)} disabled={forgotPasswordLoading} className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-primary-700" aria-label={showNewPassword ? 'Hide password' : 'Show password'}><Icon name={showNewPassword ? 'eyeOff' : 'eye'} className="h-5 w-5" /></button>
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <label htmlFor="confirm-password" className="text-sm font-bold text-slate-700">Confirm new password</label>
+                    <div className="relative">
+                      <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"><Icon name="lock" className="h-5 w-5" /></span>
+                      <input id="confirm-password" type={showConfirmPassword ? 'text' : 'password'} placeholder="Re-enter new password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required disabled={forgotPasswordLoading} autoComplete="new-password" className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3.5 pl-12 pr-12 text-sm text-slate-800 outline-none transition focus:border-primary-500 focus:bg-white focus:ring-4 focus:ring-primary-500/10 disabled:opacity-60" />
+                      <button type="button" onClick={() => !forgotPasswordLoading && setShowConfirmPassword((s) => !s)} disabled={forgotPasswordLoading} className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-primary-700" aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}><Icon name={showConfirmPassword ? 'eyeOff' : 'eye'} className="h-5 w-5" /></button>
+                    </div>
+                  </div>
+                  <button type="submit" disabled={forgotPasswordLoading || !newPassword || !confirmPassword} className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-emerald-700 to-emerald-600 px-5 py-3.5 text-sm font-bold text-white shadow-lg shadow-emerald-900/15 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50">
+                    {forgotPasswordLoading ? 'Updating password…' : <>Update password <Icon name="check" className="h-4 w-4" /></>}
                   </button>
+                  <p className="text-center text-xs text-slate-500">Use at least 6 characters. Avoid reusing an old password.</p>
                 </>
-              )
-            ) : (
-              <>
-                <div className="rounded-xl bg-white/5 border border-white/10 p-4 text-sm">
-                  <p className="text-gray-400 mb-2">Account</p>
-                  <p className="font-semibold text-white">{userInfo.name}</p>
-                  <p className="text-accent-400">{userInfo.email}</p>
-                </div>
-                <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" aria-hidden>
-                    <Icon name="lock" className="w-5 h-5" />
-                  </span>
-                  <input
-                    id="new-password"
-                    type={showNewPassword ? 'text' : 'password'}
-                    placeholder="New password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    required
-                    disabled={forgotPasswordLoading}
-                    className={`${inputDarkClass} pr-12`}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => !forgotPasswordLoading && setShowNewPassword((s) => !s)}
-                    disabled={forgotPasswordLoading}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-white"
-                    aria-label={showNewPassword ? 'Hide password' : 'Show password'}
-                  >
-                    <Icon name={showNewPassword ? 'eyeOff' : 'eye'} className="w-5 h-5" />
-                  </button>
-                </div>
-                <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" aria-hidden>
-                    <Icon name="lock" className="w-5 h-5" />
-                  </span>
-                  <input
-                    id="confirm-password"
-                    type={showConfirmPassword ? 'text' : 'password'}
-                    placeholder="Confirm new password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    required
-                    disabled={forgotPasswordLoading}
-                    className={`${inputDarkClass} pr-12`}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => !forgotPasswordLoading && setShowConfirmPassword((s) => !s)}
-                    disabled={forgotPasswordLoading}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-white"
-                    aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
-                  >
-                    <Icon name={showConfirmPassword ? 'eyeOff' : 'eye'} className="w-5 h-5" />
-                  </button>
-                </div>
-                <button
-                  type="submit"
-                  disabled={forgotPasswordLoading || !newPassword || !confirmPassword}
-                  className="btn w-full justify-center rounded-xl bg-success text-white border-0 hover:bg-success-400"
-                >
-                  {forgotPasswordLoading ? 'Updating…' : 'Update password'}
-                </button>
-              </>
-            )}
+              )}
 
-            {message && (
-              <div
-                className={`text-center text-sm rounded-xl py-2.5 px-3 ${
-                  message.includes('successfully') ? 'text-success-400 bg-success-500/15 border border-success-500/25' : 'text-orange-300 bg-orange-500/10 border border-orange-500/20'
-                }`}
-              >
-                {message}
+              {message && (
+                <div role="status" className={`rounded-2xl border px-4 py-3 text-center text-sm font-medium ${message.toLowerCase().includes('successfully') || message.toLowerCase().includes('otp sent') ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
+                  {message}
+                </div>
+              )}
+              <div className="border-t border-slate-100 pt-4 text-center">
+                <button type="button" onClick={() => { setShowForgotPassword(false); setForgotEmail(''); setUserInfo(null); setNewPassword(''); setConfirmPassword(''); setShowForgotOtp(false); setForgotOtp(''); setMessage(''); }} className="text-sm font-semibold text-slate-500 transition hover:text-primary-700">
+                  Back to sign in
+                </button>
               </div>
-            )}
+            </div>
           </form>
         </div>
       )}
