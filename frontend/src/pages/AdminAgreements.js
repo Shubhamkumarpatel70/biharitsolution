@@ -18,7 +18,7 @@ const DOC_ICONS = {
 };
 
 const initForm = {
-  clientName: '', clientEmail: '', clientCompany: '',
+  clientName: '', clientEmail: '', clientCompany: '', clientAddress: '', clientMobile: '', projectName: '', projectTimeline: '', projectFeatures: '', paymentTerms: '', revisionPolicy: '', supportTerms: '', refundTerms: '', additionalTerms: '',
   documentType: 'nda', projectDesc: '', amount: '', notes: '',
   // Quotation
   designCost: '', devCost: '', infraCost: '', addonDesc: '', addonCost: '', validDays: '30',
@@ -491,6 +491,24 @@ export default function AdminAgreements() {
                   />
                 </div>
               )}
+
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-3">
+                <div><h3 className="text-sm font-extrabold text-slate-900">Client & Project Details</h3><p className="text-xs text-slate-500 mt-1">Manually enter the details that should appear in the document.</p></div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <label className="block text-xs font-bold text-slate-600">Client Address<input value={form.clientAddress || ""} onChange={e=>setForm(v=>({...v,clientAddress:e.target.value}))} placeholder="Full address" className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-normal"/></label>
+                  <label className="block text-xs font-bold text-slate-600">Client Mobile<input value={form.clientMobile || ""} onChange={e=>setForm(v=>({...v,clientMobile:e.target.value}))} placeholder="+91" className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-normal"/></label>
+                  <label className="block text-xs font-bold text-slate-600">Project / Service Name<input value={form.projectName || ""} onChange={e=>setForm(v=>({...v,projectName:e.target.value}))} placeholder="Website development" className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-normal"/></label>
+                  <label className="block text-xs font-bold text-slate-600">Project Timeline<input value={form.projectTimeline || ""} onChange={e=>setForm(v=>({...v,projectTimeline:e.target.value}))} placeholder="30 working days" className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-normal"/></label>
+                </div>
+                {[
+                  ["projectFeatures","Project Scope, Features & Deliverables","List agreed features and deliverables..."],
+                  ["paymentTerms","Payment Milestones & Terms","Advance amount, milestone schedule, balance due..."],
+                  ["revisionPolicy","Revision Policy","Included revisions and additional revision charges..."],
+                  ["supportTerms","Maintenance & Support Terms","Support period, coverage and exclusions..."],
+                  ["refundTerms","Cancellation & Refund Terms","Cancellation notice, completed work and refundable amount..."],
+                  ["additionalTerms","Additional Terms & Conditions","Other project-specific conditions..."]
+                ].map(([key,label,placeholder])=><label key={key} className="block text-xs font-bold text-slate-600">{label}<textarea rows={2} value={form[key] || ""} onChange={e=>setForm(v=>({...v,[key]:e.target.value}))} placeholder={placeholder} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-normal resize-y"/></label>)}
+              </div>
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Internal Notes</label>
                 <input
