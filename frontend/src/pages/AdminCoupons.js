@@ -3,9 +3,10 @@ import axios from '../axios';
 
 const AdminCoupons = () => {
   const [coupons, setCoupons] = useState([]);
+  const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [form, setForm] = useState({ code: '', amount: '', discountType: 'fixed', usageLimit: '1' });
+  const [form, setForm] = useState({ code: '', amount: '', discountType: 'fixed', eligiblePlans: [], usageLimit: '1' });
   const [message, setMessage] = useState({ type: '', text: '' });
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
@@ -28,7 +29,13 @@ const AdminCoupons = () => {
     }
   };
 
-  useEffect(() => { fetchCoupons(); }, []);
+  useEffect(() => {
+    fetchCoupons();
+    axios.get('/api/auth/plans').then(res => {
+      const list = Array.isArray(res.data) ? res.data : Array.isArray(res.data?.plans) ? res.data.plans : [];
+      setPlans(list);
+    }).catch(() => setPlans([]));
+  }, []);
 
   const stats = useMemo(() => ({
     total: coupons.length,
@@ -73,10 +80,11 @@ const AdminCoupons = () => {
         code: form.code.trim(),
         amount,
         discountType: form.discountType,
+        eligiblePlans: form.eligiblePlans,
         usageLimit
       }, authConfig());
       setMessage({ type: 'success', text: 'Coupon created successfully.' });
-      setForm({ code: '', amount: '', discountType: 'fixed', usageLimit: '1' });
+      setForm({ code: '', amount: '', discountType: 'fixed', eligiblePlans: [], usageLimit: '1' });
       await fetchCoupons();
     } catch (err) {
       setMessage({ type: 'error', text: err.response?.data?.message || 'Could not create coupon. Check the code and try again.' });
@@ -176,6 +184,23 @@ const AdminCoupons = () => {
             <input name="amount" value={form.amount} onChange={handleChange} placeholder={form.discountType === 'percentage' ? 'e.g. 10' : 'e.g. 500'} required type="number" min="1" max={form.discountType === 'percentage' ? '100' : undefined} step={form.discountType === 'percentage' ? '0.01' : '1'}
               className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100" />
           </label>
+          <div className="block sm:col-span-2 lg:col-span-1">
+            <span className="mb-1.5 block text-sm font-semibold text-slate-700">Valid pricing plans <span className="font-normal text-slate-400">(optional)</span></span>
+            <div className="max-h-36 space-y-2 overflow-y-auto rounded-xl border border-slate-200 p-3">
+              <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                <input type="checkbox" checked={form.eligiblePlans.length === 0} onChange={() => setForm(current => ({ ...current, eligiblePlans: [] }))} className="rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+                Select all plans
+              </label>
+              {plans.map(item => (
+                <label key={item._id} className="flex items-center gap-2 text-sm text-slate-600">
+                  <input type="checkbox" checked={form.eligiblePlans.includes(item._id)} onChange={e => setForm(current => ({ ...current, eligiblePlans: e.target.checked ? [...current.eligiblePlans, item._id] : current.eligiblePlans.filter(id => id !== item._id) }))} className="rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+                  {item.name} <span className="text-xs text-slate-400">₹{Number(item.price || 0).toLocaleString('en-IN')}</span>
+                </label>
+              ))}
+              {!plans.length && <p className="text-xs text-slate-400">Pricing plans could not be loaded.</p>}
+            </div>
+            <span className="mt-1 block text-xs text-slate-400">No specific selection means the coupon works on every plan.</span>
+          </div>
           <label className="block">
             <span className="mb-1.5 block text-sm font-semibold text-slate-700">Usage limit</span>
             <input name="usageLimit" value={form.usageLimit} onChange={handleChange} placeholder="e.g. 100" required type="number" min="1" step="1"
@@ -234,6 +259,7 @@ const AdminCoupons = () => {
                   <tr>
                     <th className="px-6 py-3 font-semibold">Coupon</th>
                     <th className="px-6 py-3 font-semibold">Discount</th>
+                    <th className="px-6 py-3 font-semibold">Valid plans</th>
                     <th className="px-6 py-3 font-semibold">Redemptions</th>
                     <th className="px-6 py-3 font-semibold">Status</th>
                     <th className="px-6 py-3 font-semibold">Created</th>
@@ -247,6 +273,7 @@ const AdminCoupons = () => {
                         <span className="inline-flex rounded-lg border border-dashed border-blue-300 bg-blue-50 px-3 py-1.5 font-mono font-bold tracking-wide text-blue-800">{coupon.code}</span>
                       </td>
                       <td className="px-6 py-4 font-semibold text-slate-900">{(coupon.discountType === 'percentage' ? `${Number(coupon.amount || 0)}%` : `₹${Number(coupon.amount || 0).toLocaleString('en-IN')}`)}</td>
+                      <td className="px-6 py-4 text-xs text-slate-600">{coupon.eligiblePlans?.length ? plans.filter(p => coupon.eligiblePlans.some(id => String(id?._id || id) === String(p._id))).map(p => p.name).join(', ') || 'Selected plans' : 'All plans'}</td>
                       <td className="px-6 py-4 text-slate-700"><span className="font-semibold">{coupon.usedCount || 0}</span><span className="text-slate-400"> / {coupon.usageLimit ?? 1}</span></td>
                       <td className="px-6 py-4"><span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${coupon.active ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>{coupon.active ? 'Active' : 'Inactive'}</span></td>
                       <td className="px-6 py-4 text-slate-500">{formatDate(coupon.createdAt)}</td>
@@ -273,6 +300,7 @@ const AdminCoupons = () => {
                     </div>
                     <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${coupon.active ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>{coupon.active ? 'Active' : 'Inactive'}</span>
                   </div>
+                  <p className="mt-2 text-xs text-slate-500">Valid for: {coupon.eligiblePlans?.length ? plans.filter(p => coupon.eligiblePlans.some(id => String(id?._id || id) === String(p._id))).map(p => p.name).join(', ') || 'Selected plans' : 'All pricing plans'}</p>
                   <div className="mt-4 grid grid-cols-2 gap-3 border-t border-slate-100 pt-3 text-sm">
                     <div><p className="text-xs text-slate-500">Redemptions</p><p className="mt-0.5 font-semibold text-slate-800">{coupon.usedCount || 0} / {coupon.usageLimit ?? 1}</p></div>
                     <div><p className="text-xs text-slate-500">Created</p><p className="mt-0.5 font-semibold text-slate-800">{formatDate(coupon.createdAt)}</p></div>
