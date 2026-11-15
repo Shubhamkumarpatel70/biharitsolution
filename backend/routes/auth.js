@@ -219,6 +219,29 @@ router.post("/register", registerUser);
 router.get("/captcha", getLoginCaptcha);
 router.post("/login", loginUser);
 router.post("/register-admin", registerAdmin);
+// Users are considered online for 2 minutes after their latest authenticated heartbeat.
+router.post("/activity/heartbeat", authMiddleware, async (req, res) => {
+  try {
+    await User.updateOne({ _id: req.user.id }, { $set: { lastActiveAt: new Date() } });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ message: "Could not update activity." });
+  }
+});
+
+router.get("/admin/active-users", authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const cutoff = new Date(Date.now() - 2 * 60 * 1000);
+    const users = await User.find({ role: "user", lastActiveAt: { $gte: cutoff } })
+      .select("name email image lastActiveAt lastLoginAt lastLoginUserAgent")
+      .sort({ lastActiveAt: -1 }).lean();
+    res.json({ users, count: users.length, checkedAt: new Date() });
+  } catch (error) {
+    console.error("Active users load failed:", error);
+    res.status(500).json({ message: "Could not load active users." });
+  }
+});
+
 // Session & Login Info: show the most recent successful login metadata for this account.
 router.get("/sessions", authMiddleware, async (req, res) => {
   try {
