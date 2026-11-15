@@ -102,10 +102,12 @@ app.use(compression()); // Compress responses
 // successful OTP/email requests are also counted and cannot be spammed.
 const {
   authEndpointLimiter,
+  authWriteLimiter,
   privacyWriteLimiter,
 } = require("./middleware/rateLimiters");
 
 app.use("/api/auth", authEndpointLimiter);
+app.use("/api/auth", authWriteLimiter);
 app.use("/api/privacy-compliance", privacyWriteLimiter);
 app.use("/api/privacy-register", privacyWriteLimiter);
 app.use("/api/privacy-operations", privacyWriteLimiter);
