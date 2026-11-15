@@ -1,6 +1,9 @@
 name: Dependency Security Remediation
 
 on:
+  push:
+    branches:
+      - dependency-security-remediation
   workflow_dispatch:
 
 permissions:
