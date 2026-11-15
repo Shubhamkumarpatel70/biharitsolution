@@ -48,6 +48,7 @@ const ProjectRequirement = require("../models/ProjectRequirement");
 const Career = require("../models/Career");
 const CareerApplication = require("../models/CareerApplication");
 const FundTransaction = require("../models/FundTransaction");
+const { cashfreeRefundRequest, normalizeRefundStatus } = require("../utils/cashfreeRefund");
 const IDCard = require("../models/IDCard");
 const Agreement = require("../models/Agreement");
 const FounderProfile = require("../models/FounderProfile");
@@ -2276,6 +2277,90 @@ router.patch("/admin/refunds/:id", authMiddleware, adminMiddleware, async (req, 
     const cleanReason = String(reason || "").trim().slice(0, 1000);
     const cleanReference = String(reference || "").trim().slice(0, 200);
 
+    if (action === "cashfree_initiate" || action === "cashfree_sync") {
+      if (String(sub.paymentMethod || "").toLowerCase() !== "cashfree" || !sub.cashfreeOrderId ||
+          !["paid", "success", "successful"].includes(String(sub.paymentStatus || "").toLowerCase())) {
+        return res.status(409).json({ message: "Only a verified, paid Cashfree order can be refunded through Cashfree." });
+      }
+      if (!["approved", "processing"].includes(sub.refundStatus) || Number(sub.refundAmount || 0) <= 0) {
+        return res.status(409).json({ message: "Approve a valid refund amount before initiating a Cashfree refund." });
+      }
+      let refundId = String(sub.refundProviderRefundId || "");
+      if (action === "cashfree_initiate") {
+        if (sub.refundStatus === "processing" && sub.refundProviderStatus === "SUCCESS") {
+          return res.status(409).json({ message: "Cashfree has already confirmed this refund." });
+        }
+        const now = new Date();
+        const lockCutoff = new Date(now.getTime() - 2 * 60 * 1000);
+        refundId = refundId || "ASKCRF_" + require("crypto").randomBytes(12).toString("hex");
+        const locked = await Subscription.findOneAndUpdate(
+          {
+            _id: sub._id,
+            refundStatus: { $in: ["approved", "processing"] },
+            refundProviderStatus: { $nin: ["SUCCESS", "PENDING"] },
+            $or: [
+              { refundProviderStatus: { $ne: "INITIATING" } },
+              { refundProviderRequestedAt: { $lt: lockCutoff } },
+              { refundProviderRequestedAt: null }
+            ]
+          },
+          { $set: { refundStatus: "processing", refundProviderStatus: "INITIATING", refundProviderRefundId: refundId, refundProviderRequestedAt: now, refundReviewedBy: req.user.id, refundReviewedAt: now } },
+          { new: true }
+        );
+        if (!locked) return res.status(409).json({ message: "A Cashfree refund request is already being processed. Refresh the record before retrying." });
+        try {
+          const provider = await cashfreeRefundRequest({
+            orderId: locked.cashfreeOrderId,
+            refundId,
+            amount: locked.refundAmount,
+            note: locked.refundReason || "ASKC TECHNOLOGIES subscription refund"
+          });
+          const normalized = normalizeRefundStatus(provider.refund_status);
+          const update = {
+            refundProviderStatus: String(provider.refund_status || "UNKNOWN").toUpperCase(),
+            refundProviderCfId: String(provider.cf_refund_id || ""),
+            refundReference: String(provider.cf_refund_id || refundId),
+          };
+          if (normalized === "processed") {
+            update.refundStatus = "processed";
+            update.refundProcessedAt = provider.processed_at ? new Date(provider.processed_at) : new Date();
+          } else if (normalized === "failed") {
+            update.refundStatus = "approved";
+          } else if (normalized === "processing") {
+            update.refundStatus = "processing";
+          }
+          const updated = await Subscription.findByIdAndUpdate(locked._id, { $set: update }, { new: true });
+          return res.json({ message: normalized === "processed" ? "Cashfree confirmed the refund." : normalized === "failed" ? "Cashfree rejected the refund request. Review provider details before retrying." : "Cashfree accepted the refund request; payout status is pending.", refund: updated, providerStatus: update.refundProviderStatus });
+        } catch (providerError) {
+          await Subscription.updateOne(
+            { _id: locked._id, refundProviderRefundId: refundId, refundProviderStatus: "INITIATING" },
+            { $set: { refundProviderStatus: "UNKNOWN" } }
+          );
+          console.error("Cashfree refund initiation failed:", providerError?.message);
+          return res.status(providerError.statusCode === 503 ? 503 : 502).json({ message: "Cashfree refund status could not be confirmed. Use Sync status before retrying to avoid a duplicate payout." });
+        }
+      }
+
+      if (!refundId) return res.status(409).json({ message: "No Cashfree refund request exists for this subscription yet." });
+      const provider = await cashfreeRefundRequest({ orderId: sub.cashfreeOrderId, refundId, method: "GET" });
+      const normalized = normalizeRefundStatus(provider.refund_status);
+      const update = {
+        refundProviderStatus: String(provider.refund_status || "UNKNOWN").toUpperCase(),
+        refundProviderCfId: String(provider.cf_refund_id || sub.refundProviderCfId || ""),
+        refundReference: String(provider.cf_refund_id || refundId),
+      };
+      if (normalized === "processed") {
+        update.refundStatus = "processed";
+        update.refundProcessedAt = provider.processed_at ? new Date(provider.processed_at) : new Date();
+      } else if (normalized === "failed") {
+        update.refundStatus = "approved";
+      } else if (normalized === "processing") {
+        update.refundStatus = "processing";
+      }
+      const updated = await Subscription.findByIdAndUpdate(sub._id, { $set: update }, { new: true });
+      return res.json({ message: "Cashfree refund status synchronized.", refund: updated, providerStatus: update.refundProviderStatus });
+    }
+
     if (action === "not_eligible") {
       sub.refundStatus = "not_eligible";
       sub.refundEligible = false;
@@ -2287,7 +2372,7 @@ router.patch("/admin/refunds/:id", authMiddleware, adminMiddleware, async (req, 
         return res.status(400).json({ message: `Refund amount must be greater than ₹0 and no more than the verified paid amount (₹${paidAmount.toFixed(2)}).` });
       }
       if (cleanReason.length < 5) return res.status(400).json({ message: "Add a short reason for this exceptional refund approval." });
-      if (sub.refundStatus === "processed") return res.status(409).json({ message: "This refund has already been marked as processed." });
+      if (["processed", "processing"].includes(sub.refundStatus)) return res.status(409).json({ message: "A processing or processed refund cannot be re-approved. Sync its provider status first." });
       sub.refundStatus = "approved";
       sub.refundEligible = true;
       sub.refundAmount = Number(refundAmount.toFixed(2));
@@ -2304,6 +2389,7 @@ router.patch("/admin/refunds/:id", authMiddleware, adminMiddleware, async (req, 
       sub.refundReference = "";
       sub.refundProcessedAt = null;
     } else if (action === "processed") {
+      if (String(sub.paymentMethod || "").toLowerCase() === "cashfree") return res.status(409).json({ message: "Cashfree refunds must be confirmed by Cashfree. Use the provider status sync." });
       if (sub.refundStatus !== "approved" || Number(sub.refundAmount || 0) <= 0) {
         return res.status(409).json({ message: "Only an approved refund can be marked as processed." });
       }
