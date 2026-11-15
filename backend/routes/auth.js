@@ -5780,8 +5780,33 @@ router.get("/admin/transactions", authMiddleware, coAdminMiddleware, async (req,
     if (["cashfree", "upi", "card", "netbanking"].includes(method)) filter.paymentMethod = method;
     if (from && !Number.isNaN(from.getTime())) filter.createdAt = { ...(filter.createdAt || {}), $gte: from };
     if (to && !Number.isNaN(to.getTime())) { const end = new Date(to); end.setHours(23,59,59,999); filter.createdAt = { ...(filter.createdAt || {}), $lte: end }; }
-    if (query) {
-      const rx = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, "\\
+    const records = await Subscription.find(filter).populate("user", "name email").sort({ createdAt: -1 }).limit(1000).lean();
+    const normalizedQuery = query.toLowerCase();
+    const matches = normalizedQuery ? records.filter((row) => [
+      row.transactionId, row.cashfreeOrderId, row.uniqueId, row.user?.name,
+      row.user?.email, row.planName, row.plan, row.couponCode, row.paymentMethod,
+    ].join(" ").toLowerCase().includes(normalizedQuery)) : records;
+    const transactions = matches.map((row) => ({
+      ...row,
+      transactionId: row.transactionId || row.cashfreeOrderId || row.uniqueId,
+      amountPaid: row.amountPaid ?? row.totalAmount ?? 0,
+      paymentStatus: row.paymentStatus || row.status || "pending",
+    }));
+    const summary = {
+      total: transactions.length,
+      successful: transactions.filter((row) => ["paid", "success", "completed", "confirmed", "active"].includes(String(row.paymentStatus).toLowerCase())).length,
+      pending: transactions.filter((row) => String(row.paymentStatus).toLowerCase() === "pending").length,
+      failed: transactions.filter((row) => ["failed", "rejected"].includes(String(row.paymentStatus).toLowerCase())).length,
+      refunded: transactions.filter((row) => row.refundStatus === "processed").length,
+    };
+    return res.json({ transactions, summary });
+  } catch (error) {
+    console.error("Admin transactions fetch failed:", error);
+    return res.status(500).json({ message: "Could not load transaction records." });
+  }
+});
+
+
 /* Two-factor authentication: TOTP authenticator or registered-email OTP. */
 const twoFactorCrypto = require("../utils/twoFactor");
 function createSessionForUser(res, user) {
