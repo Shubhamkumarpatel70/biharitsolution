@@ -185,7 +185,7 @@ const Payment = () => {
         setApplyingCoupon(false);
         return;
       }
-      const res = await axios.post('/api/auth/coupons/apply', { code: coupon }, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await axios.post('/api/auth/coupons/apply', { code: coupon, planId: planObj?._id }, { headers: { Authorization: `Bearer ${token}` } });
       const discountValue = Number(res.data.amount) || 0;
        const appliedDiscount = res.data.discountType === 'percentage'
          ? Number(((Number(amount) || 0) * Math.min(100, discountValue) / 100).toFixed(2))
