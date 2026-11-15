@@ -40,6 +40,9 @@ const policies = [
   { test: (method, path) => method === "POST" && /^\/admin\/(client-work|projects)\/?$/.test(path), limiter: makeLimiter(60 * 60 * 1000, 10, "Too many upload requests. Please try again later.") },
 ];
 
+const authWriteLimiter = makeLimiter(15 * 60 * 1000, 120, "Too many API requests. Please slow down and try again later.");
+authWriteLimiter.skip = (req) => ["GET", "HEAD", "OPTIONS"].includes(req.method);
+
 const authEndpointLimiter = (req, res, next) => {
   const policy = policies.find(({ test }) => test(req.method, req.path));
   return policy ? policy.limiter(req, res, next) : next();
@@ -55,4 +58,4 @@ function makePrivacyLimiter(req, res, next) {
   return privacyLimiter(req, res, next);
 }
 
-module.exports = { authEndpointLimiter, privacyWriteLimiter };
+module.exports = { authEndpointLimiter, authWriteLimiter, privacyWriteLimiter };
