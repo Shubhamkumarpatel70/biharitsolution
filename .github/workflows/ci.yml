@@ -18,15 +18,9 @@ jobs:
           node-version: 22
           cache: npm
       - name: Install frontend dependencies
-        run: npm install --prefix frontend
+        run: npm ci --prefix frontend
       - name: Install backend dependencies
         run: npm ci --prefix backend
-      - name: Persist generated frontend lockfile
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add frontend/package-lock.json
-          if git diff --cached --quiet; then echo "Frontend lockfile is current"; else git commit -m "chore(frontend): update Vite lockfile"; git push; fi
       - name: Report dependency audit findings
         run: |
           npm audit --json --prefix frontend > /tmp/frontend-audit.json || true
