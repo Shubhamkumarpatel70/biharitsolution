@@ -36,7 +36,7 @@ async function recordSuccessfulLogin(userId, req) {
 
 // Helper to generate a 6-digit OTP
 function generateOtp() {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+  return crypto.randomInt(100000, 1000000).toString();
 }
 
 const generateOtpEmailHtml = (otp, title, description) => {
@@ -360,14 +360,9 @@ exports.registerUser = async (req, res) => {
 
 exports.loginUser = async (req, res) => {
   try {
-    console.log("Login request received:", {
-      body: {
-        ...req.body,
-        password: req.body?.password ? "[redacted]" : undefined,
-      },
-      headers: req.headers,
-      method: req.method,
-      url: req.url,
+    console.info("Login request received", {
+      emailProvided: Boolean(req.body?.email),
+      userAgent: String(req.headers["user-agent"] || "").slice(0, 120),
     });
 
     const { email, password, captchaId, captchaAnswer } = req.body;
