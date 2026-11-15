@@ -524,6 +524,14 @@ async function redeemCouponReservation(subscription) {
   return coupon;
 }
 
+async function releaseCouponReservation(subscription) {
+  if (!subscription?.couponCode) return;
+  await Coupon.updateOne(
+    { code: subscription.couponCode, reservedCount: { $gt: 0 } },
+    { $inc: { reservedCount: -1 } }
+  );
+}
+
 // Cashfree Checkout: create a server-priced order and a pending subscription.
 // Cashfree server-to-server webhook. Signature is verified against the untouched raw request body.
 router.post("/cashfree/webhook", async (req, res) => {
@@ -593,12 +601,19 @@ async function getSubscriptionPurchaseBlocker(userId) {
     { user: userId, status: "active", canceled: { $ne: true }, expiresAt: { $ne: null, $lte: now } },
     { $set: { status: "expired" } }
   );
-  // A pending checkout/receipt must not lock a customer's account forever.
-  // Only stale pending requests are expired; recent requests remain protected.
-  await Subscription.updateMany(
-    { user: userId, status: "pending", createdAt: { $lte: abandonedPendingCutoff } },
-    { $set: { status: "expired", paymentStatus: "expired" } }
-  );
+  // Expire stale checkouts with a compare-and-set so concurrent requests cannot
+  // release the same coupon reservation more than once.
+  const stalePending = await Subscription.find({
+    user: userId, status: "pending", createdAt: { $lte: abandonedPendingCutoff }
+  }).select("_id couponCode");
+  for (const stale of stalePending) {
+    const expired = await Subscription.findOneAndUpdate(
+      { _id: stale._id, status: "pending" },
+      { $set: { status: "expired", paymentStatus: "expired" } },
+      { new: true }
+    );
+    if (expired?.couponCode) await releaseCouponReservation(expired);
+  }
   return Subscription.findOne({
     user: userId,
     canceled: { $ne: true },
@@ -785,14 +800,24 @@ router.post("/cashfree/verify-order", authMiddleware, async (req, res) => {
       return res.status(502).json({ message: "Could not verify payment with Cashfree." });
     }
     if (order.order_status !== "PAID") {
-      await Subscription.updateOne(
+      const paymentStatus = String(order.order_status || "pending").toUpperCase();
+      const isTerminalFailure = ["FAILED", "CANCELLED", "EXPIRED", "USER_DROPPED"].includes(paymentStatus);
+      const updatedPending = await Subscription.findOneAndUpdate(
         { _id: subscription._id, status: "pending" },
-        { $set: { paymentStatus: String(order.order_status || "pending").toLowerCase() } }
+        { $set: isTerminalFailure
+          ? { status: "expired", paymentStatus: paymentStatus.toLowerCase() }
+          : { paymentStatus: paymentStatus.toLowerCase() } },
+        { new: true }
       );
-      return res.status(202).json({
-        status: "pending",
-        paymentStatus: order.order_status || "PENDING",
-        message: "Payment is not confirmed yet. Please wait and check again."
+      if (isTerminalFailure && updatedPending?.couponCode) {
+        await releaseCouponReservation(updatedPending);
+      }
+      return res.status(isTerminalFailure ? 200 : 202).json({
+        status: isTerminalFailure ? "failed" : "pending",
+        paymentStatus,
+        message: isTerminalFailure
+          ? "Payment was not completed. You can start a new purchase."
+          : "Payment is not confirmed yet. Please wait and check again."
       });
     }
     const paidAmount = Number(order.order_amount);
