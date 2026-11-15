@@ -13,12 +13,13 @@ class MongoSessionStore extends Store {
   constructor(options = {}) {
     super();
     this.collectionName = options.collectionName || COLLECTION;
+    this.collectionOverride = options.collection || null;
     this.ttlMs = options.ttlMs || DEFAULT_TTL_MS;
     this.indexPromise = null;
   }
 
   collection() {
-    return mongoose.connection.collection(this.collectionName);
+    return this.collectionOverride || mongoose.connection.collection(this.collectionName);
   }
 
   ensureIndex(collection) {
