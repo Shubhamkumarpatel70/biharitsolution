@@ -4891,7 +4891,7 @@ router.post(
   coAdminMiddleware,
   async (req, res) => {
     try {
-      const { clientUserId, clientName, clientEmail, clientCompany, documentType, documentTitle, htmlContent, notes, docCode } = req.body;
+      const { clientUserId, clientName, clientEmail, clientCompany, clientAddress, clientMobile, projectName, projectTimeline, projectFeatures, paymentTerms, revisionPolicy, supportTerms, refundTerms, additionalTerms, documentType, documentTitle, htmlContent, notes, docCode } = req.body;
       if (!clientName || !documentType || !htmlContent || !documentTitle) {
         return res.status(400).json({ message: "Missing required fields." });
       }
@@ -4913,6 +4913,10 @@ router.post(
         clientName: linkedUser?.name || clientName,
         clientEmail: linkedUser?.email || String(clientEmail || "").trim().toLowerCase(),
         clientCompany: clientCompany || "",
+        clientAddress: clientAddress || "", clientMobile: clientMobile || "",
+        projectName: projectName || "", projectTimeline: projectTimeline || "", projectFeatures: projectFeatures || "",
+        paymentTerms: paymentTerms || "", revisionPolicy: revisionPolicy || "", supportTerms: supportTerms || "",
+        refundTerms: refundTerms || "", additionalTerms: additionalTerms || "",
         documentType,
         documentTitle,
         htmlContent: cloudinaryHtmlContent,
