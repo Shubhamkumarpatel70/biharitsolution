@@ -1487,9 +1487,11 @@ router.get(
     try {
       const transactions = await FundTransaction.find()
         .populate("createdBy", "name email role")
+        .populate("voidedBy", "name email role")
         .sort({ createdAt: -1 });
 
       const balance = transactions.reduce((total, item) => {
+        if (item.voidedAt) return total;
         if (item.type === "add") return total + item.amount;
         return total - item.amount;
       }, 0);
@@ -1531,7 +1533,7 @@ router.post(
         return res.status(400).json({ message: "Reason is required." });
       }
 
-      const transactions = await FundTransaction.find().sort({ createdAt: -1 });
+      const transactions = await FundTransaction.find({ voidedAt: null }).sort({ createdAt: -1 });
       const currentBalance = transactions.reduce((total, item) => {
         if (item.type === "add") return total + item.amount;
         return total - item.amount;
@@ -1573,6 +1575,34 @@ router.post(
     }
   },
 );
+
+// Void a mistaken fund entry without deleting its audit history.
+router.post("/admin/funds/:id/void", authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const reason = String(req.body?.reason || "").trim().slice(0, 500);
+    if (reason.length < 5) return res.status(400).json({ message: "Enter a reason of at least 5 characters to void this ledger entry." });
+    const entry = await FundTransaction.findById(req.params.id);
+    if (!entry) return res.status(404).json({ message: "Ledger entry not found." });
+    if (entry.voidedAt) return res.status(409).json({ message: "This ledger entry has already been voided." });
+
+    const activeEntries = await FundTransaction.find({ voidedAt: null }).select("type amount").lean();
+    const balance = activeEntries.reduce((total, item) => total + (item.type === "add" ? Number(item.amount) : -Number(item.amount)), 0);
+    if (entry.type === "add" && balance - Number(entry.amount) < -0.005) {
+      return res.status(409).json({ message: "This entry cannot be voided because the funds have already been spent. Record a correcting transaction instead." });
+    }
+    const updated = await FundTransaction.findOneAndUpdate(
+      { _id: entry._id, voidedAt: null },
+      { $set: { voidedAt: new Date(), voidedBy: req.user.id, voidReason: reason } },
+      { new: true },
+    ).populate("createdBy", "name email role").populate("voidedBy", "name email role");
+    if (!updated) return res.status(409).json({ message: "This ledger entry was changed by another request. Refresh and try again." });
+    const nextBalance = balance + (entry.type === "add" ? -Number(entry.amount) : Number(entry.amount));
+    res.json({ success: true, message: "Ledger entry voided. Its audit history has been preserved.", transaction: updated, balance: Math.max(0, Math.round(nextBalance * 100) / 100) });
+  } catch (error) {
+    console.error("Fund ledger void failed:", error);
+    res.status(500).json({ message: "Could not void this ledger entry." });
+  }
+});
 
 // Admin: Send notification
 router.post(
