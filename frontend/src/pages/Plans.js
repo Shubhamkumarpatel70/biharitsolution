@@ -383,8 +383,12 @@ function Plans() {
                       {/* CTA Button */}
                       <div className="flex flex-col sm:flex-row gap-2">
                         <Link
-                          to={`/payment/${encodeURIComponent(plan._id || slugify(plan.name))}`}
-                          state={{ planId: plan._id, planName: plan.name }}
+                          to={currentAmount === null
+                            ? "/contact"
+                            : `/payment/${encodeURIComponent(plan._id || slugify(plan.name))}`}
+                          state={currentAmount === null
+                            ? { planInquiry: { planId: plan._id, planName: plan.name, duration: plan.duration, features: includedItems } }
+                            : { planId: plan._id, planName: plan.name }}
                           className="btn btn-primary w-full justify-center py-3 font-medium group rounded-xl"
                           onClick={(e) => e.stopPropagation()}
                         >
