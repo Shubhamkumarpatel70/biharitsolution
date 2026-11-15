@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const couponSchema = new mongoose.Schema({
   code: { type: String, required: true, unique: true },
   amount: { type: Number, required: true },
+  discountType: { type: String, enum: ['fixed', 'percentage'], default: 'fixed' },
   usageLimit: { type: Number, default: 1 },
   usedCount: { type: Number, default: 0 },
   active: { type: Boolean, default: true },
