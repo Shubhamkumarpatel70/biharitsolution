@@ -5721,4 +5721,51 @@ router.post("/admin/cloudinary/migrate-images", authMiddleware, coAdminMiddlewar
   }
 });
 
+
+/* Admin transaction ledger: subscription purchase/payment records. */
+router.get("/admin/transactions", authMiddleware, coAdminMiddleware, async (req, res) => {
+  try {
+    const query = String(req.query.search || "").trim().slice(0, 120);
+    const status = String(req.query.status || "all");
+    const method = String(req.query.method || "all");
+    const from = req.query.from ? new Date(req.query.from) : null;
+    const to = req.query.to ? new Date(req.query.to) : null;
+    const filter = {};
+    if (["success", "pending", "failed", "refunded", "cancelled"].includes(status)) {
+      if (status === "success") filter.paymentStatus = { $in: ["paid", "success", "completed", "confirmed"] };
+      if (status === "pending") filter.paymentStatus = "pending";
+      if (status === "failed") filter.paymentStatus = { $in: ["failed", "rejected"] };
+      if (status === "refunded") filter.refundStatus = "processed";
+      if (status === "cancelled") filter.canceled = true;
+    }
+    if (["cashfree", "upi", "card", "netbanking"].includes(method)) filter.paymentMethod = method;
+    if (from && !Number.isNaN(from.getTime())) filter.createdAt = { ...(filter.createdAt || {}), $gte: from };
+    if (to && !Number.isNaN(to.getTime())) { const end = new Date(to); end.setHours(23,59,59,999); filter.createdAt = { ...(filter.createdAt || {}), $lte: end }; }
+    if (query) {
+      const rx = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, "\\module.exports = router;"), "i");
+      const matchingUsers = await User.find({ $or: [{ name: rx }, { email: rx }] }).select("_id").limit(100).lean();
+      filter.$or = [{ uniqueId: rx }, { transactionId: rx }, { cashfreeOrderId: rx }, { couponCode: rx }, { planName: rx }, { user: { $in: matchingUsers.map(u => u._id) } }];
+    }
+    const [transactions, total] = await Promise.all([
+      Subscription.find(filter).populate("user", "name email").sort({ createdAt: -1 }).limit(500).lean(),
+      Subscription.countDocuments(filter)
+    ]);
+    const summary = await Subscription.aggregate([
+      { $group: {
+        _id: null,
+        total: { $sum: 1 },
+        successful: { $sum: { $cond: [{ $in: ["$paymentStatus", ["paid","success","completed","confirmed"]] }, 1, 0] } },
+        pending: { $sum: { $cond: [{ $eq: ["$paymentStatus", "pending"] }, 1, 0] } },
+        failed: { $sum: { $cond: [{ $in: ["$paymentStatus", ["failed","rejected"]] }, 1, 0] } },
+        refunded: { $sum: { $cond: [{ $eq: ["$refundStatus", "processed"] }, 1, 0] } },
+        grossAmount: { $sum: { $ifNull: ["$amountPaid", "$totalAmount"] } }
+      } }
+    ]);
+    res.json({ transactions, total, summary: summary[0] || { total: 0, successful: 0, pending: 0, failed: 0, refunded: 0, grossAmount: 0 } });
+  } catch (err) {
+    console.error("Admin transaction ledger error:", err);
+    res.status(500).json({ message: "Could not load transactions." });
+  }
+});
+
 module.exports = router;
