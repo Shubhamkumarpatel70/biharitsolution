@@ -13,6 +13,7 @@ const statusStyles = {
   not_reviewed: "bg-amber-50 text-amber-700 border-amber-200",
   not_eligible: "bg-slate-100 text-slate-600 border-slate-200",
   approved: "bg-blue-50 text-blue-700 border-blue-200",
+  processing: "bg-amber-50 text-amber-700 border-amber-200",
   rejected: "bg-rose-50 text-rose-700 border-rose-200",
   processed: "bg-emerald-50 text-emerald-700 border-emerald-200"
 };
@@ -21,6 +22,7 @@ const statusLabels = {
   not_reviewed: "Awaiting review",
   not_eligible: "Not eligible",
   approved: "Approved · payout pending",
+  processing: "Cashfree · processing",
   rejected: "Rejected",
   processed: "Processed"
 };
@@ -151,6 +153,7 @@ export default function AdminRefunds() {
             <option value="not_reviewed">Awaiting review</option>
             <option value="not_eligible">Not eligible</option>
             <option value="approved">Approved · payout pending</option>
+            <option value="processing">Cashfree · processing</option>
             <option value="rejected">Rejected</option>
             <option value="processed">Processed</option>
           </select>
@@ -198,6 +201,7 @@ export default function AdminRefunds() {
                   {item.cancellationReason && <p><strong>User reason:</strong> {item.cancellationReason}</p>}
                   {item.refundReason && <p><strong>Admin decision note:</strong> {item.refundReason}</p>}
                   {item.refundReference && <p><strong>Refund reference:</strong> <span className="font-mono break-all">{item.refundReference}</span></p>}
+                  {item.refundProviderStatus && <p><strong>Cashfree status:</strong> {item.refundProviderStatus}</p>}
                   {item.refundProcessedAt && <p><strong>Processed:</strong> {dateTime(item.refundProcessedAt)}</p>}
                 </div>
 
@@ -207,7 +211,15 @@ export default function AdminRefunds() {
                   <p className="mt-4 text-sm font-medium text-emerald-700">Refund payout has been recorded as processed.</p>
                 ) : (
                   <div className="mt-4 border-t border-slate-100 pt-4 space-y-3">
-                    {status === "approved" ? (
+                    {item.paymentMethod === "cashfree" && ["approved", "processing"].includes(status) ? (
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <button type="button" disabled={locked} onClick={() => submitAction(item, status === "processing" ? "cashfree_sync" : "cashfree_initiate")}
+                          className="rounded-xl bg-sky-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-800 disabled:opacity-50">
+                          {locked ? "Checking…" : status === "processing" ? "Sync Cashfree refund status" : "Initiate Cashfree refund"}
+                        </button>
+                        <p className="self-center text-xs text-slate-500">The refund is sent only after admin approval. Status is confirmed by Cashfree.</p>
+                      </div>
+                    ) : status === "approved" ? (
                       <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_auto] gap-3 items-end">
                         <label className="block min-w-0">
                           <span className="block text-xs font-semibold text-slate-600 mb-1">Bank / UPI refund reference</span>
