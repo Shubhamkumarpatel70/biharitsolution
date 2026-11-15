@@ -29,7 +29,6 @@ async function recordSuccessfulLogin(userId, req) {
       lastLoginIp: session.ip,
       lastLoginUserAgent: session.userAgent,
     },
-    $pull: { sessions: { revokedAt: { $ne: null }, createdAt: { $lt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } } },
     $push: { sessions: session },
   }, { new: true }).select("sessionVersion").lean();
   return { ...user, sessionId };
@@ -97,7 +96,7 @@ exports.sendRegisterOtp = async (req, res) => {
       "Thank you for registering. Please use the verification code below to complete your registration. This code expires in 10 minutes.",
     );
     await sendEmail(email, "Your ASKC TECHNOLOGIES Registration Verification Code", `Your OTP is: ${generatedOtp}. It expires in 10 minutes.`, html);
-    return res.json({ message: "OTP sent to email address." });
+    return res.json({ message: "If an account exists for this email, a verification code will be sent shortly." });
   } catch (err) {
     console.error("Registration OTP delivery failed:", { recipient: email, message: err?.message, code: err?.code });
     if (email && generatedOtp) {
