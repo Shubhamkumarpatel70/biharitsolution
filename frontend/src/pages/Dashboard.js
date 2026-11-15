@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, Outlet } from 'react-router-dom';
 import axios from '../axios';
 import Sidebar from '../components/Sidebar';
+import { logoutCurrentSession } from '../utils/logout';
 
 function Dashboard() {
   const [user, setUser] = useState(null);
@@ -47,9 +48,9 @@ function Dashboard() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [sidebarOpen]);
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    navigate('/login');
+  const handleLogout = async () => {
+    await logoutCurrentSession();
+    navigate('/login', { replace: true, state: { message: 'You have been signed out from this device.' } });
   };
 
   if (loading) {
