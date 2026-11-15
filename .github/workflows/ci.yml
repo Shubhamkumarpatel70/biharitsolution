@@ -33,6 +33,8 @@ jobs:
           node --check backend/controllers/authController.js
           node --check backend/models/Otp.js
           node --check backend/models/Subscription.js
+          node --check backend/models/Coupon.js
+          node --check backend/tests/mongoSessionStore.test.js
           node --check backend/models/FundTransaction.js
           node --check backend/utils/mongoSessionStore.js
           node backend/scripts/check-duplicate-routes.js
