@@ -5,6 +5,15 @@ const base = 'shrink-0';
 export function Icon({ name, className = 'w-6 h-6', strokeWidth = 1.75 }) {
   const cn = `${base} ${className}`.trim();
   switch (name) {
+    case 'cookie':
+      return (
+        <svg className={cn} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={strokeWidth} aria-hidden>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M20.5 13.2A8.5 8.5 0 1110.8 3.5a3.5 3.5 0 004.7 4.7 3.5 3.5 0 005 5z" />
+          <circle cx="8.2" cy="10" r="1" fill="currentColor" stroke="none" />
+          <circle cx="12" cy="15.5" r="1" fill="currentColor" stroke="none" />
+          <circle cx="7.5" cy="16" r=".7" fill="currentColor" stroke="none" />
+        </svg>
+      );
     case 'mail':
       return (
         <svg className={cn} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={strokeWidth} aria-hidden>
