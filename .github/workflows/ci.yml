@@ -25,6 +25,8 @@ jobs:
         run: |
           node --check backend/routes/auth.js
           node --check backend/server.js
+          node --check backend/controllers/authController.js
+          node --check backend/models/Otp.js
           node --check backend/models/Subscription.js
       - name: Build frontend
         run: npm run build --prefix frontend
