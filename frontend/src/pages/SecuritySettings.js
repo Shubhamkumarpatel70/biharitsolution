@@ -9,6 +9,8 @@ function SessionLoginInfo() {
   const [busySession, setBusySession] = useState('');
   const [logoutBusy, setLogoutBusy] = useState(false);
   const [sessionError, setSessionError] = useState('');
+  const [sessionNotice, setSessionNotice] = useState('');
+  const [confirmAction, setConfirmAction] = useState(null);
   const auth = () => ({ headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
 
   const loadInfo = async () => {
@@ -18,6 +20,11 @@ function SessionLoginInfo() {
     finally { setLoadingInfo(false); }
   };
   useEffect(() => { loadInfo(); }, []);
+  useEffect(() => {
+    if (!sessionNotice) return undefined;
+    const timer = window.setTimeout(() => setSessionNotice(''), 4500);
+    return () => window.clearTimeout(timer);
+  }, [sessionNotice]);
 
   const browser = (ua = '') => {
     if (!ua) return 'Unknown browser';
@@ -27,8 +34,7 @@ function SessionLoginInfo() {
   };
 
   const logoutDevice = async session => {
-    if (!window.confirm(`Sign out ${session.current ? 'this device' : 'the selected device'}? That device will need to log in again.`)) return;
-    setBusySession(session.sessionId); setSessionError('');
+    setBusySession(session.sessionId); setSessionError(''); setSessionNotice('');
     try {
       await axios.post(`/api/auth/sessions/${encodeURIComponent(session.sessionId)}/logout`, {}, auth());
       if (session.current) {
@@ -37,19 +43,24 @@ function SessionLoginInfo() {
         navigate('/login', { replace: true, state: { message: 'This device has been signed out.' } });
         return;
       }
-      await loadInfo();
-    } catch (error) { setSessionError(error.response?.data?.message || 'Could not sign out this device.'); }
-    finally { setBusySession(''); }
+      setInfo(current => current ? { ...current, sessions: current.sessions.filter(item => item.sessionId !== session.sessionId) } : current);
+      setSessionNotice('Device logged out successfully.');
+    } catch (error) {
+      setSessionError(error.response?.data?.message || 'Could not sign out this device.');
+    } finally { setBusySession(''); }
   };
 
   const logoutAll = async () => {
-    if (!window.confirm('This will sign out every device, including this one. Continue?')) return;
     setLogoutBusy(true); setSessionError('');
     try {
       await axios.post('/api/auth/sessions/logout-all', {}, auth());
-      localStorage.removeItem('token'); localStorage.removeItem('user'); delete axios.defaults.headers.common.Authorization;
+      localStorage.removeItem('token'); localStorage.removeItem('user');
+      delete axios.defaults.headers.common.Authorization;
       navigate('/login', { replace: true, state: { message: 'You have been signed out from all devices. Please log in again.' } });
-    } catch (error) { setSessionError(error.response?.data?.message || 'Could not sign out all devices.'); setLogoutBusy(false); }
+    } catch (error) {
+      setSessionError(error.response?.data?.message || 'Could not sign out all devices.');
+      setLogoutBusy(false);
+    }
   };
 
   const sessions = info?.sessions || [];
@@ -58,6 +69,7 @@ function SessionLoginInfo() {
       <div><p className="text-xs font-bold uppercase tracking-widest text-blue-600">Account activity</p><h3 className="mt-1 text-lg font-bold text-slate-900">Session &amp; Login Info</h3><p className="mt-1 text-sm text-slate-500">Review every device signed in to your account and manage sessions individually.</p></div>
       <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">{sessions.length} active {sessions.length === 1 ? 'session' : 'sessions'}</span>
     </div>
+    {sessionNotice && <p role="status" aria-live="polite" className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-sm font-medium text-emerald-800">{sessionNotice}</p>}
     <div className="mt-5 space-y-3">
       {loadingInfo ? <p className="text-sm text-slate-500">Loading login sessions…</p> : sessions.length ? sessions.map(session => <article key={session.sessionId} className="rounded-xl border border-slate-200 p-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -66,16 +78,31 @@ function SessionLoginInfo() {
             <p className="mt-1 text-xs text-slate-500">Last active: {session.lastSeenAt ? new Date(session.lastSeenAt).toLocaleString() : 'Unknown'}</p>
             <p className="mt-1 break-all text-xs text-slate-500">IP address: {session.ip || 'Not available'}</p>
           </div>
-          <button type="button" onClick={() => logoutDevice(session)} disabled={!!busySession || logoutBusy} className="inline-flex shrink-0 items-center justify-center rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-50">{busySession === session.sessionId ? 'Signing out…' : 'Logout This Device'}</button>
+          <button type="button" onClick={() => setConfirmAction({ type: 'single', session })} disabled={!!busySession || logoutBusy} className="inline-flex shrink-0 items-center justify-center rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-50">{busySession === session.sessionId ? 'Logging out…' : 'Logout'}</button>
         </div>
       </article>) : <div className="rounded-xl border border-dashed border-slate-300 p-5 text-center text-sm text-slate-500">No tracked sessions found. Sign in again to register this device.</div>}
     </div>
     {sessionError && <p role="alert" className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm text-rose-700">{sessionError}</p>}
     <div className="mt-5 flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
-      <p className="max-w-xl text-xs leading-relaxed text-slate-500">Signing out a device immediately revokes that device's session. Logout All signs out every device.</p>
-      <button type="button" onClick={logoutAll} disabled={logoutBusy || loadingInfo} className="inline-flex shrink-0 items-center justify-center rounded-xl border border-rose-200 bg-white px-4 py-2.5 text-sm font-semibold text-rose-700 transition hover:bg-rose-50 disabled:opacity-50">{logoutBusy ? 'Signing out…' : 'Logout All'}</button>
+      <p className="max-w-xl text-xs leading-relaxed text-slate-500">Logging out a device revokes only that selected session. Logout All signs out every device, including this one.</p>
+      <button type="button" onClick={() => setConfirmAction({ type: 'all' })} disabled={logoutBusy || loadingInfo || sessions.length === 0} className="inline-flex shrink-0 items-center justify-center rounded-xl border border-rose-200 bg-white px-4 py-2.5 text-sm font-semibold text-rose-700 transition hover:bg-rose-50 disabled:opacity-50">{logoutBusy ? 'Logging out…' : 'Logout All'}</button>
     </div>
-    <button type="button" onClick={loadInfo} disabled={loadingInfo} className="mt-3 text-xs font-semibold text-blue-700 hover:text-blue-900 disabled:opacity-50">Refresh sessions</button>
+    <button type="button" onClick={loadInfo} disabled={loadingInfo || !!busySession || logoutBusy} className="mt-3 text-xs font-semibold text-blue-700 hover:text-blue-900 disabled:opacity-50">Refresh sessions</button>
+
+    {confirmAction && <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/50 p-4" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget && !busySession && !logoutBusy) setConfirmAction(null); }}>
+      <div role="dialog" aria-modal="true" aria-labelledby="session-confirm-title" aria-describedby="session-confirm-description" className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl sm:p-6">
+        <div className="flex items-start gap-3">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-rose-50 text-rose-600"><span aria-hidden="true" className="text-xl">↪</span></div>
+          <div><h3 id="session-confirm-title" className="text-lg font-bold text-slate-900">{confirmAction.type === 'all' ? 'Logout All Devices?' : 'Logout This Device?'}</h3>
+            <p id="session-confirm-description" className="mt-2 text-sm leading-relaxed text-slate-600">{confirmAction.type === 'all' ? 'This will log you out from every device, including the device you are using now. You will need to sign in again.' : `Are you sure you want to log out this device? ${confirmAction.session?.current ? 'You will need to log in again to access your account.' : 'Only this selected device will be logged out. Your other devices will remain signed in.'}`}</p>
+          </div>
+        </div>
+        <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <button type="button" onClick={() => setConfirmAction(null)} disabled={!!busySession || logoutBusy} className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">Cancel</button>
+          <button type="button" onClick={async () => { const action = confirmAction; setConfirmAction(null); if (action.type === 'all') await logoutAll(); else await logoutDevice(action.session); }} disabled={!!busySession || logoutBusy} className="rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-rose-700 disabled:opacity-50">{busySession || logoutBusy ? 'Please wait…' : confirmAction.type === 'all' ? 'Yes, Logout All' : 'Yes, Logout'}</button>
+        </div>
+      </div>
+    </div>}
   </section>;
 }
 
