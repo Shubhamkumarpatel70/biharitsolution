@@ -36,6 +36,8 @@ jobs:
           node --check backend/models/FundTransaction.js
           node --check backend/utils/mongoSessionStore.js
           node backend/scripts/check-duplicate-routes.js
+      - name: Run backend regression tests
+        run: npm test --prefix backend
       - name: Build frontend
         run: npm run build --prefix frontend
         env:
