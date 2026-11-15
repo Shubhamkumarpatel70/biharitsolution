@@ -5,6 +5,7 @@ const WEB = "www.askctechnologies.in";
 const PHONE = "+91 79923 65197";
 
 export const DOCUMENT_TYPES = [
+  { id: "service_agreement", label: "Client Service Agreement" },
   { id: "nda", label: "Non-Disclosure Agreement (NDA)" },
   { id: "quotation", label: "Project Quotation / Proposal" },
   { id: "invoice", label: "Tax Invoice" },
@@ -140,6 +141,7 @@ export function generateTemplate(type, data) {
   const today = new Date().toLocaleDateString("en-IN",{day:"numeric",month:"long",year:"numeric"});
   let html;
   switch(type) {
+    case "service_agreement": html = tServiceAgreement({...data,today}); break;
     case "nda": html = tNDA({...data,today}); break;
     case "quotation": html = tQuotation({...data,today}); break;
     case "invoice": html = tInvoice({...data,today}); break;
@@ -151,6 +153,31 @@ export function generateTemplate(type, data) {
   }
   if (html && data && html.includes('<div class="content">')) html = html.replace('<div class="content">', '<div class="content">' + detailsBlock(data));
   return html;
+}
+
+
+function tServiceAgreement({clientName,clientCompany,clientEmail,projectName,projectDesc,docCode,today}) {
+  return `${head("Client Service Agreement")}<body>${ctrl("Print Agreement")}
+<div class="page">${hdr("Client Engagement","SERVICE AGREEMENT")}
+<div class="content">
+${dcBadge(docCode)}
+<div class="clause">This Client Service Agreement ("Agreement") is issued on <strong>${today}</strong> between <strong>${CO}</strong> ("Service Provider") and <strong>${clientName}${clientCompany ? " · "+clientCompany : ""}</strong> ("Client"). The parties agree to the project scope and commercial terms recorded in this document.</div>
+<div class="sec-title">1. Project Scope & Deliverables</div>
+<div class="clause">${projectDesc || "The services and deliverables are described in the Project & Client Details section of this Agreement."}</div>
+<div class="sec-title">2. Fees & Payment</div>
+<div class="clause">The agreed project fee, payment milestones, due dates and any applicable taxes shall be as recorded in the Project & Client Details section. Work may be scheduled against the agreed payment milestones.</div>
+<div class="sec-title">3. Changes & Revisions</div>
+<div class="clause">Any work outside the agreed scope, additional revisions or material changes may require a revised estimate and timeline. Such changes should be approved by both parties in writing before implementation.</div>
+<div class="sec-title">4. Client Responsibilities</div>
+<div class="clause">The Client will provide accurate requirements, content, approvals and access reasonably needed to deliver the project. Delays in receiving required inputs may affect the delivery schedule.</div>
+<div class="sec-title">5. Support, Cancellation & Refunds</div>
+<div class="clause">Support, maintenance, cancellation and refund arrangements are governed by the specific terms entered in this Agreement. Any work completed, third-party costs or non-recoverable expenses should be considered as stated in those terms.</div>
+<div class="sec-title">6. Acceptance & Electronic Record</div>
+<div class="clause">The Client may accept or decline this Agreement through the registered ASKC TECHNOLOGIES account to which it is assigned. On acceptance, the system records the account identity, date and time, and the place supplied by the Client. The acceptance record is appended to the client signature area.</div>
+<div class="sec-title">7. General Terms</div>
+<div class="clause">Any amendment to this Agreement must be documented and accepted by both parties. If any provision is found unenforceable, the remaining provisions continue to apply to the extent permitted by law.</div>
+${signatureBlock(clientName)}
+</div>${ftr(docCode)}</div></body></html>`;
 }
 
 function tNDA({clientName,clientCompany,docCode,today}) {
