@@ -5,7 +5,7 @@ import axios from '../axios';
 const parseMoney = value => {
   if (value === null || value === undefined || String(value).trim() === '') return null;
   const normalized = String(value).replace(/[₹,\s]/g, '');
-  if (!/^\\d+(?:\\.\\d{1,2})?$/.test(normalized)) return null;
+  if (!/^\d+(?:\.\d{1,2})?$/.test(normalized)) return null;
   const parsed = Number(normalized);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 };
