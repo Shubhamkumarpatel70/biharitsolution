@@ -33,6 +33,7 @@ import AdminPrivacyRequests from './AdminPrivacyRequests';
 import AdminPrivacyCompliance from './AdminPrivacyCompliance';
 import AdminPrivacyRegister from './AdminPrivacyRegister';
 import AdminPrivacyOperations from './AdminPrivacyOperations';
+import AdminCookies from './AdminCookies';
 import { Icon } from '../components/icons';
 
 const AdminDashboard = () => {
@@ -116,6 +117,7 @@ const AdminDashboard = () => {
       case 'privacy-compliance': return <AdminPrivacyCompliance />;
       case 'privacy-register': return <AdminPrivacyRegister />;
       case 'privacy-operations': return <AdminPrivacyOperations />;
+      case 'cookies': return <AdminCookies />;
       case 'id-card': return <AdminIDCard />;
       case 'agreements': return <AdminAgreements />;
       case 'client-work': return <AdminClientWork />;
