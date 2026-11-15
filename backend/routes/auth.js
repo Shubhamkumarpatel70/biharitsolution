@@ -532,6 +532,21 @@ async function releaseCouponReservation(subscription) {
   );
 }
 
+async function expireAbandonedCouponOrders(couponCode) {
+  const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const filter = { status: "pending", createdAt: { $lte: cutoff }, couponCode: { $nin: ["", null] } };
+  if (couponCode) filter.couponCode = couponCode;
+  const abandoned = await Subscription.find(filter).select("_id couponCode");
+  for (const item of abandoned) {
+    const expired = await Subscription.findOneAndUpdate(
+      { _id: item._id, status: "pending" },
+      { $set: { status: "expired", paymentStatus: "expired" } },
+      { new: true }
+    );
+    if (expired?.couponCode) await releaseCouponReservation(expired);
+  }
+}
+
 // Cashfree Checkout: create a server-priced order and a pending subscription.
 // Cashfree server-to-server webhook. Signature is verified against the untouched raw request body.
 router.post("/cashfree/webhook", async (req, res) => {
@@ -1135,12 +1150,13 @@ router.post("/coupons/apply", async (req, res) => {
     const code = String(req.body?.code || "").trim().toUpperCase();
     const planId = req.body?.planId;
     if (!code) return res.status(400).json({ message: "Coupon code is required." });
+    await expireAbandonedCouponOrders(code);
     const coupon = await Coupon.findOne({ code, active: true }).lean();
     if (!coupon) return res.status(404).json({ message: "Invalid or expired coupon." });
     if (planId && coupon.eligiblePlans?.length && !coupon.eligiblePlans.some(id => String(id) === String(planId))) {
       return res.status(400).json({ message: "This coupon is not valid for the selected pricing plan." });
     }
-    if (coupon.usageLimit > 0 && coupon.usedCount >= coupon.usageLimit) {
+    if (coupon.usageLimit > 0 && (Number(coupon.usedCount || 0) + Number(coupon.reservedCount || 0)) >= coupon.usageLimit) {
       return res.status(400).json({ message: "Coupon usage limit reached." });
     }
     // This endpoint only previews a coupon. Redemption is recorded after verified payment,
