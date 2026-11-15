@@ -18,9 +18,6 @@ class MongoSessionStore extends Store {
   }
 
   collection() {
-    if (mongoose.connection.readyState !== 1) {
-      throw new Error("MongoDB is not connected; session storage is unavailable.");
-    }
     return mongoose.connection.collection(this.collectionName);
   }
 
