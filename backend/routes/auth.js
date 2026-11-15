@@ -5187,10 +5187,17 @@ router.post(
   }
 );
 
-// PUBLIC: Serve agreement HTML page (no auth — for email links)
+// PUBLIC: Serve agreement HTML only with its random, expiring email-share token.
 router.get("/public/agreements/:id/view", async (req, res) => {
   try {
-    const agreement = await Agreement.findById(req.params.id);
+    const viewToken = String(req.query.token || "");
+    if (!/^[a-f0-9]{64}$/i.test(viewToken)) return res.status(401).send("A valid agreement access link is required.");
+    const viewTokenHash = crypto.createHash("sha256").update(viewToken).digest("hex");
+    const agreement = await Agreement.findOne({
+      _id: req.params.id,
+      publicViewTokenHash: viewTokenHash,
+      publicViewTokenExpiresAt: { $gt: new Date() },
+    }).select("+publicViewTokenHash");
     if (!agreement) {
       return res.status(404).send(`
         <!DOCTYPE html><html><head><title>Not Found</title>
@@ -5462,7 +5469,15 @@ router.post(
       // Public view link — use the base URL from env or a default
       const baseUrl = process.env.PUBLIC_SITE_URL || process.env.FRONTEND_URL || (process.env.CLIENT_URL ? process.env.CLIENT_URL.replace(/\/dashboard\/?$/, "") : "https://askctechnologies.in");
 
-      const viewLink = `${baseUrl}/api/auth/public/agreements/${agreement._id}/view`;
+      const publicViewToken = crypto.randomBytes(32).toString("hex");
+      const publicViewTokenHash = crypto.createHash("sha256").update(publicViewToken).digest("hex");
+      await Agreement.findByIdAndUpdate(agreement._id, {
+        $set: {
+          publicViewTokenHash,
+          publicViewTokenExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        },
+      });
+      const viewLink = `${baseUrl}/api/auth/public/agreements/${agreement._id}/view?token=${publicViewToken}`;
 
       const htmlEmail = `
 <!DOCTYPE html>
