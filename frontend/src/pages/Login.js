@@ -18,6 +18,7 @@ function Login() {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
   const [userInfo, setUserInfo] = useState(null);
+  const [passwordResetToken, setPasswordResetToken] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -169,6 +170,7 @@ function Login() {
         setShowForgotPassword(false);
         setForgotEmail('');
         setUserInfo(null);
+        setPasswordResetToken('');
         setNewPassword('');
         setConfirmPassword('');
         setShowForgotOtp(false);
@@ -195,6 +197,7 @@ function Login() {
     setForgotPasswordLoading(true);
     setMessage('');
     try {
+      setPasswordResetToken('');
       await axios.post('/api/auth/forgot-password/send-otp', { email: forgotEmail.trim() });
       setShowForgotOtp(true);
       setMessage('OTP sent to your email.');
@@ -216,6 +219,7 @@ function Login() {
     try {
       const res = await axios.post('/api/auth/forgot-password/verify-otp', { email: forgotEmail.trim(), otp: forgotOtp.trim() });
       setUserInfo(res.data.user);
+      setPasswordResetToken(res.data.resetToken || '');
       setShowForgotOtp(false);
       setMessage('');
     } catch (err) {
@@ -231,8 +235,8 @@ function Login() {
       setMessage('Please enter both password fields.');
       return;
     }
-    if (newPassword.length < 6) {
-      setMessage('Password must be at least 6 characters long.');
+    if (newPassword.length < 8) {
+      setMessage('Password must be at least 8 characters long.');
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -242,12 +246,14 @@ function Login() {
     setForgotPasswordLoading(true);
     setMessage('');
     try {
-      await axios.post('/api/auth/forgot-password/reset', { email: forgotEmail.trim(), newPassword });
+      if (!passwordResetToken) { setMessage('Please verify your email OTP again before resetting your password.'); return; }
+      await axios.post('/api/auth/forgot-password/reset', { resetToken: passwordResetToken, newPassword });
       setMessage('Password reset successfully! Redirecting to login...');
       setTimeout(() => {
         setShowForgotPassword(false);
         setForgotEmail('');
         setUserInfo(null);
+        setPasswordResetToken('');
         setNewPassword('');
         setConfirmPassword('');
         setShowForgotOtp(false);
