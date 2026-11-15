@@ -212,6 +212,12 @@ const AdminFunds = () => {
                       ) : (
                         <span className="text-xs font-semibold rounded-full bg-slate-200 text-slate-700 px-2.5 py-1">Voided</span>
                       )}
+                      {item.voidedAt ? (
+                        <div className="text-xs text-slate-500 text-left sm:text-right">
+                          <p>Voided {new Date(item.voidedAt).toLocaleString()} by {item.voidedBy?.name || 'Admin'}</p>
+                          {item.voidReason ? <p className="mt-0.5">Reason: {item.voidReason}</p> : null}
+                        </div>
+                      ) : null}
                     </div>
                   </div>
                 </div>
