@@ -4,7 +4,7 @@ const otpSchema = new mongoose.Schema(
   {
     email: { type: String, required: true },
     otp: { type: String, required: true },
-    purpose: { type: String, enum: ["register", "forgot"], required: true },
+    purpose: { type: String, enum: ["register", "forgot", "twofactor-login", "twofactor-enable"], required: true },
     expiresAt: { type: Date, required: true },
   },
   { timestamps: true },
