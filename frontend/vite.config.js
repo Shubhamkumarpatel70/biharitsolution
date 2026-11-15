@@ -4,7 +4,8 @@ import react from "@vitejs/plugin-react";
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
   return {
-    plugins: [react()],
+    plugins: [react({ include: /\\.[jt]sx?$/ })],
+    esbuild: { loader: "jsx", include: /src\\/.*\\.js$/, exclude: [] },
     server: { host: "0.0.0.0", port: 3000, strictPort: true, proxy: { "/api": "http://localhost:5000" } },
     preview: { host: "0.0.0.0", port: 4173 },
     define: {
