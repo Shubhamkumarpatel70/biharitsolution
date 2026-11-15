@@ -23,7 +23,9 @@ function Register() {
     setLoading(true);
     setMessage("");
     try {
-      await axios.post("/api/auth/register/send-otp", { email });
+      const normalizedEmail = email.trim().toLowerCase();
+      setEmail(normalizedEmail);
+      await axios.post("/api/auth/register/send-otp", { email: normalizedEmail });
       setLoading(false);
       setShowOtp(true);
     } catch (err) {
@@ -39,9 +41,10 @@ function Register() {
     try {
       const res = await axios.post("/api/auth/register", {
         name,
-        email,
+        email: email.trim().toLowerCase(),
         password,
         subscribeOffers,
+        registrationToken,
       });
       localStorage.setItem("token", res.data.token);
       setUser(res.data.user);

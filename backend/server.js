@@ -131,6 +131,8 @@ const allowedOrigins = new Set([
   "http://127.0.0.1:3000",
   "https://askctechnologies.in",
   "https://www.askctechnologies.in",
+  "https://askcweb.in",
+  "https://www.askcweb.in",
   "https://biharitsolution.onrender.com",
   "https://custom-web-app.onrender.com",
   "https://custom-web-frontend.onrender.com",
@@ -138,6 +140,8 @@ const allowedOrigins = new Set([
 const corsOptions = {
   origin(origin, callback) {
     if (!origin || allowedOrigins.has(origin)) return callback(null, true);
+    // Log only the rejected origin (never request credentials) to diagnose deployment-domain mismatches.
+    console.warn("Rejected CORS origin:", origin);
     return callback(new Error("Origin is not allowed by CORS"));
   },
   credentials: true,
@@ -424,6 +428,8 @@ const io = new Server(server, {
       "http://127.0.0.1:3000",
       "https://askctechnologies.in",
       "https://www.askctechnologies.in",
+      "https://askcweb.in",
+      "https://www.askcweb.in",
       "https://custom-web-frontend.onrender.com",
       "https://custom-web-app.onrender.com",
       "https://biharitsolution.onrender.com",

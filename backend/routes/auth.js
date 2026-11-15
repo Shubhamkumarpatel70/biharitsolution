@@ -3706,4 +3706,65 @@ router.post("/2fa/login/verify", async (req, res) => {
   }
 });
 
+
+// Admin dashboard summary used by the AdminHome screen.
+router.get("/admin/stats", authMiddleware, coAdminMiddleware, async (req, res) => {
+  try {
+    const [userCount, subCount, activeSubs, revenueResult] = await Promise.all([
+      User.countDocuments({ role: "user" }),
+      Subscription.countDocuments({}),
+      Subscription.countDocuments({ status: "active", canceled: { $ne: true } }),
+      Subscription.aggregate([
+        {
+          $match: {
+            $or: [
+              { status: "active", canceled: { $ne: true } },
+              { paymentStatus: { $in: ["success", "paid", "completed", "SUCCESS", "PAID", "COMPLETED"] } },
+            ],
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            totalRevenue: {
+              $sum: {
+                $cond: [
+                  { $gt: [{ $ifNull: ["$amountPaid", 0] }, 0] },
+                  "$amountPaid",
+                  {
+                    $sum: {
+                      $map: {
+                        input: {
+                          $filter: {
+                            input: { $ifNull: ["$paymentEntries", []] },
+                            as: "entry",
+                            cond: { $eq: ["$$entry.status", "confirmed"] },
+                          },
+                        },
+                        as: "entry",
+                        in: { $ifNull: ["$entry.amount", 0] },
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        },
+      ]),
+    ]);
+
+    res.set("Cache-Control", "no-store");
+    return res.json({
+      userCount,
+      totalRevenue: Number(revenueResult[0]?.totalRevenue || 0),
+      subCount,
+      activeSubs,
+    });
+  } catch (error) {
+    console.error("Admin dashboard stats failed:", error?.message || error);
+    return res.status(500).json({ message: "Could not load dashboard statistics." });
+  }
+});
+
 module.exports = router;
