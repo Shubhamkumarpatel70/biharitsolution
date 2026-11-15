@@ -18,6 +18,10 @@ const AdminFunds = () => {
   const [reason, setReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const [voidTarget, setVoidTarget] = useState(null);
+  const [voidReason, setVoidReason] = useState('');
+  const [voidSubmitting, setVoidSubmitting] = useState(false);
+  const [voidError, setVoidError] = useState('');
 
   const token = localStorage.getItem('token');
 
@@ -51,6 +55,7 @@ const AdminFunds = () => {
   const totals = useMemo(() => {
     return transactions.reduce(
       (acc, item) => {
+        if (item.voidedAt) return acc;
         if (item.type === 'add') acc.added += Number(item.amount || 0);
         if (item.type === 'withdraw') acc.withdrawn += Number(item.amount || 0);
         return acc;
@@ -94,6 +99,30 @@ const AdminFunds = () => {
       setSubmitError(err.response?.data?.message || 'Could not submit transaction.');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleVoid = async (e) => {
+    e.preventDefault();
+    if (!voidTarget || voidReason.trim().length < 5) {
+      setVoidError('Please enter a reason of at least 5 characters.');
+      return;
+    }
+    try {
+      setVoidSubmitting(true);
+      setVoidError('');
+      await axios.post(
+        `/api/auth/admin/funds/${voidTarget._id}/void`,
+        { reason: voidReason.trim() },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setVoidTarget(null);
+      setVoidReason('');
+      await fetchFunds();
+    } catch (err) {
+      setVoidError(err.response?.data?.message || 'Could not void this ledger entry.');
+    } finally {
+      setVoidSubmitting(false);
     }
   };
 
@@ -172,9 +201,18 @@ const AdminFunds = () => {
                         By {item.createdBy?.name || 'Admin'} • {new Date(item.createdAt).toLocaleString()}
                       </p>
                     </div>
-                    <p className={`text-base font-bold tabular-nums ${item.type === 'add' ? 'text-emerald-700' : 'text-red-700'}`}>
-                      {item.type === 'add' ? '+' : '-'} {currency(item.amount)}
-                    </p>
+                    <div className="flex flex-col items-start sm:items-end gap-2">
+                      <p className={`text-base font-bold tabular-nums ${item.voidedAt ? 'text-slate-500 line-through' : item.type === 'add' ? 'text-emerald-700' : 'text-red-700'}`}>
+                        {item.type === 'add' ? '+' : '-'} {currency(item.amount)}
+                      </p>
+                      {!item.voidedAt ? (
+                        <button type="button" onClick={() => { setVoidTarget(item); setVoidReason(''); setVoidError(''); }} className="text-xs font-semibold rounded-lg border border-red-200 text-red-700 px-3 py-1.5 hover:bg-red-50">
+                          Void entry
+                        </button>
+                      ) : (
+                        <span className="text-xs font-semibold rounded-full bg-slate-200 text-slate-700 px-2.5 py-1">Voided</span>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -182,6 +220,32 @@ const AdminFunds = () => {
           )}
         </div>
       </div>
+
+      {voidTarget && (
+        <div className="fixed inset-0 z-[110] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white border border-slate-200 shadow-2xl">
+            <div className="px-5 py-4 border-b border-slate-200">
+              <h4 className="text-lg font-bold text-slate-900">Void ledger entry</h4>
+              <p className="text-sm text-slate-500 mt-1">This does not delete the record. The original entry and audit history will remain visible.</p>
+            </div>
+            <form onSubmit={handleVoid} className="p-5 space-y-4">
+              <div className="rounded-xl bg-slate-50 border border-slate-200 p-3 text-sm">
+                <p className="font-semibold text-slate-900">{voidTarget.type === 'add' ? 'Funds Added' : 'Funds Withdrawn'} · {currency(voidTarget.amount)}</p>
+                <p className="text-slate-600 mt-1">{voidTarget.reason}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">Reason for voiding</label>
+                <textarea value={voidReason} onChange={(e) => setVoidReason(e.target.value)} rows={3} maxLength={500} required className="w-full rounded-xl border border-slate-300 px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-accent-500/40 resize-none" placeholder="Explain why this entry is incorrect" />
+              </div>
+              {voidError ? <p className="text-sm text-red-600">{voidError}</p> : null}
+              <div className="flex gap-3 justify-end">
+                <button type="button" onClick={() => { setVoidTarget(null); setVoidReason(''); setVoidError(''); }} disabled={voidSubmitting} className="px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 text-sm font-medium hover:bg-slate-50">Cancel</button>
+                <button type="submit" disabled={voidSubmitting || voidReason.trim().length < 5} className="px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-semibold disabled:opacity-60">{voidSubmitting ? 'Voiding...' : 'Confirm void'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {modalType && (
         <div className="fixed inset-0 z-[100] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
