@@ -5742,7 +5742,136 @@ router.get("/admin/transactions", authMiddleware, coAdminMiddleware, async (req,
     if (from && !Number.isNaN(from.getTime())) filter.createdAt = { ...(filter.createdAt || {}), $gte: from };
     if (to && !Number.isNaN(to.getTime())) { const end = new Date(to); end.setHours(23,59,59,999); filter.createdAt = { ...(filter.createdAt || {}), $lte: end }; }
     if (query) {
-      const rx = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, "\\module.exports = router;"), "i");
+      const rx = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, "\\
+/* Two-factor authentication: TOTP authenticator or registered-email OTP. */
+const twoFactorCrypto = require("../utils/twoFactor");
+function createSessionForUser(res, user) {
+  const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: "7d" });
+  res.cookie("token", token, { httpOnly: true, sameSite: "None", secure: process.env.NODE_ENV === "production", maxAge: 7 * 24 * 60 * 60 * 1000 });
+  return token;
+}
+router.get("/security/2fa", authMiddleware, async (req, res) => {
+  const user = await User.findById(req.user.id).select("email twoFactorEnabled twoFactorMethod");
+  if (!user) return res.status(404).json({ message: "User not found." });
+  res.json({ enabled: Boolean(user.twoFactorEnabled), method: user.twoFactorMethod || "", email: user.email });
+});
+router.post("/security/2fa/authenticator/setup", authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("+twoFactorPendingSecret");
+    if (!user) return res.status(404).json({ message: "User not found." });
+    const secret = twoFactorCrypto.makeTotpSecret();
+    user.twoFactorPendingSecret = twoFactorCrypto.encryptSecret(secret);
+    await user.save();
+    const label = encodeURIComponent(`ASKC TECHNOLOGIES:${user.email}`);
+    const issuer = encodeURIComponent("ASKC TECHNOLOGIES");
+    const otpauthUri = `otpauth://totp/${label}?secret=${secret}&issuer=${issuer}&algorithm=SHA1&digits=6&period=30`;
+    res.json({ secret, otpauthUri, message: "Add this account manually in your authenticator app, then verify the 6-digit code." });
+  } catch (err) {
+    console.error("2FA authenticator setup failed:", err);
+    res.status(500).json({ message: "Could not start authenticator setup." });
+  }
+});
+router.post("/security/2fa/authenticator/verify", authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("+twoFactorPendingSecret");
+    if (!user?.twoFactorPendingSecret) return res.status(400).json({ message: "Start authenticator setup first." });
+    const secret = twoFactorCrypto.decryptSecret(user.twoFactorPendingSecret);
+    if (!twoFactorCrypto.verifyTotp(secret, req.body?.code)) return res.status(400).json({ message: "Invalid authenticator code. Check your app and try again." });
+    user.twoFactorSecret = user.twoFactorPendingSecret;
+    user.twoFactorPendingSecret = "";
+    user.twoFactorEnabled = true;
+    user.twoFactorMethod = "authenticator";
+    await user.save();
+    res.json({ enabled: true, method: user.twoFactorMethod, message: "Authenticator two-factor authentication enabled." });
+  } catch (err) {
+    console.error("2FA authenticator verification failed:", err);
+    res.status(500).json({ message: "Could not verify authenticator setup." });
+  }
+});
+router.post("/security/2fa/email/send", authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("email name");
+    if (!user) return res.status(404).json({ message: "User not found." });
+    const code = require("crypto").randomInt(100000, 1000000).toString();
+    await Otp.deleteMany({ email: user.email.toLowerCase(), purpose: "twofactor-enable" });
+    await Otp.create({ email: user.email.toLowerCase(), otp: code, purpose: "twofactor-enable", expiresAt: new Date(Date.now() + 5 * 60 * 1000) });
+    try {
+      await sendEmail(user.email, "Enable email two-factor authentication — ASKC TECHNOLOGIES", `Your verification code is ${code}. It expires in 5 minutes.`, `<div style="font-family:Arial,sans-serif;padding:24px"><h2>ASKC TECHNOLOGIES</h2><p>Your email 2FA verification code:</p><h1 style="letter-spacing:8px">${code}</h1><p>This code expires in 5 minutes. Do not share it.</p></div>`);
+    } catch (mailError) {
+      await Otp.deleteMany({ email: user.email.toLowerCase(), purpose: "twofactor-enable" });
+      return res.status(503).json({ message: "Could not send verification email. Please try again." });
+    }
+    res.json({ message: "Verification code sent to your registered email." });
+  } catch (err) {
+    console.error("2FA email send failed:", err);
+    res.status(500).json({ message: "Could not send verification code." });
+  }
+});
+router.post("/security/2fa/email/verify", authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    const code = String(req.body?.code || "").trim();
+    const record = user && await Otp.findOne({ email: user.email.toLowerCase(), otp: code, purpose: "twofactor-enable", expiresAt: { $gt: new Date() } });
+    if (!record) return res.status(400).json({ message: "Invalid or expired email verification code." });
+    await Otp.deleteMany({ email: user.email.toLowerCase(), purpose: "twofactor-enable" });
+    user.twoFactorEnabled = true;
+    user.twoFactorMethod = "email";
+    user.twoFactorSecret = "";
+    user.twoFactorPendingSecret = "";
+    await user.save();
+    res.json({ enabled: true, method: "email", message: "Email two-factor authentication enabled." });
+  } catch (err) {
+    console.error("2FA email verification failed:", err);
+    res.status(500).json({ message: "Could not enable email two-factor authentication." });
+  }
+});
+router.post("/security/2fa/disable", authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("+password +twoFactorSecret +twoFactorPendingSecret");
+    if (!user) return res.status(404).json({ message: "User not found." });
+    if (!user.twoFactorEnabled) return res.json({ enabled: false, message: "Two-factor authentication is already disabled." });
+    const passwordOk = user.password && await require("bcryptjs").compare(String(req.body?.password || ""), user.password);
+    if (!passwordOk) return res.status(400).json({ message: "Enter your current password to disable 2FA." });
+    const code = String(req.body?.code || "");
+    let valid = false;
+    if (user.twoFactorMethod === "authenticator" && user.twoFactorSecret) valid = twoFactorCrypto.verifyTotp(twoFactorCrypto.decryptSecret(user.twoFactorSecret), code);
+    if (user.twoFactorMethod === "email") {
+      const record = await Otp.findOne({ email: user.email.toLowerCase(), otp: code, purpose: "twofactor-enable", expiresAt: { $gt: new Date() } });
+      valid = Boolean(record);
+      if (record) await Otp.deleteMany({ email: user.email.toLowerCase(), purpose: "twofactor-enable" });
+    }
+    if (!valid) return res.status(400).json({ message: "Enter a valid current 2FA code. For email 2FA, request a fresh code first." });
+    user.twoFactorEnabled = false; user.twoFactorMethod = ""; user.twoFactorSecret = ""; user.twoFactorPendingSecret = "";
+    await user.save();
+    res.json({ enabled: false, message: "Two-factor authentication disabled." });
+  } catch (err) {
+    console.error("2FA disable failed:", err);
+    res.status(500).json({ message: "Could not disable two-factor authentication." });
+  }
+});
+router.post("/2fa/login/verify", async (req, res) => {
+  try {
+    const challenge = jwt.verify(String(req.body?.challengeToken || ""), process.env.JWT_SECRET);
+    if (challenge.purpose !== "two-factor-login") return res.status(401).json({ message: "Invalid login challenge." });
+    const user = await User.findById(challenge.id).select("+twoFactorSecret");
+    if (!user || !user.twoFactorEnabled) return res.status(401).json({ message: "This login challenge is no longer valid." });
+    const code = String(req.body?.code || "").trim();
+    let valid = false;
+    if (user.twoFactorMethod === "authenticator" && user.twoFactorSecret) valid = twoFactorCrypto.verifyTotp(twoFactorCrypto.decryptSecret(user.twoFactorSecret), code);
+    if (user.twoFactorMethod === "email") {
+      const record = await Otp.findOne({ email: user.email.toLowerCase(), otp: code, purpose: "twofactor-login", expiresAt: { $gt: new Date() } });
+      valid = Boolean(record);
+      if (record) await Otp.deleteMany({ email: user.email.toLowerCase(), purpose: "twofactor-login" });
+    }
+    if (!valid) return res.status(400).json({ message: "Invalid or expired verification code." });
+    const token = createSessionForUser(res, user);
+    res.json({ token, user: { id: user._id, name: user.name, email: user.email, role: user.role }, message: "Login verified successfully." });
+  } catch (err) {
+    res.status(401).json({ message: "Login verification expired. Please sign in again." });
+  }
+});
+
+module.exports = router;"), "i");
       const matchingUsers = await User.find({ $or: [{ name: rx }, { email: rx }] }).select("_id").limit(100).lean();
       filter.$or = [{ uniqueId: rx }, { transactionId: rx }, { cashfreeOrderId: rx }, { couponCode: rx }, { planName: rx }, { user: { $in: matchingUsers.map(u => u._id) } }];
     }
