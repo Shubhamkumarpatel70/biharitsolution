@@ -25,7 +25,7 @@ const generateOtpEmailHtml = (otp, title, description) => {
     <tr><td align="center">
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:560px;background:#ffffff;border:1px solid #e6ebf2;border-radius:18px;overflow:hidden;">
         <tr><td style="background:#102b55;padding:26px 28px;text-align:left;">
-          <div style="font-size:21px;line-height:1.2;font-weight:800;letter-spacing:.3px;color:#ffffff;">ASKC <span style="color:#8fc5ff;">TECHNOLOGIES</span></div>
+          <div style="font-size:22px;line-height:1.05;font-weight:800;letter-spacing:.4px;color:#ffffff;">ASKC</div><div style="font-size:22px;line-height:1.05;font-weight:800;letter-spacing:.4px;color:#8fc5ff;margin-top:3px;">TECHNOLOGIES</div>
           <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#c2d5ee;margin-top:7px;">Digital solutions. Built with care.</div>
         </td></tr>
         <tr><td style="padding:34px 28px 28px;">
