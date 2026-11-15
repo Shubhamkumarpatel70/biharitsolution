@@ -2298,7 +2298,8 @@ async function authMiddleware(req, res, next) {
     return res.status(401).json({ message: "No token, authorization denied." });
   }
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "changeme");
+    if (!process.env.JWT_SECRET || process.env.JWT_SECRET === "changeme") return res.status(503).json({ message: "Authentication is temporarily unavailable." });
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     if (decoded.purpose === "two-factor-login") return res.status(401).json({ message: "Complete the login verification first." });
     const account = await User.findById(decoded.id).select("sessionVersion role").lean();
     if (!account || Number(decoded.sv || 0) !== Number(account.sessionVersion || 0)) {
