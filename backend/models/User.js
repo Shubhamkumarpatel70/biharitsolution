@@ -15,6 +15,7 @@ const userSchema = new mongoose.Schema(
     lastLoginAt: { type: Date, default: null },
     lastLoginIp: { type: String, default: "" },
     lastLoginUserAgent: { type: String, default: "" },
+    lastActiveAt: { type: Date, default: null, index: true },
     lastLogoutAllAt: { type: Date, default: null },
     twoFactorEnabled: { type: Boolean, default: false },
     twoFactorMethod: { type: String, enum: ["email", "authenticator", ""], default: "" },
