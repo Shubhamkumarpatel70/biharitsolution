@@ -6,7 +6,7 @@ const AdminCoupons = () => {
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [form, setForm] = useState({ code: '', amount: '', discountType: 'fixed', eligiblePlans: [], usageLimit: '1' });
+  const [form, setForm] = useState({ code: '', amount: '', discountType: 'fixed', eligiblePlans: [], allPlans: true, usageLimit: '1' });
   const [message, setMessage] = useState({ type: '', text: '' });
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
@@ -69,6 +69,10 @@ const AdminCoupons = () => {
       setMessage({ type: 'error', text: 'Enter a valid coupon code and discount value (percentage must be 1–100).' });
       return;
     }
+    if (!form.allPlans && form.eligiblePlans.length === 0) {
+      setMessage({ type: 'error', text: 'Select at least one pricing plan or choose Select all plans.' });
+      return;
+    }
     if (!Number.isInteger(usageLimit) || usageLimit < 1) {
       setMessage({ type: 'error', text: 'Usage limit must be at least 1.' });
       return;
@@ -80,7 +84,7 @@ const AdminCoupons = () => {
         code: form.code.trim(),
         amount,
         discountType: form.discountType,
-        eligiblePlans: form.eligiblePlans,
+        eligiblePlans: form.allPlans ? [] : form.eligiblePlans,
         usageLimit
       }, authConfig());
       setMessage({ type: 'success', text: 'Coupon created successfully.' });
@@ -188,12 +192,12 @@ const AdminCoupons = () => {
             <span className="mb-1.5 block text-sm font-semibold text-slate-700">Valid pricing plans <span className="font-normal text-slate-400">(optional)</span></span>
             <div className="max-h-36 space-y-2 overflow-y-auto rounded-xl border border-slate-200 p-3">
               <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
-                <input type="checkbox" checked={form.eligiblePlans.length === 0} onChange={() => setForm(current => ({ ...current, eligiblePlans: [] }))} className="rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+                <input type="checkbox" checked={form.allPlans} onChange={e => setForm(current => ({ ...current, allPlans: e.target.checked, eligiblePlans: e.target.checked ? [] : current.eligiblePlans }))} className="rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
                 Select all plans
               </label>
               {plans.map(item => (
                 <label key={item._id} className="flex items-center gap-2 text-sm text-slate-600">
-                  <input type="checkbox" checked={form.eligiblePlans.includes(item._id)} onChange={e => setForm(current => ({ ...current, eligiblePlans: e.target.checked ? [...current.eligiblePlans, item._id] : current.eligiblePlans.filter(id => id !== item._id) }))} className="rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+                  <input type="checkbox" checked={form.allPlans || form.eligiblePlans.includes(item._id)} disabled={form.allPlans} onChange={e => setForm(current => ({ ...current, allPlans: false, eligiblePlans: e.target.checked ? [...current.eligiblePlans, item._id] : current.eligiblePlans.filter(id => id !== item._id) }))} className="rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
                   {item.name} <span className="text-xs text-slate-400">₹{Number(item.price || 0).toLocaleString('en-IN')}</span>
                 </label>
               ))}
