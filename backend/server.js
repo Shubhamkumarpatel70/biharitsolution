@@ -152,7 +152,7 @@ app.use((req, res, next) => {
   if (["GET", "HEAD", "OPTIONS"].includes(req.method)) return next();
   const authorization = String(req.headers.authorization || "");
   const cookieHeader = String(req.headers.cookie || "");
-  const hasCookieToken = /(?:^|;\\s*)token=/.test(cookieHeader);
+  const hasCookieToken = /(?:^|;\s*)token=/.test(cookieHeader);
   if (!hasCookieToken || authorization.startsWith("Bearer ")) return next();
   const origin = req.headers.origin;
   const referer = req.headers.referer;
