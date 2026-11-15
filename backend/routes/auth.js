@@ -290,8 +290,9 @@ router.get(
       return res.redirect(loginUrl.toString());
     }
     // Successful authentication, redirect or send token
+    const loginState = await User.findByIdAndUpdate(req.user._id, { $set: { lastLoginAt: new Date(), lastLoginIp: String(req.headers["x-forwarded-for"] || req.ip || "").split(",")[0].slice(0, 100), lastLoginUserAgent: String(req.headers["user-agent"] || "").slice(0, 500) } }, { new: true }).select("sessionVersion");
     const token = jwt.sign(
-      { id: req.user._id, role: req.user.role },
+      { id: req.user._id, role: req.user.role, sv: Number(loginState?.sessionVersion || 0) },
       process.env.JWT_SECRET,
       { expiresIn: "7d" },
     );
@@ -2158,8 +2159,9 @@ router.get(
   passport.authenticate("google", { failureRedirect: "/login" }),
   (req, res) => {
     // Successful authentication, redirect or send token
+    const loginState = await User.findByIdAndUpdate(req.user._id, { $set: { lastLoginAt: new Date(), lastLoginIp: String(req.headers["x-forwarded-for"] || req.ip || "").split(",")[0].slice(0, 100), lastLoginUserAgent: String(req.headers["user-agent"] || "").slice(0, 500) } }, { new: true }).select("sessionVersion");
     const token = jwt.sign(
-      { id: req.user._id, role: req.user.role },
+      { id: req.user._id, role: req.user.role, sv: Number(loginState?.sessionVersion || 0) },
       process.env.JWT_SECRET,
       { expiresIn: "7d" },
     );
@@ -5992,7 +5994,11 @@ router.post("/2fa/login/verify", async (req, res) => {
       if (record) await Otp.deleteMany({ email: user.email.toLowerCase(), purpose: "twofactor-login" });
     }
     if (!valid) return res.status(400).json({ message: "Invalid or expired verification code." });
-    user.lastLoginAt = new Date();\n    user.lastLoginIp = String(req.headers["x-forwarded-for"] || req.ip || "").split(",")[0].slice(0, 100);\n    user.lastLoginUserAgent = String(req.headers["user-agent"] || "").slice(0, 500);\n    await user.save();\n    const token = createSessionForUser(res, user);
+    user.lastLoginAt = new Date();
+    user.lastLoginIp = String(req.headers["x-forwarded-for"] || req.ip || "").split(",")[0].slice(0, 100);
+    user.lastLoginUserAgent = String(req.headers["user-agent"] || "").slice(0, 500);
+    await user.save();
+    const token = createSessionForUser(res, user);
     res.json({ token, user: { id: user._id, name: user.name, email: user.email, role: user.role }, message: "Login verified successfully." });
   } catch (err) {
     res.status(401).json({ message: "Login verification expired. Please sign in again." });
