@@ -186,9 +186,12 @@ const Payment = () => {
         return;
       }
       const res = await axios.post('/api/auth/coupons/apply', { code: coupon }, { headers: { Authorization: `Bearer ${token}` } });
-      const appliedDiscount = Math.min(Number(res.data.amount) || 0, Number(amount) || 0);
+      const discountValue = Number(res.data.amount) || 0;
+       const appliedDiscount = res.data.discountType === 'percentage'
+         ? Number(((Number(amount) || 0) * Math.min(100, discountValue) / 100).toFixed(2))
+         : Math.min(discountValue, Number(amount) || 0);
       setDiscount(appliedDiscount);
-      setCouponMsg(`Coupon applied! ₹${appliedDiscount} off.`);
+      setCouponMsg(`Coupon applied! ${res.data.discountType === 'percentage' ? `${discountValue}%` : `₹${appliedDiscount}`} off.`);
     } catch (err) {
       setDiscount(0);
       setCouponMsg(err.response?.data?.message || 'Invalid coupon.');
