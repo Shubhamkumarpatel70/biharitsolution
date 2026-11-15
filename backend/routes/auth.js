@@ -275,7 +275,24 @@ router.post("/sessions/:sessionId/logout", authMiddleware, async (req, res) => {
       { $set: { "sessions.$.revokedAt": new Date() } },
     );
     if (!result.modifiedCount) return res.status(404).json({ message: "Session is already signed out or could not be found." });
-    res.json({ success: true, current: sessionId === req.user.sid, message: "Device session signed out." });
+    const isCurrentSession = sessionId === req.user.sid;
+    // The login flow also sets an HttpOnly cookie. Clear it when this browser
+    // signs itself out, otherwise the browser can silently authenticate again
+    // from the still-present cookie after localStorage has been cleared.
+    if (isCurrentSession) {
+      res.clearCookie("token", {
+        httpOnly: true,
+        sameSite: "None",
+        secure: process.env.NODE_ENV === "production",
+        path: "/",
+      });
+    }
+    res.set("Cache-Control", "no-store");
+    res.json({
+      success: true,
+      current: isCurrentSession,
+      message: isCurrentSession ? "This device has been signed out." : "Device logged out successfully.",
+    });
   } catch (error) {
     console.error("Single session logout failed:", error);
     res.status(500).json({ message: "Could not sign out this device." });
