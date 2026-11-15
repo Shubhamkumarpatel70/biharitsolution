@@ -10,6 +10,19 @@ const PrivacyConsentEvent = require("../models/PrivacyConsentEvent");
 const { parsePlanDurationDays } = require("../utils/planDuration");
 const Otp = require("../models/Otp");
 const { sendEmail } = require("../utils/email");
+
+async function recordSuccessfulLogin(userId, req) {
+  const forwarded = String(req.headers["x-forwarded-for"] || "").split(",")[0].trim();
+  const ip = forwarded || req.ip || req.socket?.remoteAddress || "";
+  return User.findByIdAndUpdate(userId, {
+    $set: {
+      lastLoginAt: new Date(),
+      lastLoginIp: String(ip).slice(0, 100),
+      lastLoginUserAgent: String(req.headers["user-agent"] || "").slice(0, 500),
+    },
+  }, { new: true }).select("sessionVersion").lean();
+}
+
 // Helper to generate a 6-digit OTP
 function generateOtp() {
   return Math.floor(100000 + Math.random() * 900000).toString();
