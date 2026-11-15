@@ -33,6 +33,8 @@ jobs:
           node --check backend/controllers/authController.js
           node --check backend/models/Otp.js
           node --check backend/models/Subscription.js
+          node --check backend/models/FundTransaction.js
+          node --check backend/utils/mongoSessionStore.js
       - name: Build frontend
         run: npm run build --prefix frontend
         env:
