@@ -5935,30 +5935,4 @@ router.post("/2fa/login/verify", async (req, res) => {
   }
 });
 
-module.exports = router;"), "i");
-      const matchingUsers = await User.find({ $or: [{ name: rx }, { email: rx }] }).select("_id").limit(100).lean();
-      filter.$or = [{ uniqueId: rx }, { transactionId: rx }, { cashfreeOrderId: rx }, { couponCode: rx }, { planName: rx }, { user: { $in: matchingUsers.map(u => u._id) } }];
-    }
-    const [transactions, total] = await Promise.all([
-      Subscription.find(filter).populate("user", "name email").sort({ createdAt: -1 }).limit(500).lean(),
-      Subscription.countDocuments(filter)
-    ]);
-    const summary = await Subscription.aggregate([
-      { $group: {
-        _id: null,
-        total: { $sum: 1 },
-        successful: { $sum: { $cond: [{ $in: ["$paymentStatus", ["paid","success","completed","confirmed"]] }, 1, 0] } },
-        pending: { $sum: { $cond: [{ $eq: ["$paymentStatus", "pending"] }, 1, 0] } },
-        failed: { $sum: { $cond: [{ $in: ["$paymentStatus", ["failed","rejected"]] }, 1, 0] } },
-        refunded: { $sum: { $cond: [{ $eq: ["$refundStatus", "processed"] }, 1, 0] } },
-        grossAmount: { $sum: { $ifNull: ["$amountPaid", "$totalAmount"] } }
-      } }
-    ]);
-    res.json({ transactions, total, summary: summary[0] || { total: 0, successful: 0, pending: 0, failed: 0, refunded: 0, grossAmount: 0 } });
-  } catch (err) {
-    console.error("Admin transaction ledger error:", err);
-    res.status(500).json({ message: "Could not load transactions." });
-  }
-});
-
 module.exports = router;
