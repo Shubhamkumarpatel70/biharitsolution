@@ -88,7 +88,7 @@ const AdminCoupons = () => {
         usageLimit
       }, authConfig());
       setMessage({ type: 'success', text: 'Coupon created successfully.' });
-      setForm({ code: '', amount: '', discountType: 'fixed', eligiblePlans: [], usageLimit: '1' });
+      setForm({ code: '', amount: '', discountType: 'fixed', eligiblePlans: [], allPlans: true, usageLimit: '1' });
       await fetchCoupons();
     } catch (err) {
       setMessage({ type: 'error', text: err.response?.data?.message || 'Could not create coupon. Check the code and try again.' });
