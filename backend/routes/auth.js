@@ -219,6 +219,34 @@ router.post("/register", registerUser);
 router.get("/captcha", getLoginCaptcha);
 router.post("/login", loginUser);
 router.post("/register-admin", registerAdmin);
+// Session & Login Info: show the most recent successful login metadata for this account.
+router.get("/sessions", authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("name email role lastLoginAt lastLoginIp lastLoginUserAgent sessionVersion").lean();
+    if (!user) return res.status(404).json({ message: "User not found." });
+    res.json({
+      user: { name: user.name, email: user.email, role: user.role },
+      currentSession: { active: true, issuedAt: req.user.iat ? new Date(req.user.iat * 1000) : null },
+      lastLogin: { at: user.lastLoginAt, ip: user.lastLoginIp || "", userAgent: user.lastLoginUserAgent || "" },
+    });
+  } catch (error) {
+    console.error("Session information load failed:", error);
+    res.status(500).json({ message: "Could not load session information." });
+  }
+});
+
+// Revoke every previously issued access token for this account, including this device.
+router.post("/sessions/logout-all", authMiddleware, async (req, res) => {
+  try {
+    await User.findByIdAndUpdate(req.user.id, { $inc: { sessionVersion: 1 }, $set: { lastLogoutAllAt: new Date() } });
+    res.clearCookie("token", { httpOnly: true, sameSite: "None", secure: process.env.NODE_ENV === "production" });
+    res.json({ success: true, message: "All sessions have been signed out. Please log in again." });
+  } catch (error) {
+    console.error("Logout all sessions failed:", error);
+    res.status(500).json({ message: "Could not sign out all sessions." });
+  }
+});
+
 
 // Forgot Password Routes
 router.post("/forgot-password/verify-email", verifyEmailForPasswordReset);
@@ -291,7 +319,7 @@ router.get("/me", authMiddleware, async (req, res) => {
 });
 
 // Middleware to protect routes
-function authMiddleware(req, res, next) {
+async function authMiddleware(req, res, next) {
   let token;
   const authHeader = req.headers.authorization;
   if (authHeader && authHeader.startsWith("Bearer ")) {
@@ -304,7 +332,13 @@ function authMiddleware(req, res, next) {
   }
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || "changeme");
-    req.user = decoded;
+    if (decoded.purpose === "two-factor-login") return res.status(401).json({ message: "Complete the login verification first." });
+    const account = await User.findById(decoded.id).select("sessionVersion role").lean();
+    if (!account || Number(decoded.sv || 0) !== Number(account.sessionVersion || 0)) {
+      res.clearCookie("token", { httpOnly: true, sameSite: "None", secure: process.env.NODE_ENV === "production" });
+      return res.status(401).json({ message: "Your session has expired. Please log in again." });
+    }
+    req.user = { ...decoded, role: account.role };
     next();
   } catch (err) {
     res.status(401).json({ message: "Token is not valid." });
@@ -2153,7 +2187,7 @@ router.get("/me", authMiddleware, async (req, res) => {
 });
 
 // Middleware to protect routes
-function authMiddleware(req, res, next) {
+async function authMiddleware(req, res, next) {
   let token;
   const authHeader = req.headers.authorization;
   if (authHeader && authHeader.startsWith("Bearer ")) {
@@ -2166,7 +2200,13 @@ function authMiddleware(req, res, next) {
   }
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || "changeme");
-    req.user = decoded;
+    if (decoded.purpose === "two-factor-login") return res.status(401).json({ message: "Complete the login verification first." });
+    const account = await User.findById(decoded.id).select("sessionVersion role").lean();
+    if (!account || Number(decoded.sv || 0) !== Number(account.sessionVersion || 0)) {
+      res.clearCookie("token", { httpOnly: true, sameSite: "None", secure: process.env.NODE_ENV === "production" });
+      return res.status(401).json({ message: "Your session has expired. Please log in again." });
+    }
+    req.user = { ...decoded, role: account.role };
     next();
   } catch (err) {
     res.status(401).json({ message: "Token is not valid." });
@@ -5834,7 +5874,7 @@ router.get("/admin/transactions", authMiddleware, coAdminMiddleware, async (req,
 /* Two-factor authentication: TOTP authenticator or registered-email OTP. */
 const twoFactorCrypto = require("../utils/twoFactor");
 function createSessionForUser(res, user) {
-  const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: "7d" });
+  const token = jwt.sign({ id: user._id, role: user.role, sv: Number(user.sessionVersion || 0) }, process.env.JWT_SECRET, { expiresIn: "7d" });
   res.cookie("token", token, { httpOnly: true, sameSite: "None", secure: process.env.NODE_ENV === "production", maxAge: 7 * 24 * 60 * 60 * 1000 });
   return token;
 }
@@ -5952,7 +5992,7 @@ router.post("/2fa/login/verify", async (req, res) => {
       if (record) await Otp.deleteMany({ email: user.email.toLowerCase(), purpose: "twofactor-login" });
     }
     if (!valid) return res.status(400).json({ message: "Invalid or expired verification code." });
-    const token = createSessionForUser(res, user);
+    user.lastLoginAt = new Date();\n    user.lastLoginIp = String(req.headers["x-forwarded-for"] || req.ip || "").split(",")[0].slice(0, 100);\n    user.lastLoginUserAgent = String(req.headers["user-agent"] || "").slice(0, 500);\n    await user.save();\n    const token = createSessionForUser(res, user);
     res.json({ token, user: { id: user._id, name: user.name, email: user.email, role: user.role }, message: "Login verified successfully." });
   } catch (err) {
     res.status(401).json({ message: "Login verification expired. Please sign in again." });
