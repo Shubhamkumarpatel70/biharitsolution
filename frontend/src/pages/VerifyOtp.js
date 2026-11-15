@@ -18,11 +18,11 @@ function VerifyOtp({ email, onSuccess }) {
     setLoading(true);
     setMessage("");
     try {
-      await axios.post("/api/auth/register/verify-otp", { email, otp });
+      const response = await axios.post("/api/auth/register/verify-otp", { email, otp });
       setLoading(false);
       setMessage("OTP verified! You can now login.");
       setTimeout(() => {
-        if (onSuccess) onSuccess();
+        if (onSuccess) onSuccess(response.data.registrationToken);
         else navigate("/login");
       }, 1200);
     } catch (err) {
