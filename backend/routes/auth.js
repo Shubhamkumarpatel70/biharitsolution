@@ -332,16 +332,21 @@ function coAdminMiddleware(req, res, next) {
  */
 function getPublicSiteOrigin() {
   const explicit =
-    process.env.PROMOTIONAL_UNSUBSCRIBE_URL ||
     process.env.PUBLIC_SITE_URL ||
     process.env.FRONTEND_URL ||
     process.env.CLIENT_URL ||
+    process.env.PROMOTIONAL_UNSUBSCRIBE_URL ||
     process.env.REACT_APP_API_URL;
 
+  const canonicalOrigin = "https://askctechnologies.in";
   if (explicit && String(explicit).trim()) {
     const raw = String(explicit).trim();
     try {
       const u = new URL(raw.includes("://") ? raw : `https://${raw}`);
+      const hostname = u.hostname.toLowerCase().replace(/^www\./, "");
+      // Migrate legacy ASKC Web domains to the official ASKC Technologies domain.
+      if (hostname === "askcweb.in") return canonicalOrigin;
+      if (hostname === "askctechnologies.in") return canonicalOrigin;
       return u.origin.replace(/\/$/, "");
     } catch {
       return null;
@@ -352,7 +357,7 @@ function getPublicSiteOrigin() {
     return "http://localhost:3000";
   }
 
-  return null;
+  return canonicalOrigin;
 }
 
 // Cashfree Checkout: create a server-priced order and a pending subscription.
@@ -2189,16 +2194,21 @@ function coAdminMiddleware(req, res, next) {
  */
 function getPublicSiteOrigin() {
   const explicit =
-    process.env.PROMOTIONAL_UNSUBSCRIBE_URL ||
     process.env.PUBLIC_SITE_URL ||
     process.env.FRONTEND_URL ||
     process.env.CLIENT_URL ||
+    process.env.PROMOTIONAL_UNSUBSCRIBE_URL ||
     process.env.REACT_APP_API_URL;
 
+  const canonicalOrigin = "https://askctechnologies.in";
   if (explicit && String(explicit).trim()) {
     const raw = String(explicit).trim();
     try {
       const u = new URL(raw.includes("://") ? raw : `https://${raw}`);
+      const hostname = u.hostname.toLowerCase().replace(/^www\./, "");
+      // Migrate legacy ASKC Web domains to the official ASKC Technologies domain.
+      if (hostname === "askcweb.in") return canonicalOrigin;
+      if (hostname === "askctechnologies.in") return canonicalOrigin;
       return u.origin.replace(/\/$/, "");
     } catch {
       return null;
@@ -2209,7 +2219,7 @@ function getPublicSiteOrigin() {
     return "http://localhost:3000";
   }
 
-  return null;
+  return canonicalOrigin;
 }
 
 // Create a new subscription (after payment)
