@@ -29,6 +29,17 @@ const planBenefits = [
   },
 ];
 
+const parsePlanAmount = (value) => {
+  if (value === null || value === undefined || String(value).trim() === "") return null;
+  const normalized = String(value).replace(/[₹,\\s]/g, "");
+  if (!/^\\d+(?:\\.\\d{1,2})?$/.test(normalized)) return null;
+  const amount = Number(normalized);
+  return Number.isFinite(amount) && amount >= 0 ? amount : null;
+};
+
+const formatPlanAmount = (amount) =>
+  new Intl.NumberFormat("en-IN", { maximumFractionDigits: 2 }).format(amount);
+
 function Plans() {
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -242,6 +253,16 @@ function Plans() {
                 (() => {
                   const includedItems = toLineItems(plan.features);
                   const notIncludedItems = toLineItems(plan.notes);
+                  const currentAmount = parsePlanAmount(plan.price);
+                  const originalAmount = parsePlanAmount(plan.oldPrice);
+                  const hasValidDiscount =
+                    currentAmount !== null &&
+                    originalAmount !== null &&
+                    originalAmount > currentAmount;
+                  const displayPrice =
+                    currentAmount !== null
+                      ? `₹${formatPlanAmount(currentAmount)}`
+                      : "Let's negotiate";
                   return (
                     <div
                       key={plan._id || index}
@@ -259,10 +280,10 @@ function Plans() {
                       onClick={() => handlePlanSelect(plan)}
                     >
                       {/* Discount Badge - Top Left */}
-                      {plan.oldPrice && (
+                      {hasValidDiscount && (
                         <div className="absolute top-2 left-2 bg-danger-500 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-sm z-10">
                           {Math.round(
-                            ((plan.oldPrice - plan.price) / plan.oldPrice) *
+                            ((originalAmount - currentAmount) / originalAmount) *
                               100,
                           )}
                           % OFF
@@ -287,15 +308,15 @@ function Plans() {
                         </h3>
                         <div className="mb-4">
                           <div className="text-4xl md:text-5xl font-black text-primary-900 mb-2">
-                            ₹{plan.price}
+                            {displayPrice}
                           </div>
-                          {plan.oldPrice && (
+                          {hasValidDiscount && (
                             <div className="flex items-center justify-center gap-2">
                               <span className="text-lg text-text-muted line-through">
-                                ₹{plan.oldPrice}
+                                ₹{formatPlanAmount(originalAmount)}
                               </span>
                               <span className="text-sm font-semibold text-success-600 bg-success-50 text-success-600 px-2 py-1 rounded-lg">
-                                Save ₹{plan.oldPrice - plan.price}
+                                Save ₹{formatPlanAmount(originalAmount - currentAmount)}
                               </span>
                             </div>
                           )}
