@@ -25,6 +25,9 @@ function Login() {
   const [showForgotOtp, setShowForgotOtp] = useState(false);
   const [forgotOtp, setForgotOtp] = useState('');
   const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false);
+  const [twoFactorChallenge, setTwoFactorChallenge] = useState(null);
+  const [twoFactorCode, setTwoFactorCode] = useState('');
+  const [twoFactorBusy, setTwoFactorBusy] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { setUser } = useContext(UserContext);
@@ -81,6 +84,11 @@ function Login() {
         captchaId,
         captchaAnswer: captchaInput.trim(),
       });
+      if (res.data.requiresTwoFactor) {
+        setTwoFactorChallenge({ token: res.data.challengeToken, method: res.data.method });
+        setTwoFactorCode(''); setMessage(res.data.message || 'Complete two-factor verification to continue.');
+        setLoading(false); setIsSubmitting(false); return;
+      }
       localStorage.setItem('token', res.data.token);
       if (res.data.user) localStorage.setItem('user', JSON.stringify(res.data.user));
       setUser(res.data.user);
@@ -110,6 +118,23 @@ function Login() {
       }
     }
   }, [email, password, captchaId, captchaInput, isSubmitting, loading, validateForm, setUser, navigate, loadCaptcha]);
+
+
+  const handleVerifyTwoFactor = async e => {
+    e.preventDefault();
+    if (!twoFactorChallenge || twoFactorCode.length !== 6 || twoFactorBusy) return;
+    setTwoFactorBusy(true); setMessage('');
+    try {
+      const res = await axios.post('/api/auth/2fa/login/verify', { challengeToken: twoFactorChallenge.token, code: twoFactorCode });
+      localStorage.setItem('token', res.data.token);
+      localStorage.setItem('user', JSON.stringify(res.data.user));
+      setUser(res.data.user);
+      if (['admin','coadmin'].includes(res.data.user?.role)) navigate('/admin-dashboard');
+      else navigate('/dashboard');
+    } catch (err) {
+      setMessage(err.response?.data?.message || 'Verification failed. Please try again.');
+    } finally { setTwoFactorBusy(false); }
+  };
 
   React.useEffect(() => {
     if (!isSubmitting && !loading) {
@@ -237,6 +262,15 @@ function Login() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center px-4 py-12 sm:py-16 pt-24 sm:pt-28">
+      {twoFactorChallenge ? (
+        <form onSubmit={handleVerifyTwoFactor} className="w-full max-w-md bg-white rounded-2xl border border-gray-200 shadow-lg p-6 sm:p-8 flex flex-col gap-5">
+          <div className="text-center"><h1 className="text-2xl font-bold text-primary-900">Two-factor verification</h1><p className="mt-2 text-sm text-slate-500">{twoFactorChallenge.method === 'email' ? 'Enter the 6-digit code sent to your registered email.' : 'Enter the current 6-digit code from your authenticator app.'}</p></div>
+          <OtpInput length={6} value={twoFactorCode} onChange={value => setTwoFactorCode(value.replace(/\D/g, '').slice(0,6))} disabled={twoFactorBusy} />
+          {message && <p role="status" className="rounded-xl bg-blue-50 px-3 py-2 text-center text-sm text-blue-800">{message}</p>}
+          <button type="submit" disabled={twoFactorBusy || twoFactorCode.length !== 6} className="btn btn-primary w-full justify-center rounded-xl disabled:opacity-50">{twoFactorBusy ? 'Verifying…' : 'Verify and sign in'}</button>
+          <button type="button" onClick={() => { setTwoFactorChallenge(null); setTwoFactorCode(''); setMessage(''); loadCaptcha({ quiet: true }); }} className="text-sm font-semibold text-primary-600">Back to sign in</button>
+        </form>
+      ) : (
       <form
         onSubmit={handleSubmit}
         className="w-full max-w-md bg-white rounded-2xl border border-gray-200 shadow-lg p-6 sm:p-8 flex flex-col gap-5"
@@ -390,6 +424,7 @@ function Login() {
           </button>
         </div>
       </form>
+      )}
 
       {showForgotPassword && (
         <div
