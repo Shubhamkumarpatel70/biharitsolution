@@ -12,7 +12,7 @@ test("issues a short-lived login-only challenge and persists a hashed one-time n
     user: { _id: "user-1", email: "TEST@EXAMPLE.COM", role: "user" },
     Otp, jwtSecret: "test-secret", now: () => 100000,
   });
-  const decoded = jwt.verify(issued.token, "test-secret", { clockTimestamp: 100 });
+  const decoded = jwt.verify(issued.token, "test-secret");
   assert.equal(decoded.purpose, "two-factor-login");
   assert.equal(decoded.id, "user-1");
   assert.ok(decoded.jti);
