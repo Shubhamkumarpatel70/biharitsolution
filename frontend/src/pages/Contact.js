@@ -67,12 +67,12 @@ function Contact() {
     setIsVisible(true);
     if (planInquiry) {
       const featureText = Array.isArray(planInquiry.features) && planInquiry.features.length
-        ? `\\nIncluded features: ${planInquiry.features.join(", ")}`
+        ? `\nIncluded features: ${planInquiry.features.join(", ")}`
         : "";
       setForm((current) => ({
         ...current,
         subject: `Custom pricing enquiry - ${planInquiry.planName || "Custom Plan"}`,
-        message: `Hello ASKC TECHNOLOGIES,\\n\\nI am interested in the ${planInquiry.planName || "Custom Plan"} and would like to discuss the requirements and pricing.${planInquiry.duration ? `\\nDuration: ${planInquiry.duration} days` : ""}${featureText}\\n\\nPlease contact me to discuss the next steps.`,
+        message: `Hello ASKC TECHNOLOGIES,\n\nI am interested in the ${planInquiry.planName || "Custom Plan"} and would like to discuss the requirements and pricing.${planInquiry.duration ? `\nDuration: ${planInquiry.duration} days` : ""}${featureText}\n\nPlease contact me to discuss the next steps.`,
       }));
     }
   }, [planInquiry]);
