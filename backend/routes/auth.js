@@ -2247,7 +2247,7 @@ router.get("/admin/refunds", authMiddleware, adminMiddleware, async (req, res) =
       total: refunds.length,
       awaitingReview: refunds.filter((item) => ["not_reviewed", undefined].includes(item.refundStatus)).length,
       approvedAmount: refunds.filter((item) => ["approved", "processed"].includes(item.refundStatus)).reduce((sum, item) => sum + Number(item.refundAmount || 0), 0),
-      pendingPayout: refunds.filter((item) => item.refundStatus === "approved").length,
+      pendingPayout: refunds.filter((item) => ["approved", "processing"].includes(item.refundStatus)).length,
       processed: refunds.filter((item) => item.refundStatus === "processed").length
     };
     res.set("Cache-Control", "no-store");
