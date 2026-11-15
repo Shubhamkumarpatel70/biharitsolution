@@ -36,8 +36,9 @@ function authenticate(req, res, next) {
 }
 async function adminOnly(req, res, next) {
   try {
-    const user = await User.findById(req.user.id).select("role").lean();
-    if (!user || !["admin", "coadmin"].includes(user.role)) return res.status(403).json({ message: "Admin access required." });
+    const user = await User.findById(req.user.id).select("role sessionVersion").lean();
+    if (!user || Number(req.user.sv || 0) !== Number(user.sessionVersion || 0)) return res.status(401).json({ message: "Session expired. Please log in again." });
+    if (!["admin", "coadmin"].includes(user.role)) return res.status(403).json({ message: "Admin access required." });
     req.actor = user;
     next();
   } catch (error) {
