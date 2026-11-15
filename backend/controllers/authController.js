@@ -14,13 +14,24 @@ const { sendEmail } = require("../utils/email");
 async function recordSuccessfulLogin(userId, req) {
   const forwarded = String(req.headers["x-forwarded-for"] || "").split(",")[0].trim();
   const ip = forwarded || req.ip || req.socket?.remoteAddress || "";
-  return User.findByIdAndUpdate(userId, {
+  const sessionId = crypto.randomUUID();
+  const session = {
+    sessionId,
+    createdAt: new Date(),
+    lastSeenAt: new Date(),
+    ip: String(ip).slice(0, 100),
+    userAgent: String(req.headers["user-agent"] || "").slice(0, 500),
+    revokedAt: null,
+  };
+  const user = await User.findByIdAndUpdate(userId, {
     $set: {
       lastLoginAt: new Date(),
-      lastLoginIp: String(ip).slice(0, 100),
-      lastLoginUserAgent: String(req.headers["user-agent"] || "").slice(0, 500),
+      lastLoginIp: session.ip,
+      lastLoginUserAgent: session.userAgent,
     },
+    $push: { sessions: { $each: [session], $slice: -30 } },
   }, { new: true }).select("sessionVersion").lean();
+  return { ...user, sessionId };
 }
 
 // Helper to generate a 6-digit OTP
@@ -318,7 +329,7 @@ exports.registerUser = async (req, res) => {
     }
     const loginState = await recordSuccessfulLogin(user._id, req);
     const token = jwt.sign(
-      { id: user._id, role: user.role, sv: Number(loginState?.sessionVersion || 0) },
+      { id: user._id, role: user.role, sv: Number(loginState?.sessionVersion || 0), sid: loginState.sessionId },
       process.env.JWT_SECRET,
       { expiresIn: "7d" },
     );
@@ -456,7 +467,7 @@ exports.loginUser = async (req, res) => {
     // Generate JWT token
     const loginState = await recordSuccessfulLogin(user._id, req);
     const token = jwt.sign(
-      { id: user._id, role: user.role, sv: Number(loginState?.sessionVersion || 0) },
+      { id: user._id, role: user.role, sv: Number(loginState?.sessionVersion || 0), sid: loginState.sessionId },
       process.env.JWT_SECRET,
       { expiresIn: "7d" },
     );
@@ -525,7 +536,7 @@ exports.registerAdmin = async (req, res) => {
     await user.save();
     const loginState = await recordSuccessfulLogin(user._id, req);
     const token = jwt.sign(
-      { id: user._id, role: user.role, sv: Number(loginState?.sessionVersion || 0) },
+      { id: user._id, role: user.role, sv: Number(loginState?.sessionVersion || 0), sid: loginState.sessionId },
       process.env.JWT_SECRET,
       { expiresIn: "7d" },
     );
