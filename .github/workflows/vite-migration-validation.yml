@@ -1,0 +1,51 @@
+name: Vite migration validation
+on:
+  push:
+    branches: [vite-security-migration]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            frontend/package-lock.json
+            backend/package-lock.json
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm install
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm install
+      - name: Build frontend
+        run: npm run build --prefix frontend
+      - name: Check backend syntax
+        run: |
+          node --check backend/server.js
+          node --check backend/routes/auth.js
+          node --check backend/controllers/authController.js
+      - name: Report remaining dependency advisories
+        shell: bash
+        run: |
+          for dir in frontend backend; do
+            (cd "$dir" && npm audit --json > "/tmp/$dir-audit.json") || true
+            node -e 'const a=require(process.argv[1]); console.log(process.argv[2]+": "+JSON.stringify(a.metadata?.vulnerabilities||{}))' "/tmp/$dir-audit.json" "$dir"
+          done
+      - name: Commit regenerated lockfiles
+        if: github.event_name == 'push'
+        run: |
+          if ! git diff --quiet -- frontend/package-lock.json backend/package-lock.json; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add frontend/package-lock.json backend/package-lock.json
+            git commit -m "chore: regenerate dependency lockfiles for Vite"
+            git push
+          fi
