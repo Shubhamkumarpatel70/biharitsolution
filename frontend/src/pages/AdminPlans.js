@@ -249,8 +249,8 @@ const AdminPlans = () => {
             type="text"
             value={form.duration || ""}
             onChange={handleChange}
-            placeholder="Duration (e.g. 30 or 30-40 days)"
-            title="Use a number (30) or range (30-40)"
+            placeholder="Estimated delivery (e.g. 7 or 7-10 days)"
+            title="Enter the estimated delivery time in days, e.g. 7 or 7-10"
             pattern="^\s*\d+\s*([-–]\s*\d+)?\s*$"
             required
             className="px-4 py-2 rounded-lg bg-gray-700 text-gray-200 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
@@ -385,7 +385,7 @@ const AdminPlans = () => {
                   </div>
                 )}
                 <div className="text-sm sm:text-base text-gray-400 mb-4">
-                  <strong>Duration:</strong> {plan.duration} days
+                  <strong>Estimated delivery setting:</strong> {plan.duration} days
                 </div>
                 <div className="flex flex-col sm:flex-row gap-2">
                   <button
