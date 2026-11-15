@@ -197,7 +197,7 @@ const Payment = () => {
     try {
       const token = localStorage.getItem('token');
       if (!token) {
-        setCouponMsg('Please log in to apply coupons.');
+        setCouponMsg('Sign in to unlock your coupon savings.');
         setApplyingCoupon(false);
         return;
       }
@@ -471,13 +471,24 @@ const Payment = () => {
                 )}
               </div>
               {couponMsg && (
-                <div className={`text-sm flex items-center gap-2 ${couponMsg.includes('off') ? 'text-blue-700' : 'text-red-400'}`}>
+                <div className={`mt-2 flex flex-wrap items-center gap-2 text-sm ${couponMsg.startsWith('Sign in to unlock') || couponMsg.includes('off') ? 'text-blue-700' : 'text-red-500'}`}>
                   {couponMsg.includes('off') ? (
-                    <span>✔️</span>
+                    <span aria-hidden="true">✔️</span>
+                  ) : couponMsg.startsWith('Sign in to unlock') ? (
+                    <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700" aria-hidden="true">i</span>
                   ) : (
-                    <span>❌</span>
+                    <span aria-hidden="true">!</span>
                   )}
-                  {couponMsg}
+                  <span>{couponMsg}</span>
+                  {couponMsg.startsWith('Sign in to unlock') && (
+                    <Link
+                      to="/login"
+                      state={{ from: location }}
+                      className="font-semibold text-blue-800 underline underline-offset-2 hover:text-blue-900"
+                    >
+                      Sign in
+                    </Link>
+                  )}
                 </div>
               )}
             </div>
