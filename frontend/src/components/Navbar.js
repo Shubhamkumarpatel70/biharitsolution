@@ -16,6 +16,7 @@ const moreNavLinks = [
   { to: '/services', label: 'Services' },
   { to: '/team', label: 'Our Team' },
   { to: '/careers', label: 'Careers' },
+  { to: '/projects', label: 'Latest Projects' },
 ];
 
 function isMoreNavActive(pathname) {
