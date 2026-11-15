@@ -35,6 +35,14 @@ jobs:
           node --check backend/models/Subscription.js
           node --check backend/models/Coupon.js
           node --check backend/tests/mongoSessionStore.test.js
+          node --check backend/tests/cookieCsrfOrigin.test.js
+          node --check backend/tests/cashfreeRefund.test.js
+          node --check backend/tests/mongoIntegration.test.js
+          node --check backend/utils/cookieCsrfOrigin.js
+          node --check backend/utils/cashfreeRefund.js
+          node --check backend/scripts/cashfree-sandbox-smoke.js
+          node --check backend/scripts/render-health-smoke.js
+          node --check backend/scripts/resend-smoke.js
           node --check backend/models/FundTransaction.js
           node --check backend/utils/mongoSessionStore.js
           node backend/scripts/check-duplicate-routes.js
