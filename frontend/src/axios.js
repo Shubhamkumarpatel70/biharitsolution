@@ -2,8 +2,8 @@ import axios from "axios";
 
 const instance = axios.create({
   // Production uses same-origin API routes. Development may use an explicit API URL.
-  baseURL: process.env.NODE_ENV === "development"
-    ? (process.env.REACT_APP_API_URL || "")
+  baseURL: import.meta.env.DEV
+    ? (import.meta.env.VITE_API_URL || "")
     : "",
   timeout: 30000,
   headers: { "Content-Type": "application/json" },
