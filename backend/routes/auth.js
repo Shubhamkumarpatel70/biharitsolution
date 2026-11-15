@@ -64,10 +64,11 @@ const upload = multer({
     fileSize: 5 * 1024 * 1024, // 5MB limit
   },
   fileFilter: function (req, file, cb) {
-    if (file.mimetype.startsWith("image/")) {
+    const allowedImageTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+    if (allowedImageTypes.includes(String(file.mimetype || "").toLowerCase())) {
       cb(null, true);
     } else {
-      cb(new Error("Only image files are allowed!"), false);
+      cb(new Error("Only JPG, PNG, WebP and GIF images are allowed."), false);
     }
   },
 });
@@ -5493,7 +5494,7 @@ router.post(
       const greeting = greetings[agreement.documentType] || `Please find your document — <strong>${agreement.documentTitle}</strong> — from ASKC TECHNOLOGIES.`;
 
       // Public view link — use the base URL from env or a default
-      const baseUrl = process.env.PUBLIC_SITE_URL || process.env.FRONTEND_URL || (process.env.CLIENT_URL ? process.env.CLIENT_URL.replace(/\/dashboard\/?$/, "") : "https://askctechnologies.in");
+      const baseUrl = getPublicSiteOrigin() || "https://askctechnologies.in";
 
       const publicViewToken = crypto.randomBytes(32).toString("hex");
       const publicViewTokenHash = crypto.createHash("sha256").update(publicViewToken).digest("hex");
