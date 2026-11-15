@@ -406,21 +406,6 @@ const Payment = () => {
               )}
             </div>
 
-            {/* The payment route is selected centrally by the administrator. Customers cannot switch modes. */}
-            <div className="mb-6 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Payment method configured by ASKC Technologies</p>
-              {paymentMode === 'cashfree' ? (
-                <div className="mt-2 flex items-center gap-2 text-sm font-semibold text-emerald-700"><span>●</span> Cashfree secure online checkout · Automatic confirmation</div>
-              ) : (
-                <>
-                  <div className="mt-2 text-sm font-semibold text-slate-800">Manual payment · Admin verification required</div>
-                  <div className="mt-3 grid grid-cols-2 gap-2">
-                    <button type="button" onClick={() => setPaymentMethod('upi')} className={`rounded-lg border px-3 py-2.5 text-sm font-semibold ${paymentMethod === 'upi' ? 'border-blue-600 bg-blue-50 text-blue-800' : 'border-slate-200 bg-white text-slate-600'}`}>Manual UPI</button>
-                    <button type="button" onClick={() => setPaymentMethod('qr')} className={`rounded-lg border px-3 py-2.5 text-sm font-semibold ${paymentMethod === 'qr' ? 'border-blue-600 bg-blue-50 text-blue-800' : 'border-slate-200 bg-white text-slate-600'}`}>Manual QR</button>
-                  </div>
-                </>
-              )}
-            </div>
             {paymentMethod === 'cashfree' && (
               <div className="rounded-xl border border-blue-100 bg-blue-50 p-5 mb-6">
                 <div className="font-semibold text-slate-900 mb-1">Pay securely with Cashfree</div>
