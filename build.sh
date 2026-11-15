@@ -1,19 +1,18 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 echo "Installing root dependencies..."
-npm install
+npm install --prefix "$ROOT_DIR"
 
 echo "Installing frontend dependencies..."
-cd frontend
-npm install
+npm install --prefix "$ROOT_DIR/frontend"
 
-echo "Building frontend..."
-node node_modules/react-scripts/bin/react-scripts.js build
+echo "Building frontend with Vite..."
+npm run build --prefix "$ROOT_DIR/frontend"
 
 echo "Installing backend dependencies..."
-cd ../backend
-npm install
+npm install --prefix "$ROOT_DIR/backend"
 
 echo "Build complete!"
-
