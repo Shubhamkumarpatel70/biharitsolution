@@ -5395,7 +5395,15 @@ router.post("/admin/client-work", authMiddleware, coAdminMiddleware, upload.sing
     res.status(201).json({ clientWork: item, message: "Client work added successfully." });
   } catch (err) {
     console.error("Error creating client work:", err);
-    res.status(500).json({ message: "Could not add client work." });
+    const isStorageConfigError = err.code === "CLOUDINARY_NOT_CONFIGURED";
+    const isUnsupportedImage = /Only JPG, PNG, WebP, GIF and SVG/i.test(err.message || "");
+    res.status(isStorageConfigError ? 503 : isUnsupportedImage ? 400 : 500).json({
+      message: isStorageConfigError
+        ? "Logo storage is temporarily unavailable. Please ask the administrator to check the image storage settings."
+        : isUnsupportedImage
+          ? "Please upload a JPG, PNG, WebP, GIF or SVG logo."
+          : "Could not save this client work item. Please check the logo and try again."
+    });
   }
 });
 
@@ -5415,7 +5423,15 @@ router.put("/admin/client-work/:id", authMiddleware, coAdminMiddleware, upload.s
     res.json({ clientWork: item, message: "Client work updated successfully." });
   } catch (err) {
     console.error("Error updating client work:", err);
-    res.status(500).json({ message: "Could not update client work." });
+    const isStorageConfigError = err.code === "CLOUDINARY_NOT_CONFIGURED";
+    const isUnsupportedImage = /Only JPG, PNG, WebP, GIF and SVG/i.test(err.message || "");
+    res.status(isStorageConfigError ? 503 : isUnsupportedImage ? 400 : 500).json({
+      message: isStorageConfigError
+        ? "Logo storage is temporarily unavailable. Please ask the administrator to check the image storage settings."
+        : isUnsupportedImage
+          ? "Please upload a JPG, PNG, WebP, GIF or SVG logo."
+          : "Could not update this client work item. Please check the logo and try again."
+    });
   }
 });
 
