@@ -5,6 +5,7 @@ const WEB = "www.askctechnologies.in";
 const PHONE = "+91 79923 65197";
 
 export const DOCUMENT_TYPES = [
+  { id: "service_agreement", label: "Client Service Agreement" },
   { id: "nda", label: "Non-Disclosure Agreement (NDA)" },
   { id: "quotation", label: "Project Quotation / Proposal" },
   { id: "invoice", label: "Tax Invoice" },
@@ -56,7 +57,7 @@ td{padding:9px 10px;border-bottom:1px solid #e2e8f0;}
 .payment-method img{width:90px;height:90px;object-fit:contain;border:1px solid #e2e8f0;border-radius:6px;padding:4px;}
 .payment-method-details{flex:1;min-width:0;overflow-wrap:anywhere;}
 .payment-note{font-size:9px;color:#64748b;margin-top:8px;}
-.signature-parties{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:28px;page-break-inside:avoid;break-inside:avoid;}\n.signature-party{min-width:0;border:1px solid #cbd5e1;border-radius:8px;padding:13px 14px 12px;background:#fff;position:relative;}\n.signature-party h3{font-size:10px;color:#061d4b;font-weight:800;text-transform:uppercase;letter-spacing:.45px;margin-bottom:5px;}\n.signature-party .signatory-name{font-size:12px;font-weight:700;color:#0f172a;margin-bottom:2px;}\n.signature-line{height:34px;border-bottom:1px solid #334155;margin:5px 0 9px;}\n.signature-meta{display:grid;grid-template-columns:1fr;gap:7px;font-size:10px;color:#334155;}\n.signature-meta span{display:block;border-bottom:1px dotted #64748b;min-height:18px;padding-bottom:3px;}\n.company-seal{width:94px;height:94px;border:3px double #b91c1c;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:#991b1b;margin:13px auto 0;transform:rotate(-8deg);font-weight:900;line-height:1.25;padding:7px;}\n.company-seal strong{font-size:9px;letter-spacing:.4px;}\n.company-seal small{font-size:7px;letter-spacing:.5px;}\n.signature-note{font-size:8px;color:#64748b;text-align:center;margin-top:7px;}\n@media(max-width:700px){.signature-parties{grid-template-columns:1fr;gap:14px;}}
+.signature-parties{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:28px;page-break-inside:avoid;break-inside:avoid;}\n.signature-party{min-width:0;border:1px solid #cbd5e1;border-radius:8px;padding:13px 14px 12px;background:#fff;position:relative;}\n.signature-party h3{font-size:10px;color:#061d4b;font-weight:800;text-transform:uppercase;letter-spacing:.45px;margin-bottom:5px;}\n.acceptance-record{border:1px solid #a7f3d0;background:#ecfdf5;border-radius:8px;padding:12px;margin-top:10px;color:#065f46;font-size:10px;line-height:1.7;}.acceptance-record h4{font-size:11px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}.signature-party .signatory-name{font-size:12px;font-weight:700;color:#0f172a;margin-bottom:2px;}\n.signature-line{height:34px;border-bottom:1px solid #334155;margin:5px 0 9px;}\n.signature-meta{display:grid;grid-template-columns:1fr;gap:7px;font-size:10px;color:#334155;}\n.signature-meta span{display:block;border-bottom:1px dotted #64748b;min-height:18px;padding-bottom:3px;}\n.company-seal{width:94px;height:94px;border:3px double #b91c1c;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:#991b1b;margin:13px auto 0;transform:rotate(-8deg);font-weight:900;line-height:1.25;padding:7px;}\n.company-seal strong{font-size:9px;letter-spacing:.4px;}\n.company-seal small{font-size:7px;letter-spacing:.5px;}\n.signature-note{font-size:8px;color:#64748b;text-align:center;margin-top:7px;}\n@media(max-width:700px){.signature-parties{grid-template-columns:1fr;gap:14px;}}
 
 footer{background:#061d4b;padding:0 45px;height:58px;display:flex;align-items:center;justify-content:center;gap:35px;position:relative;margin-top:auto;}
 footer::before{content:'';position:absolute;left:0;top:0;height:100%;width:200px;background:#334155;clip-path:polygon(0 0,100% 0,85% 100%,0 100%);}
@@ -92,12 +93,7 @@ const signatureBlock = (clientName = "Client") => `<section class="signature-par
   <div class="signature-party">
     <h3>For the Client</h3>
     <p class="signatory-name">${clientName || "Client"}</p>
-    <div class="signature-line"></div>
-    <div class="signature-meta">
-      <span><strong>Client Signature:</strong> ______________________________</span>
-      <span><strong>Date:</strong> ______________________________</span>
-      <span><strong>Place:</strong> ______________________________</span>
-    </div>
+    <!--CLIENT_ACCEPTANCE_SLOT--><div class="signature-line"></div><p class="signature-note">Client acceptance details will appear here after the client accepts this document from their registered ASKC account.</p>
   </div>
   <div class="signature-party">
     <h3>For ${CO}</h3>
@@ -133,10 +129,19 @@ const paymentBlock = (options = []) => {
 
 const dcBadge = (docCode) => docCode ? `<div style="background:#f1f5f9;border:1px solid #cbd5e1;border-radius:6px;padding:8px 14px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;"><span style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.8px;">Document Reference</span><span style="font-family:monospace;font-size:13px;font-weight:800;color:#061d4b;letter-spacing:1px;">${docCode}</span></div>` : '';
 
+
+const escapeDoc = value => String(value ?? "").replace(/[&<>"]/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]));
+const detailsBlock = data => {
+  const rows = [["Client Address",data.clientAddress],["Client Mobile",data.clientMobile],["Project / Service",data.projectName],["Project Timeline",data.projectTimeline],["Deliverables & Features",data.projectFeatures],["Payment Terms",data.paymentTerms],["Revision Policy",data.revisionPolicy],["Support & Maintenance",data.supportTerms],["Cancellation & Refund",data.refundTerms],["Additional Terms",data.additionalTerms]].filter(([,v])=>String(v||"").trim());
+  if (!rows.length) return "";
+  return '<section class="info-box" style="margin-top:4px"><strong>Project & Client Details</strong>' + rows.map(([label,value])=>'<p style="font-size:10.5px;line-height:1.65;margin-top:6px"><b>'+escapeDoc(label)+':</b> '+escapeDoc(value).replace(/\n/g,"<br>")+'</p>').join("") + '</section>';
+};
+
 export function generateTemplate(type, data) {
   const today = new Date().toLocaleDateString("en-IN",{day:"numeric",month:"long",year:"numeric"});
   let html;
   switch(type) {
+    case "service_agreement": html = tServiceAgreement({...data,today}); break;
     case "nda": html = tNDA({...data,today}); break;
     case "quotation": html = tQuotation({...data,today}); break;
     case "invoice": html = tInvoice({...data,today}); break;
@@ -146,7 +151,33 @@ export function generateTemplate(type, data) {
     case "questionnaire": html = tQuestionnaire({...data,today}); break;
     default: return "<p>Unknown template</p>";
   }
+  if (html && data && html.includes('<div class="content">')) html = html.replace('<div class="content">', '<div class="content">' + detailsBlock(data));
   return html;
+}
+
+
+function tServiceAgreement({clientName,clientCompany,clientEmail,projectName,projectDesc,docCode,today}) {
+  return `${head("Client Service Agreement")}<body>${ctrl("Print Agreement")}
+<div class="page">${hdr("Client Engagement","SERVICE AGREEMENT")}
+<div class="content">
+${dcBadge(docCode)}
+<div class="clause">This Client Service Agreement ("Agreement") is issued on <strong>${today}</strong> between <strong>${CO}</strong> ("Service Provider") and <strong>${clientName}${clientCompany ? " · "+clientCompany : ""}</strong> ("Client"). The parties agree to the project scope and commercial terms recorded in this document.</div>
+<div class="sec-title">1. Project Scope & Deliverables</div>
+<div class="clause">${projectDesc || "The services and deliverables are described in the Project & Client Details section of this Agreement."}</div>
+<div class="sec-title">2. Fees & Payment</div>
+<div class="clause">The agreed project fee, payment milestones, due dates and any applicable taxes shall be as recorded in the Project & Client Details section. Work may be scheduled against the agreed payment milestones.</div>
+<div class="sec-title">3. Changes & Revisions</div>
+<div class="clause">Any work outside the agreed scope, additional revisions or material changes may require a revised estimate and timeline. Such changes should be approved by both parties in writing before implementation.</div>
+<div class="sec-title">4. Client Responsibilities</div>
+<div class="clause">The Client will provide accurate requirements, content, approvals and access reasonably needed to deliver the project. Delays in receiving required inputs may affect the delivery schedule.</div>
+<div class="sec-title">5. Support, Cancellation & Refunds</div>
+<div class="clause">Support, maintenance, cancellation and refund arrangements are governed by the specific terms entered in this Agreement. Any work completed, third-party costs or non-recoverable expenses should be considered as stated in those terms.</div>
+<div class="sec-title">6. Acceptance & Electronic Record</div>
+<div class="clause">The Client may accept or decline this Agreement through the registered ASKC TECHNOLOGIES account to which it is assigned. On acceptance, the system records the account identity, date and time, and the place supplied by the Client. The acceptance record is appended to the client signature area.</div>
+<div class="sec-title">7. General Terms</div>
+<div class="clause">Any amendment to this Agreement must be documented and accepted by both parties. If any provision is found unenforceable, the remaining provisions continue to apply to the extent permitted by law.</div>
+${signatureBlock(clientName)}
+</div>${ftr(docCode)}</div></body></html>`;
 }
 
 function tNDA({clientName,clientCompany,docCode,today}) {

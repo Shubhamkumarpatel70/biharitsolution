@@ -4891,7 +4891,7 @@ router.post(
   coAdminMiddleware,
   async (req, res) => {
     try {
-      const { clientUserId, clientName, clientEmail, clientCompany, documentType, documentTitle, htmlContent, notes, docCode } = req.body;
+      const { clientUserId, clientName, clientEmail, clientCompany, clientAddress, clientMobile, projectName, projectTimeline, projectFeatures, paymentTerms, revisionPolicy, supportTerms, refundTerms, additionalTerms, documentType, documentTitle, htmlContent, notes, docCode } = req.body;
       if (!clientName || !documentType || !htmlContent || !documentTitle) {
         return res.status(400).json({ message: "Missing required fields." });
       }
@@ -4913,6 +4913,10 @@ router.post(
         clientName: linkedUser?.name || clientName,
         clientEmail: linkedUser?.email || String(clientEmail || "").trim().toLowerCase(),
         clientCompany: clientCompany || "",
+        clientAddress: clientAddress || "", clientMobile: clientMobile || "",
+        projectName: projectName || "", projectTimeline: projectTimeline || "", projectFeatures: projectFeatures || "",
+        paymentTerms: paymentTerms || "", revisionPolicy: revisionPolicy || "", supportTerms: supportTerms || "",
+        refundTerms: refundTerms || "", additionalTerms: additionalTerms || "",
         documentType,
         documentTitle,
         htmlContent: cloudinaryHtmlContent,
@@ -5019,13 +5023,18 @@ router.post("/user-agreements/:id/respond", authMiddleware, async (req, res) => 
       agreement.responseStatus = "accepted";
       agreement.status = "accepted";
       agreement.acceptedByName = user.name;
+      agreement.acceptedUserId = user._id;
+      agreement.acceptedUserEmail = user.email || "";
+      agreement.acceptedUserAgent = String(req.get("user-agent") || "").slice(0, 500);
+      agreement.acceptanceConsent = "I confirm that I have read, understood and agree to the terms of this document.";
       agreement.acceptedAt = acceptedAt;
       agreement.acceptedAtIST = acceptedAtIST;
       agreement.acceptedPlace = place;
       agreement.acceptedTimezone = "Asia/Kolkata";
       agreement.acceptedLatitude = hasCoordinates ? latitude : null;
       agreement.acceptedLongitude = hasCoordinates ? longitude : null;
-      agreement.htmlContent += `<section style="margin:32px auto 0;max-width:760px;border-top:2px solid #163d70;padding:22px 8px;font-family:Arial,sans-serif;color:#172033"><h2 style="font-size:18px">Client electronic acceptance</h2><p>This agreement was accepted electronically by the registered client.</p><p><strong>Client name:</strong> ${escapeHtml(user.name)}</p><p><strong>Place:</strong> ${escapeHtml(place)}</p><p><strong>Date & time (IST):</strong> ${escapeHtml(acceptedAtIST)}</p><p><strong>Agreement ID:</strong> ${escapeHtml(agreement.docCode || agreement._id)}</p></section>`;
+      const acceptanceHtml = `<div class="acceptance-record" style="border:1px solid #a7f3d0;background:#ecfdf5;border-radius:8px;padding:12px;margin-top:10px;color:#065f46;font:10px/1.7 Arial,sans-serif"><h4 style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;margin:0 0 6px">Electronically accepted by client</h4><p><strong>Client:</strong> ${escapeHtml(user.name)}</p><p><strong>Registered account:</strong> ${escapeHtml(user.email)}</p><p><strong>Status:</strong> ACCEPTED</p><p><strong>Place:</strong> ${escapeHtml(place)}</p><p><strong>Date &amp; time:</strong> ${escapeHtml(acceptedAtIST)}</p><p><strong>Agreement reference:</strong> ${escapeHtml(agreement.docCode || agreement._id)}</p><p><strong>Consent:</strong> ${escapeHtml(agreement.acceptanceConsent)}</p></div>`;
+      if (agreement.htmlContent.includes("<!--CLIENT_ACCEPTANCE_SLOT-->")) agreement.htmlContent = agreement.htmlContent.replace("<!--CLIENT_ACCEPTANCE_SLOT-->", acceptanceHtml); else agreement.htmlContent += acceptanceHtml;
     } else {
       agreement.responseStatus = "declined";
       agreement.status = "declined";
@@ -5114,6 +5123,9 @@ router.patch(
   async (req, res) => {
     try {
       const { status } = req.body;
+      const existingAgreement = await Agreement.findById(req.params.id);
+      if (!existingAgreement) return res.status(404).json({ message: "Agreement not found." });
+      if (["accepted", "declined"].includes(existingAgreement.responseStatus) && status !== existingAgreement.status) return res.status(409).json({ message: "A client-responded agreement is locked. Create a new version to change its terms." });
       const agreement = await Agreement.findByIdAndUpdate(
         req.params.id,
         { status },
