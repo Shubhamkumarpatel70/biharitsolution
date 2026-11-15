@@ -10,4 +10,7 @@ const otpSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
+// Expired OTPs and one-time 2FA challenge nonces are safe to purge automatically.
+otpSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+
 module.exports = mongoose.model("Otp", otpSchema);
