@@ -508,6 +508,22 @@ function getPublicSiteOrigin() {
   return canonicalOrigin;
 }
 
+// Coupon slots are reserved at checkout creation so concurrent orders cannot
+// oversubscribe a limited campaign. The reservation is consumed only after a
+// verified successful payment.
+async function redeemCouponReservation(subscription) {
+  if (!subscription?.couponCode || !subscription?.user) return null;
+  const coupon = await Coupon.findOneAndUpdate(
+    { code: subscription.couponCode, reservedCount: { $gt: 0 }, usedBy: { $ne: subscription.user } },
+    { $addToSet: { usedBy: subscription.user }, $inc: { usedCount: 1, reservedCount: -1 } },
+    { new: true }
+  );
+  if (coupon?.usageLimit > 0 && coupon.usedCount >= coupon.usageLimit) {
+    await Coupon.updateOne({ _id: coupon._id }, { $set: { active: false } });
+  }
+  return coupon;
+}
+
 // Cashfree Checkout: create a server-priced order and a pending subscription.
 // Cashfree server-to-server webhook. Signature is verified against the untouched raw request body.
 router.post("/cashfree/webhook", async (req, res) => {
@@ -558,19 +574,7 @@ router.post("/cashfree/webhook", async (req, res) => {
       { new: true }
     );
     if (activatedSubscription && subscription.couponCode) {
-      const redeemedCoupon = await Coupon.findOneAndUpdate(
-        {
-          code: subscription.couponCode,
-          active: true,
-          usedBy: { $ne: subscription.user },
-          $or: [{ usageLimit: 0 }, { $expr: { $lt: ["$usedCount", "$usageLimit"] } }],
-        },
-        { $addToSet: { usedBy: subscription.user }, $inc: { usedCount: 1 } },
-        { new: true },
-      );
-      if (redeemedCoupon?.usageLimit > 0 && redeemedCoupon.usedCount >= redeemedCoupon.usageLimit) {
-        await Coupon.updateOne({ _id: redeemedCoupon._id }, { $set: { active: false } });
-      }
+      await redeemCouponReservation(subscription);
     }
     if (activatedSubscription) await notifyCashfreePaymentSuccess(activatedSubscription);
     return res.status(200).json({ received: true });
@@ -626,6 +630,7 @@ function subscriptionPurchaseBlockedResponse(res, subscription) {
 }
 
 router.post("/cashfree/create-order", authMiddleware, async (req, res) => {
+  let reservedCouponId = null;
   try {
     if (await getCheckoutPaymentMode() !== "cashfree") {
       return res.status(403).json({ message: "Online checkout is currently disabled. Please use the payment method configured by ASKC Technologies." });
@@ -656,13 +661,22 @@ router.post("/cashfree/create-order", authMiddleware, async (req, res) => {
     let normalizedCouponCode = "";
     if (couponCode) {
       normalizedCouponCode = String(couponCode).trim().toUpperCase();
-      const coupon = await Coupon.findOne({ code: normalizedCouponCode, active: true });
-      if (!coupon) return res.status(400).json({ message: "Coupon is invalid or expired." });
-      if (coupon.eligiblePlans?.length && !coupon.eligiblePlans.some(id => String(id) === String(planDoc._id)))
-        return res.status(400).json({ message: "This coupon is not valid for the selected pricing plan." });
-      if (coupon.usageLimit > 0 && coupon.usedCount >= coupon.usageLimit) return res.status(400).json({ message: "Coupon usage limit reached." });
-      if (coupon.usedBy.some(id => String(id) === String(user._id))) return res.status(400).json({ message: "You have already used this coupon." });
-      discountAmount = coupon.discountType === 'percentage'
+      const coupon = await Coupon.findOneAndUpdate(
+        {
+          code: normalizedCouponCode,
+          active: true,
+          usedBy: { $ne: user._id },
+          $and: [
+            { $or: [{ eligiblePlans: { $size: 0 } }, { eligiblePlans: planDoc._id }] },
+            { $or: [{ usageLimit: 0 }, { $expr: { $lt: [{ $add: [{ $ifNull: ["$usedCount", 0] }, { $ifNull: ["$reservedCount", 0] }] }, "$usageLimit"] } }] }
+          ]
+        },
+        { $inc: { reservedCount: 1 } },
+        { new: true }
+      );
+      if (!coupon) return res.status(400).json({ message: "Coupon is invalid, expired, already used, or its usage limit has been reached." });
+      reservedCouponId = coupon._id;
+      discountAmount = coupon.discountType === "percentage"
         ? Number((basePlanPrice * Math.min(100, Number(coupon.amount) || 0) / 100).toFixed(2))
         : Math.min(Number(coupon.amount) || 0, basePlanPrice);
     }
@@ -703,6 +717,8 @@ router.post("/cashfree/create-order", authMiddleware, async (req, res) => {
     });
     const data = await response.json();
     if (!response.ok || !data.payment_session_id) {
+      if (reservedCouponId) await Coupon.updateOne({ _id: reservedCouponId, reservedCount: { $gt: 0 } }, { $inc: { reservedCount: -1 } });
+      reservedCouponId = null;
       console.error("Cashfree order creation failed:", data);
       return res.status(502).json({ message: data.message || "Could not start Cashfree checkout." });
     }
@@ -733,6 +749,10 @@ router.post("/cashfree/create-order", authMiddleware, async (req, res) => {
       subscriptionId: subscription._id
     });
   } catch (err) {
+    if (reservedCouponId) {
+      try { await Coupon.updateOne({ _id: reservedCouponId, reservedCount: { $gt: 0 } }, { $inc: { reservedCount: -1 } }); }
+      catch (releaseError) { console.error("Could not release coupon reservation:", releaseError?.message); }
+    }
     console.error("Cashfree create-order error:", err);
     return res.status(500).json({ message: "Unable to create payment order." });
   }
@@ -787,12 +807,9 @@ router.post("/cashfree/verify-order", authMiddleware, async (req, res) => {
     const successfulPayment = Array.isArray(payments)
       ? payments.find(payment => payment.payment_status === "SUCCESS")
       : null;
-    if (subscription.couponCode) {
-      await Coupon.findOneAndUpdate(
-        { code: subscription.couponCode, active: true, usedBy: { $ne: subscription.user }, $or: [{ usageLimit: 0 }, { $expr: { $lt: ["$usedCount", "$usageLimit"] } }] },
-        { $addToSet: { usedBy: subscription.user }, $inc: { usedCount: 1 } }
-      );
-    }
+    // The pending -> active compare-and-set below guarantees only one verifier
+    // can consume this order's reserved coupon slot.
+
     const safeDuration = Number.isFinite(Number(subscription.durationDays)) && Number(subscription.durationDays) > 0 ? Number(subscription.durationDays) : 30;
     const updated = await Subscription.findOneAndUpdate(
       { _id: subscription._id, user: req.user.id, status: "pending" },
@@ -806,7 +823,10 @@ router.post("/cashfree/verify-order", authMiddleware, async (req, res) => {
       },
       { new: true }
     );
-    if (updated) await notifyCashfreePaymentSuccess(updated);
+    if (updated) {
+      if (updated.couponCode) await redeemCouponReservation(updated);
+      await notifyCashfreePaymentSuccess(updated);
+    }
     const finalSubscription = updated || await Subscription.findById(subscription._id);
     if (!finalSubscription || finalSubscription.status !== "active") {
       return res.status(409).json({ message: "Subscription could not be activated. Please contact support." });
