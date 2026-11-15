@@ -206,25 +206,30 @@ exports.verifyForgotOtp = async (req, res) => {
   try {
     const email = String(req.body?.email || "").trim().toLowerCase();
     const otp = String(req.body?.otp || "").trim();
-    if (!email || !otp) {
-      return res.status(400).json({ message: "Email and OTP required." });
+    if (!email || !/^\d{6}$/.test(otp)) {
+      return res.status(400).json({ message: "Enter your email and the 6-digit code." });
     }
-
-    const record = await Otp.findOne({ email, otp, purpose: "forgot" });
-    if (!record || record.expiresAt < new Date()) {
-      return res.status(400).json({ message: "Invalid or expired OTP." });
-    }
-
-    const user = await User.findOne({
-      $expr: { $eq: [{ $toLower: "$email" }, email] },
+    const record = await Otp.findOneAndDelete({
+      email, otp, purpose: "forgot", expiresAt: { $gt: new Date() },
     });
-    if (!user) {
-      return res.status(404).json({ message: "User not found." });
-    }
-
-    await Otp.deleteMany({ email, purpose: "forgot" });
+    if (!record) return res.status(400).json({ message: "Invalid or expired OTP. Please request a new code." });
+    const user = await User.findOne({ $expr: { $eq: [{ $toLower: "$email" }, email] } });
+    if (!user) return res.status(404).json({ message: "User not found." });
+    const resetToken = jwt.sign(
+      { id: String(user._id), email: String(user.email).toLowerCase(), purpose: "password-reset" },
+      process.env.JWT_SECRET,
+      { expiresIn: "10m" },
+    );
+    const tokenHash = crypto.createHash("sha256").update(resetToken).digest("hex");
+    await Otp.create({
+      email: String(user.email).toLowerCase(),
+      otp: tokenHash,
+      purpose: "password-reset",
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+    });
     return res.json({
-      message: "OTP verified.",
+      message: "OTP verified. You can now set a new password.",
+      resetToken,
       user: { name: user.name, email: user.email },
     });
   } catch (err) {
@@ -511,46 +516,33 @@ exports.loginUser = async (req, res) => {
 
 exports.registerAdmin = async (req, res) => {
   try {
-    const { name, email, password, adminKey } = req.body;
-    if (!name || !email || !password || !adminKey) {
-      return res
-        .status(400)
-        .json({ message: "All fields and admin key are required." });
+    const { name, email, password, adminKey } = req.body || {};
+    if (!name || !email || !password || !adminKey) return res.status(400).json({ message: "All fields and admin key are required." });
+    if (!process.env.ADMIN_REGISTRATION_KEY || adminKey !== process.env.ADMIN_REGISTRATION_KEY) {
+      return res.status(403).json({ message: "Admin bootstrap is not enabled or the key is invalid." });
     }
-    if (adminKey !== process.env.ADMIN_REGISTRATION_KEY) {
-      return res
-        .status(403)
-        .json({ message: "Invalid admin registration key." });
+    if (await User.exists({ role: { $in: ["admin", "coadmin"] } })) {
+      return res.status(403).json({ message: "Admin registration is closed. Ask an existing administrator to create an account." });
     }
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ message: "User already exists." });
-    }
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const user = new User({
-      name,
-      email,
-      password: hashedPassword,
+    const normalizedEmail = String(email).trim().toLowerCase();
+    if (await User.findOne({ email: normalizedEmail })) return res.status(400).json({ message: "User already exists." });
+    if (String(password).length < 8) return res.status(400).json({ message: "Password must be at least 8 characters long." });
+    const user = await User.create({
+      name: String(name).trim(),
+      email: normalizedEmail,
+      password: await bcrypt.hash(password, 12),
       role: "admin",
     });
-    await user.save();
     const loginState = await recordSuccessfulLogin(user._id, req);
     const token = jwt.sign(
       { id: user._id, role: user.role, sv: Number(loginState?.sessionVersion || 0), sid: loginState.sessionId },
       process.env.JWT_SECRET,
       { expiresIn: "7d" },
     );
-    res.status(201).json({
-      token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-      },
-    });
+    res.status(201).json({ token, user: { id: user._id, name: user.name, email: user.email, role: user.role } });
   } catch (err) {
-    res.status(500).json({ message: "Server error." });
+    console.error("Admin bootstrap failed:", err?.message);
+    res.status(500).json({ message: "Could not create the initial administrator." });
   }
 };
 
@@ -573,20 +565,22 @@ exports.updateUserProfile = async (req, res) => {
 
 exports.changeUserPassword = async (req, res) => {
   try {
-    const { current, new: newPassword } = req.body;
-    if (!current || !newPassword)
-      return res
-        .status(400)
-        .json({ message: "Current and new password required." });
-    const user = await User.findById(req.user.id);
+    const { current, new: newPassword } = req.body || {};
+    if (!current || !newPassword) return res.status(400).json({ message: "Current and new password required." });
+    if (String(newPassword).length < 8) return res.status(400).json({ message: "New password must be at least 8 characters long." });
+    const user = await User.findById(req.user.id).select("+password");
     if (!user) return res.status(404).json({ message: "User not found." });
-    const isMatch = await bcrypt.compare(current, user.password);
-    if (!isMatch)
-      return res.status(400).json({ message: "Current password incorrect." });
-    user.password = await bcrypt.hash(newPassword, 10);
+    if (!(await bcrypt.compare(current, user.password))) return res.status(400).json({ message: "Current password incorrect." });
+    user.password = await bcrypt.hash(newPassword, 12);
+    user.sessionVersion = Number(user.sessionVersion || 0) + 1;
+    user.lastLogoutAllAt = new Date();
+    user.sessions.forEach(session => { if (!session.revokedAt) session.revokedAt = new Date(); });
     await user.save();
-    res.json({ message: "Password changed." });
+    res.clearCookie("token", { httpOnly: true, sameSite: "None", secure: process.env.NODE_ENV === "production", path: "/" });
+    res.set("Cache-Control", "no-store");
+    return res.json({ success: true, message: "Password changed. Please sign in again on your devices." });
   } catch (err) {
+    console.error("Password change failed:", err?.message);
     res.status(500).json({ message: "Could not change password." });
   }
 };
@@ -624,36 +618,39 @@ exports.verifyEmailForPasswordReset = async (req, res) => {
 // Forgot Password - Reset Password
 exports.resetPassword = async (req, res) => {
   try {
-    console.log("Forgot password reset endpoint called");
-    const { email, newPassword } = req.body;
-    if (!email || !newPassword) {
-      return res
-        .status(400)
-        .json({ message: "Email and new password are required." });
+    const { resetToken, newPassword } = req.body || {};
+    if (!resetToken || !newPassword) return res.status(400).json({ message: "A verified reset token and new password are required." });
+    if (String(newPassword).length < 8) return res.status(400).json({ message: "Password must be at least 8 characters long." });
+    if (!process.env.JWT_SECRET) return res.status(503).json({ message: "Password reset is temporarily unavailable." });
+    let decoded;
+    try { decoded = jwt.verify(resetToken, process.env.JWT_SECRET); }
+    catch { return res.status(400).json({ message: "Password reset session expired. Please verify your OTP again." }); }
+    if (decoded.purpose !== "password-reset" || !decoded.id || !decoded.email) {
+      return res.status(400).json({ message: "Invalid password reset session." });
     }
-
-    if (newPassword.length < 6) {
-      return res
-        .status(400)
-        .json({ message: "Password must be at least 6 characters long." });
-    }
-
-    const user = await User.findOne({ email: email.trim().toLowerCase() });
-    if (!user) {
-      return res.status(404).json({ message: "User not found." });
-    }
-
-    // Hash and update password
-    user.password = await bcrypt.hash(newPassword, 10);
-    await user.save();
-
-    console.log("Password reset successful for:", email);
-    res.json({
-      message:
-        "Password reset successfully. Please login with your new password.",
+    const tokenHash = crypto.createHash("sha256").update(String(resetToken)).digest("hex");
+    const resetRecord = await Otp.findOneAndDelete({
+      email: String(decoded.email).toLowerCase(),
+      otp: tokenHash,
+      purpose: "password-reset",
+      expiresAt: { $gt: new Date() },
     });
+    if (!resetRecord) return res.status(400).json({ message: "This password reset session has already been used or expired." });
+    const user = await User.findOne({
+      _id: decoded.id,
+      $expr: { $eq: [{ $toLower: "$email" }, String(decoded.email).toLowerCase()] },
+    }).select("+password");
+    if (!user) return res.status(404).json({ message: "User not found." });
+    user.password = await bcrypt.hash(newPassword, 12);
+    user.sessionVersion = Number(user.sessionVersion || 0) + 1;
+    user.lastLogoutAllAt = new Date();
+    user.sessions.forEach(session => { if (!session.revokedAt) session.revokedAt = new Date(); });
+    await user.save();
+    await Otp.deleteMany({ email: String(user.email).toLowerCase(), purpose: "password-reset" });
+    res.set("Cache-Control", "no-store");
+    return res.json({ success: true, message: "Password reset successfully. Please sign in again." });
   } catch (err) {
-    console.error("Error resetting password:", err);
+    console.error("Password reset failed:", err?.message);
     res.status(500).json({ message: "Could not reset password." });
   }
 };
