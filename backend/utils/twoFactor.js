@@ -35,7 +35,10 @@ const verifyTotp = (secret, code) => {
   const now = Date.now();
   return [-1,0,1].some(step => crypto.timingSafeEqual(Buffer.from(totp(secret, now + step * 30000)), Buffer.from(submitted)));
 };
-const encryptionKey = () => crypto.createHash('sha256').update(String(process.env.JWT_SECRET || 'askc-2fa-secret-change-this')).digest();
+const encryptionKey = () => {
+  if (!process.env.JWT_SECRET) throw new Error('JWT_SECRET must be configured before using authenticator 2FA.');
+  return crypto.createHash('sha256').update(String(process.env.JWT_SECRET)).digest();
+};
 const encryptSecret = plain => {
   const iv = crypto.randomBytes(12); const cipher = crypto.createCipheriv('aes-256-gcm', encryptionKey(), iv);
   const encrypted = Buffer.concat([cipher.update(String(plain), 'utf8'), cipher.final()]);
