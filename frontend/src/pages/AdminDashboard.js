@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { logoutCurrentSession } from '../utils/logout';
 import { useNavigate } from 'react-router-dom';
 import AdminSidebar, { adminNavItems } from '../components/AdminSidebar';
 import AdminHelp from './AdminHelp';
