@@ -32,7 +32,7 @@ function Register() {
     }
   };
 
-  const handleOtpSuccess = async () => {
+  const handleOtpSuccess = async (registrationToken) => {
     setOtpVerified(true);
     setMessage("OTP verified! Completing registration...");
     setLoading(true);
