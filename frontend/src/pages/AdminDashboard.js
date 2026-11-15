@@ -74,10 +74,9 @@ const AdminDashboard = () => {
     };
   }, [sidebarOpen]);
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    navigate('/login');
+  const handleLogout = async () => {
+    await logoutCurrentSession();
+    navigate('/login', { replace: true, state: { message: 'You have been signed out from this device.' } });
   };
 
   const selectTab = tab => {
