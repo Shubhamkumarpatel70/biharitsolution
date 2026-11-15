@@ -45,7 +45,7 @@ function SessionLoginInfo() {
   const lastLogin = info?.lastLogin || {};
   const browser = (ua = '') => {
     if (!ua) return 'Not available';
-    const name = /Edg\\//.test(ua) ? 'Microsoft Edge' : /Chrome\\//.test(ua) ? 'Google Chrome' : /Firefox\\//.test(ua) ? 'Mozilla Firefox' : /Safari\\//.test(ua) && !/Chrome\\//.test(ua) ? 'Safari' : 'Browser';
+    const name = ua.includes('Edg/') ? 'Microsoft Edge' : ua.includes('Chrome/') ? 'Google Chrome' : ua.includes('Firefox/') ? 'Mozilla Firefox' : ua.includes('Safari/') && !ua.includes('Chrome/') ? 'Safari' : 'Browser';
     const device = /Android/i.test(ua) ? 'Android device' : /iPhone|iPad/i.test(ua) ? 'Apple device' : /Windows/i.test(ua) ? 'Windows device' : /Mac OS/i.test(ua) ? 'Mac device' : /Linux/i.test(ua) ? 'Linux device' : 'Device';
     return name + ' · ' + device;
   };
