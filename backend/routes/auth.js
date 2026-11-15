@@ -391,7 +391,7 @@ router.get(
     const sessionAgent = String(req.headers["user-agent"] || "").slice(0, 500);
     const loginState = await User.findByIdAndUpdate(req.user._id, {
       $set: { lastLoginAt: new Date(), lastLoginIp: sessionIp, lastLoginUserAgent: sessionAgent },
-      $push: { sessions: { $each: [{ sessionId, createdAt: new Date(), lastSeenAt: new Date(), ip: sessionIp, userAgent: sessionAgent, revokedAt: null }], $slice: -30 } },
+      $push: { sessions: { sessionId, createdAt: new Date(), lastSeenAt: new Date(), ip: sessionIp, userAgent: sessionAgent, revokedAt: null } },
     }, { new: true }).select("sessionVersion");
     const token = jwt.sign(
       { id: req.user._id, role: req.user.role, sv: Number(loginState?.sessionVersion || 0), sid: sessionId },
@@ -2331,7 +2331,7 @@ router.get(
     const sessionAgent = String(req.headers["user-agent"] || "").slice(0, 500);
     const loginState = await User.findByIdAndUpdate(req.user._id, {
       $set: { lastLoginAt: new Date(), lastLoginIp: sessionIp, lastLoginUserAgent: sessionAgent },
-      $push: { sessions: { $each: [{ sessionId, createdAt: new Date(), lastSeenAt: new Date(), ip: sessionIp, userAgent: sessionAgent, revokedAt: null }], $slice: -30 } },
+      $push: { sessions: { sessionId, createdAt: new Date(), lastSeenAt: new Date(), ip: sessionIp, userAgent: sessionAgent, revokedAt: null } },
     }, { new: true }).select("sessionVersion");
     const token = jwt.sign(
       { id: req.user._id, role: req.user.role, sv: Number(loginState?.sessionVersion || 0), sid: sessionId },
