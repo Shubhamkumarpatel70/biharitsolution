@@ -3507,13 +3507,13 @@ router.post("/coupons/apply", async (req, res, next) => {
               .status(400)
               .json({ message: "You have already used this coupon." });
           }
-          return res.json({ amount: coupon.amount, coupon });
+          return res.json({ amount: coupon.amount, discountType: coupon.discountType || 'fixed', coupon });
         });
         return;
       } catch {}
     }
     // If not authenticated, just return coupon info (for preview)
-    res.json({ amount: coupon.amount, coupon });
+    res.json({ amount: coupon.amount, discountType: coupon.discountType || 'fixed', coupon });
   } catch (err) {
     res.status(500).json({ message: "Could not apply coupon." });
   }
