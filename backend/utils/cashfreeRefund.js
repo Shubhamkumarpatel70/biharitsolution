@@ -17,7 +17,8 @@ async function cashfreeRefundRequest({ orderId, refundId, amount, note, method =
     throw error;
   }
   if (!orderId || !refundId) throw new TypeError("Cashfree order ID and refund ID are required.");
-  const url = getCashfreeBaseUrl(env) + "/orders/" + encodeURIComponent(orderId) + "/refunds/" + encodeURIComponent(refundId);
+  const refundPath = "/orders/" + encodeURIComponent(orderId) + "/refunds";
+  const url = getCashfreeBaseUrl(env) + refundPath + (method === "GET" ? "/" + encodeURIComponent(refundId) : "");
   const headers = {
     "x-api-version": DEFAULT_API_VERSION,
     "x-client-id": appId,
