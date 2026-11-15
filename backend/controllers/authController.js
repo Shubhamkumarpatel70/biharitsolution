@@ -11,6 +11,7 @@ const PrivacyConsentEvent = require("../models/PrivacyConsentEvent");
 const { parsePlanDurationDays } = require("../utils/planDuration");
 const Otp = require("../models/Otp");
 const { sendEmail } = require("../utils/email");
+const { issueTwoFactorChallenge } = require("../utils/twoFactorChallenge");
 
 async function recordSuccessfulLogin(userId, req) {
   const forwarded = String(req.headers["x-forwarded-for"] || "").split(",")[0].trim();
@@ -464,11 +465,8 @@ exports.loginUser = async (req, res) => {
 
     // If 2FA is enabled, issue only a short-lived challenge token (never a full session yet).
     if (user.twoFactorEnabled && ["email", "authenticator"].includes(user.twoFactorMethod)) {
-      const challengeToken = jwt.sign(
-        { id: user._id, role: user.role, purpose: "two-factor-login" },
-        process.env.JWT_SECRET,
-        { expiresIn: "5m" },
-      );
+      const challenge = await issueTwoFactorChallenge({ user, Otp, jwtSecret: process.env.JWT_SECRET });
+      const challengeToken = challenge.token;
       if (user.twoFactorMethod === "email") {
         const code = crypto.randomInt(100000, 1000000).toString();
         await Otp.deleteMany({ email: trimmedEmail, purpose: "twofactor-login" });
@@ -477,6 +475,7 @@ exports.loginUser = async (req, res) => {
           await sendEmail(trimmedEmail, "Your ASKC TECHNOLOGIES login verification code", `Your login verification code is ${code}. It expires in 5 minutes.`, generateOtpEmailHtml(code, "Verify your login", "Use this one-time code to finish signing in. Do not share it with anyone."));
         } catch (mailError) {
           await Otp.deleteMany({ email: trimmedEmail, purpose: "twofactor-login" });
+          await Otp.deleteOne({ email: challenge.email, otp: challenge.otpHash, purpose: "twofactor-challenge" });
           return res.status(503).json({ message: "We could not send your login OTP. Please try again." });
         }
       }
