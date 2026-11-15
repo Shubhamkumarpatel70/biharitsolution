@@ -1189,6 +1189,9 @@ router.patch(
       if (String(sub.paymentMethod || "").toLowerCase() === "cashfree") {
         return res.status(409).json({ message: "Online payments can only be activated after Cashfree verification." });
       }
+      if (!String(sub.transactionId || "").trim() && !String(sub.paymentImage || "").trim()) {
+        return res.status(400).json({ message: "Payment proof or a transaction reference is required before manual approval." });
+      }
       sub.status = "active";
       sub.paymentStatus = "paid";
       sub.amountPaid = Number(sub.amountPaid || sub.totalAmount || 0);
@@ -2740,6 +2743,9 @@ router.patch(
       }
       if (String(sub.paymentMethod || "").toLowerCase() === "cashfree") {
         return res.status(409).json({ message: "Online payments can only be activated after Cashfree verification." });
+      }
+      if (!String(sub.transactionId || "").trim() && !String(sub.paymentImage || "").trim()) {
+        return res.status(400).json({ message: "Payment proof or a transaction reference is required before manual approval." });
       }
       sub.status = "active";
       sub.paymentStatus = "paid";
