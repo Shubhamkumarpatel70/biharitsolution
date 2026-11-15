@@ -13,7 +13,7 @@ const STATUS_COLORS = {
 };
 
 const DOC_ICONS = {
-  nda: '🔒', quotation: '📋', invoice: '🧾',
+  service_agreement: '📑', nda: '🔒', quotation: '📋', invoice: '🧾',
   welcome: '👋', handover: '📦', change_request: '🔄', questionnaire: '📝',
 };
 
@@ -472,7 +472,7 @@ export default function AdminAgreements() {
                 />
                 {clientLookup && <p className={`mt-1.5 text-xs ${selectedClientUserId ? 'text-emerald-700' : 'text-amber-700'}`}>{clientLookup}</p>}
               </div>
-              {['quotation','handover','change_request'].includes(form.documentType) && (
+              {['service_agreement','quotation','handover','change_request'].includes(form.documentType) && (
                 <div>
                   <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Project Description</label>
                   <textarea
