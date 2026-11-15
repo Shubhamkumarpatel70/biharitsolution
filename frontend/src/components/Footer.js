@@ -290,12 +290,6 @@ const Footer = () => {
             <Link to="/refund" className="text-white/70 hover:text-white transition-colors">
               Refund Policy
             </Link>
-            <Link to="/cookies" className="text-white/70 hover:text-white transition-colors">
-              Cookie Policy
-            </Link>
-            <button type="button" onClick={() => window.dispatchEvent(new Event('askc-open-cookie-settings'))} className="text-white/70 hover:text-white transition-colors">
-              Cookie Preferences
-            </button>
             <Link to="/careers" className="text-accent-300 hover:text-accent-200 font-semibold transition-colors">
               Careers
             </Link>
