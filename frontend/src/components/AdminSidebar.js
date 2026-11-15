@@ -12,6 +12,7 @@ export const adminNavItems = [
   { id: 'user-plans', label: 'User Plans', iconName: 'users', category: 'subscriptions' },
   { id: 'project-requests', label: 'Project Requests', iconName: 'document', category: 'projects' },
   { id: 'users', label: 'Manage Users', iconName: 'user', category: 'customers' },
+  { id: 'active-users', label: 'Active Users', iconName: 'users', category: 'customers' },
   { id: 'notifications', label: 'Notifications', iconName: 'bell', category: 'customers' },
   { id: 'id-card', label: 'ID Card', iconName: 'creditCard', category: 'customers' },
   { id: 'agreements', label: 'Agreements', iconName: 'document', category: 'customers' },
@@ -69,7 +70,7 @@ const AdminSidebar = ({ onLogout, activeTab, setActiveTab, onClose, userRole = '
   };
 
   const baseNavItems = userRole === 'coadmin'
-    ? adminNavItems.filter(item => !['users', 'refunds'].includes(item.id))
+    ? adminNavItems.filter(item => !['users', 'active-users', 'refunds'].includes(item.id))
     : adminNavItems;
 
   const filteredNavItems = useMemo(() => {
