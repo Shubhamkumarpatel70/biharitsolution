@@ -1,84 +1,93 @@
 import axios from "axios";
 
 const instance = axios.create({
-  // Production serves the React build and /api routes from the same Render
-  // service. Always use same-origin API requests there; this prevents stale
-  // legacy domains (for example askcweb.in) from breaking checkout/auth flows.
-  // In development, keep the optional override and CRA proxy support.
+  // Production uses same-origin API routes. Development may use an explicit API URL.
   baseURL: process.env.NODE_ENV === "development"
     ? (process.env.REACT_APP_API_URL || "")
     : "",
-  timeout: 30000, // Increased timeout to 30 seconds
-  headers: {
-    "Content-Type": "application/json",
-  },
+  timeout: 30000,
+  headers: { "Content-Type": "application/json" },
 });
 
-// Request interceptor for performance optimization
+const isTechnicalMessage = (value) => {
+  if (typeof value !== "string") return true;
+  const message = value.trim();
+  if (!message) return true;
+  return (
+    /\b(ECONN|ETIMEDOUT|ECONNABORTED|ENOTFOUND|EAI_AGAIN|Mongo(?:DB)?|Mongoose|CastError|ValidationError|TypeError|ReferenceError|SyntaxError| stack trace| at .*\()/i.test(message) ||
+    /\b(?:server|request|gateway)\s*(?:timeout|timed out)\s*[:=-]?\s*\d{3,}/i.test(message) ||
+    /\b(?:timeout|timed out)\s*(?:after|of)?\s*\d+\s*(?:ms|milliseconds|seconds|s)\b/i.test(message) ||
+    /\b(?:internal server error|uncaught exception|failed to fetch|network error)\b/i.test(message)
+  );
+};
+
+const getFriendlyError = (error) => {
+  const status = error?.response?.status;
+  const backendMessage = error?.response?.data?.message;
+  const safeBackendMessage = !isTechnicalMessage(backendMessage) ? backendMessage.trim() : "";
+
+  if (error?.code === "ECONNABORTED" || /timeout/i.test(error?.message || "")) {
+    return "The request is taking longer than expected. Please check your connection and try again.";
+  }
+  if (!error?.response) {
+    return "Unable to connect right now. Please check your internet connection and try again.";
+  }
+  if (status === 400 || status === 422) {
+    return safeBackendMessage || "Please check the information you entered and try again.";
+  }
+  if (status === 401) {
+    return safeBackendMessage || "Your session has expired. Please sign in again.";
+  }
+  if (status === 403) {
+    return safeBackendMessage || "You do not have permission to perform this action.";
+  }
+  if (status === 404) {
+    return safeBackendMessage || "The requested information could not be found.";
+  }
+  if (status === 409) {
+    return safeBackendMessage || "This request conflicts with an existing record. Please refresh and try again.";
+  }
+  if (status === 429) {
+    return safeBackendMessage || "You have made too many requests. Please wait a little and try again.";
+  }
+  if (status >= 500) {
+    return "We are having trouble processing your request right now. Please try again shortly. If the issue continues, contact ASKC TECHNOLOGIES support.";
+  }
+  return safeBackendMessage || "Something went wrong. Please try again.";
+};
+
 instance.interceptors.request.use(
   (config) => {
-    // Add timestamp for caching
-    config.metadata = { startTime: new Date() };
-
-    // Add auth token if available
+    config.metadata = { startTime: Date.now() };
     const token = localStorage.getItem("token");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+    if (token) config.headers.Authorization = `Bearer ${token}`;
 
-    // Let the runtime set multipart boundary (default JSON Content-Type breaks FormData uploads)
     if (config.data instanceof FormData && config.headers) {
-      if (typeof config.headers.delete === "function") {
-        config.headers.delete("Content-Type");
-      } else {
-        delete config.headers["Content-Type"];
-      }
+      if (typeof config.headers.delete === "function") config.headers.delete("Content-Type");
+      else delete config.headers["Content-Type"];
     }
-
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  },
+  (error) => Promise.reject(error),
 );
 
-// Response interceptor for performance monitoring and error handling
 instance.interceptors.response.use(
-  (response) => {
-    // Log response time for performance monitoring
-    const endTime = new Date();
-    const startTime = response.config.metadata?.startTime;
-    if (startTime) {
-      const duration = endTime.getTime() - startTime.getTime();
-      console.log(`API call to ${response.config.url} took ${duration}ms`);
+  (response) => response,
+  (error) => {
+    // Never automatically replay timed-out requests: payment/order and form POSTs
+    // may already have reached the server, so a retry could create duplicates.
+    const friendlyMessage = getFriendlyError(error);
+    error.userMessage = friendlyMessage;
+
+    // Existing screens read response.data.message. Replace technical backend
+    // details centrally so stack traces, infrastructure errors and raw timeouts
+    // are never shown to customers.
+    if (error.response) {
+      const originalData = error.response.data;
+      error.response.data = originalData && typeof originalData === "object"
+        ? { ...originalData, message: friendlyMessage }
+        : { message: friendlyMessage };
     }
-
-    return response;
-  },
-  async (error) => {
-    // Retry logic for network errors
-    if (error.code === "ECONNABORTED" || error.message.includes("timeout")) {
-      console.log("Request timeout, retrying...");
-
-      // Retry once for timeout errors
-      const isLoginRequest =
-        typeof error.config?.url === "string" &&
-        error.config.url.includes("/api/auth/login");
-      if (error.config && !error.config._retry && !isLoginRequest) {
-        error.config._retry = true;
-        console.log("Retrying request:", error.config.url);
-        return instance.request(error.config);
-      }
-    }
-
-    // Log error details for debugging
-    console.error("API Error:", {
-      url: error.config?.url,
-      method: error.config?.method,
-      status: error.response?.status,
-      message: error.message,
-    });
-
     return Promise.reject(error);
   },
 );
