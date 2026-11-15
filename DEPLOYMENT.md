@@ -1,153 +1,74 @@
-# Deployment Guide - Render.com
+# ASKC TECHNOLOGIES — Render deployment
 
-This guide will help you deploy both frontend and backend to Render in a single service.
+This repository uses separate frontend and backend Node.js applications. The backend package declares Node.js 22.x; use Node 22 for local and hosted builds.
 
-## Quick Deployment Steps
+## Render service configuration
 
-### 1. Push to GitHub
+For a single Render Web Service that serves the built frontend from the Express backend:
+
+- **Root directory:** repository root
+- **Runtime:** Node
+- **Branch:** `main`
+- **Build command:**
 
 ```bash
-# Initialize git (if not already done)
-git init
-
-# Add all files
-git add .
-
-# Commit
-git commit -m "Ready for deployment"
-
-# Add remote (replace with your GitHub repo URL)
-git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git
-
-# Push to GitHub
-git branch -M main
-git push -u origin main
+cd frontend && npm ci && npm run build && cd ../backend && npm ci
 ```
 
-### 2. Deploy on Render
+- **Start command:**
 
-1. **Go to Render Dashboard**: https://dashboard.render.com
-2. **Click "New +"** → **"Web Service"**
-3. **Connect GitHub**: Select your repository
-4. **Configure Service**:
-   - **Name**: `custom-web-app` (or your choice)
-   - **Environment**: `Node`
-   - **Region**: Choose closest to your users
-   - **Branch**: `main`
-   - **Root Directory**: Leave empty (root)
-   - **Build Command**: 
-     ```bash
-     npm install && cd frontend && npm install && npm run build && cd ../backend && npm install
-     ```
-   - **Start Command**: 
-     ```bash
-     cd backend && node server.js
-     ```
-   - **Plan**: Free (or Paid for better performance)
-
-5. **Add Environment Variables**:
-   Click "Advanced" → "Add Environment Variable" and add:
-   
-   ```
-   NODE_ENV = production
-   PORT = 5000
-   MONGO_URI = your_mongodb_connection_string
-   JWT_SECRET = your_secure_jwt_secret
-   SESSION_SECRET = your_secure_session_secret
-   GOOGLE_CLIENT_ID = your_google_client_id (if using)
-   GOOGLE_CLIENT_SECRET = your_google_client_secret (if using)
-   REACT_APP_API_URL = https://your-app-name.onrender.com
-   ```
-
-6. **Click "Create Web Service"**
-
-### 3. Wait for Deployment
-
-- First deployment takes 5-10 minutes
-- Render will build the frontend and install dependencies
-- Watch the logs for any errors
-
-### 4. Update URLs After Deployment
-
-After deployment, you'll get a URL like: `https://custom-web-app.onrender.com`
-
-1. **Update CORS in backend/server.js**:
-   - Add your Render URL to allowed origins
-   - Already configured in the code
-
-2. **Update REACT_APP_API_URL**:
-   - In Render dashboard, update the environment variable
-   - Set it to your Render URL
-
-3. **Redeploy** (if needed):
-   - Render auto-deploys on git push
-   - Or manually trigger from dashboard
-
-## Important Notes
-
-### MongoDB Setup
-- Use MongoDB Atlas (free tier available)
-- Get connection string from Atlas dashboard
-- Add your Render IP to Atlas whitelist (or allow all IPs for testing)
-
-### File Uploads
-- Uploads are stored in `backend/uploads/`
-- For production, consider using cloud storage (AWS S3, Cloudinary, etc.)
-- Render's filesystem is ephemeral (files may be lost on redeploy)
-
-### Environment Variables
-- Never commit `.env` files to git
-- All secrets should be in Render environment variables
-- Update `REACT_APP_API_URL` after first deployment
-
-### CORS Configuration
-- Backend already configured to allow Render origin
-- Update if using custom domain
-
-### Custom Domain (Optional)
-1. In Render dashboard, go to your service
-2. Click "Settings" → "Custom Domain"
-3. Add your domain
-4. Update DNS records as instructed
-5. Update CORS origins in backend
-
-## Troubleshooting
-
-### Build Fails
-- Check build logs in Render dashboard
-- Ensure all dependencies are in package.json
-- Check Node.js version (should be 18.x)
-
-### API Not Working
-- Check environment variables are set correctly
-- Verify MongoDB connection string
-- Check CORS settings
-- Review backend logs
-
-### Frontend Not Loading
-- Verify build completed successfully
-- Check that frontend/build exists
-- Ensure backend serves static files (already configured)
-
-### Database Connection Issues
-- Verify MongoDB URI is correct
-- Check MongoDB Atlas whitelist
-- Ensure network access is allowed
-
-## Monitoring
-
-- View logs in Render dashboard
-- Set up health checks (already configured at `/api/health`)
-- Monitor service uptime
-
-## Auto-Deploy
-
-Render automatically deploys when you push to the connected branch:
 ```bash
-git add .
-git commit -m "Your changes"
-git push
+cd backend && npm start
 ```
 
-Render will detect the push and start a new deployment automatically.
+- **Health check path:** `/api/health` (confirm the configured Render health-check path matches the backend route).
 
+If the Render service is configured with a different root directory or separate frontend/backend services, adapt these commands to that service layout rather than copying them unchanged.
+
+## Environment and secrets
+
+Configure required values in Render's Environment settings, not in source control. Review `backend/server.js`, the authentication, payment, email, and storage modules to determine which integrations are enabled for the deployment.
+
+At minimum, verify the production values for:
+
+- MongoDB connection string
+- JWT and session signing secrets
+- Frontend/backend public origin and CORS allowlist
+- Cashfree credentials and environment selection (sandbox vs production)
+- Resend API key and verified sender
+- Google OAuth credentials, only if Google sign-in is enabled
+- Cloudinary credentials, if uploads use Cloudinary
+
+Use long, unique secrets. Never paste credentials into GitHub issues, commits, or chat. Do not use example values in production. Keep test credentials separate from production credentials.
+
+## Before deploying
+
+1. Confirm the intended branch and latest commit.
+2. Confirm all required Render environment variables are present.
+3. Confirm MongoDB Atlas network access and database user permissions.
+4. Confirm the configured frontend origin is included in the backend CORS allowlist.
+5. Confirm the verified email sender and payment environment.
+6. Deploy and inspect the complete Render build and runtime logs.
+
+## Post-deployment verification
+
+Run the read-only health check against the exact deployed HTTPS endpoint:
+
+```bash
+RENDER_HEALTH_URL=https://YOUR-SERVICE.onrender.com/api/health node backend/scripts/render-health-smoke.js
+```
+
+The script validates HTTP success and checks MongoDB status when the endpoint reports it. It does not prove login, payment, email, or refund flows work.
+
+Other opt-in checks are documented in `docs/PRODUCTION-INTEGRATION-CHECKLIST.md`:
+
+- Cashfree sandbox connectivity: creates and reads a ₹1 sandbox order; it does not complete a payment or refund.
+- Resend delivery: sends one real test email to the mailbox you explicitly configure.
+- MongoDB integration tests: use a dedicated disposable test database via `MONGODB_TEST_URI`; never point these tests at production.
+
+## Important operational notes
+
+- Render's local filesystem may be ephemeral. Use the configured cloud storage provider for user uploads; do not rely on local uploads surviving restarts or redeploys.
+- Never run destructive integration tests against production databases.
+- Verify backup/PITR configuration and perform restores only into a separate non-production target.
+- A successful GitHub Actions build is not proof that Render, MongoDB Atlas, Cashfree, Resend, OAuth, or Cloudinary are correctly configured.
