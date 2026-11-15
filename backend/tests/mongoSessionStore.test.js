@@ -1,6 +1,5 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const mongoose = require("mongoose");
 const MongoSessionStore = require("../utils/mongoSessionStore");
 
 function callbackResult(run) {
@@ -27,10 +26,8 @@ test("MongoSessionStore persists, reads, touches and destroys sessions", async (
     deleteOne: async ({ _id }) => ({ deletedCount: records.delete(_id) ? 1 : 0 }),
     deleteMany: async () => { const deletedCount = records.size; records.clear(); return { deletedCount }; },
   };
-  const originalCollection = mongoose.connection.collection;
-  mongoose.connection.collection = () => collection;
   try {
-    const store = new MongoSessionStore({ ttlMs: 60_000 });
+    const store = new MongoSessionStore({ ttlMs: 60_000, collection });
     const session = { cookie: { maxAge: 60_000 }, passport: { user: "user-1" } };
     await callbackResult((cb) => store.set("sid-1", session, cb));
     assert.deepEqual(await callbackResult((cb) => store.get("sid-1", cb)), session);
@@ -44,20 +41,13 @@ test("MongoSessionStore persists, reads, touches and destroys sessions", async (
     await callbackResult((cb) => store.clear(cb));
     assert.equal(records.size, 0);
   } finally {
-    mongoose.connection.collection = originalCollection;
+    // The store owns only the injected fake collection in this test.
   }
 });
 
 test("MongoSessionStore forwards database errors to express-session callbacks", async () => {
   const expected = new Error("database unavailable");
-  const originalCollection = mongoose.connection.collection;
-  mongoose.connection.collection = () => ({
-    createIndex: async () => { throw expected; },
-  });
-  try {
-    const store = new MongoSessionStore();
-    await assert.rejects(callbackResult((cb) => store.get("sid-error", cb)), expected);
-  } finally {
-    mongoose.connection.collection = originalCollection;
-  }
+  const collection = { createIndex: async () => { throw expected; } };
+  const store = new MongoSessionStore({ collection });
+  await assert.rejects(callbackResult((cb) => store.get("sid-error", cb)), expected);
 });
