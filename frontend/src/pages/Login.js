@@ -1,4 +1,4 @@
-import React, { useState, useContext, useCallback, useRef } from 'react';
+import React, { useState, useContext, useCallback, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import axios from '../axios';
 import { UserContext } from '../UserContext';
@@ -119,6 +119,20 @@ function Login() {
     }
   }, [email, password, captchaId, captchaInput, isSubmitting, loading, validateForm, setUser, navigate, loadCaptcha]);
 
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const challengeToken = params.get('twoFactorToken');
+    const method = params.get('twoFactorMethod');
+    if (challengeToken && ['email', 'authenticator'].includes(method)) {
+      setTwoFactorChallenge({ token: challengeToken, method });
+      setMessage(method === 'email' ? 'A verification code was sent to your registered email.' : 'Enter the current code from your authenticator app.');
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (params.get('twoFactorError') === 'email') {
+      setMessage('Could not send the verification email. Please sign in again.');
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [location.search]);
 
   const handleVerifyTwoFactor = async e => {
     e.preventDefault();
