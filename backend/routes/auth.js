@@ -222,7 +222,7 @@ router.post("/register-admin", registerAdmin);
 // Users are considered online for 2 minutes after their latest authenticated heartbeat.
 router.post("/activity/heartbeat", authMiddleware, async (req, res) => {
   try {
-    await User.updateOne({ _id: req.user.id }, { $set: { lastActiveAt: new Date() } });
+    await User.updateOne({ _id: req.user.id }, { $set: { lastActiveAt: new Date(), ...(req.user.sid ? { "sessions.$[active].lastSeenAt": new Date() } : {}) } }, req.user.sid ? { arrayFilters: [{ "active.sessionId": req.user.sid, "active.revokedAt": null }] } : {});
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ message: "Could not update activity." });
@@ -242,26 +242,53 @@ router.get("/admin/active-users", authMiddleware, adminMiddleware, async (req, r
   }
 });
 
-// Session & Login Info: show the most recent successful login metadata for this account.
+// Session & Login Info: list all active device sessions for the signed-in account.
 router.get("/sessions", authMiddleware, async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select("name email role lastLoginAt lastLoginIp lastLoginUserAgent sessionVersion").lean();
+    const user = await User.findById(req.user.id).select("name email role sessions").lean();
     if (!user) return res.status(404).json({ message: "User not found." });
-    res.json({
-      user: { name: user.name, email: user.email, role: user.role },
-      currentSession: { active: true, issuedAt: req.user.iat ? new Date(req.user.iat * 1000) : null },
-      lastLogin: { at: user.lastLoginAt, ip: user.lastLoginIp || "", userAgent: user.lastLoginUserAgent || "" },
-    });
+    const expiry = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    const sessions = (user.sessions || [])
+      .filter((s) => !s.revokedAt && new Date(s.createdAt).getTime() > expiry)
+      .map((s) => ({
+        sessionId: s.sessionId,
+        createdAt: s.createdAt,
+        lastSeenAt: s.lastSeenAt,
+        ip: s.ip || "",
+        userAgent: s.userAgent || "",
+        current: s.sessionId === req.user.sid,
+      }))
+      .sort((a, b) => new Date(b.lastSeenAt || b.createdAt) - new Date(a.lastSeenAt || a.createdAt));
+    res.json({ user: { name: user.name, email: user.email, role: user.role }, sessions });
   } catch (error) {
     console.error("Session information load failed:", error);
     res.status(500).json({ message: "Could not load session information." });
   }
 });
 
-// Revoke every previously issued access token for this account, including this device.
+router.post("/sessions/:sessionId/logout", authMiddleware, async (req, res) => {
+  try {
+    const sessionId = String(req.params.sessionId || "");
+    if (!sessionId || sessionId.length > 100) return res.status(400).json({ message: "Invalid session." });
+    const result = await User.updateOne(
+      { _id: req.user.id, sessions: { $elemMatch: { sessionId, revokedAt: null } } },
+      { $set: { "sessions.$.revokedAt": new Date() } },
+    );
+    if (!result.modifiedCount) return res.status(404).json({ message: "Session is already signed out or could not be found." });
+    res.json({ success: true, current: sessionId === req.user.sid, message: "Device session signed out." });
+  } catch (error) {
+    console.error("Single session logout failed:", error);
+    res.status(500).json({ message: "Could not sign out this device." });
+  }
+});
+
+// Revoke every session and invalidate every token for this account.
 router.post("/sessions/logout-all", authMiddleware, async (req, res) => {
   try {
-    await User.findByIdAndUpdate(req.user.id, { $inc: { sessionVersion: 1 }, $set: { lastLogoutAllAt: new Date() } });
+    await User.findByIdAndUpdate(req.user.id, {
+      $inc: { sessionVersion: 1 },
+      $set: { lastLogoutAllAt: new Date(), "sessions.$[].revokedAt": new Date() },
+    });
     res.clearCookie("token", { httpOnly: true, sameSite: "None", secure: process.env.NODE_ENV === "production" });
     res.json({ success: true, message: "All sessions have been signed out. Please log in again." });
   } catch (error) {
@@ -269,7 +296,6 @@ router.post("/sessions/logout-all", authMiddleware, async (req, res) => {
     res.status(500).json({ message: "Could not sign out all sessions." });
   }
 });
-
 
 // Forgot Password Routes
 router.post("/forgot-password/verify-email", verifyEmailForPasswordReset);
@@ -313,9 +339,15 @@ router.get(
       return res.redirect(loginUrl.toString());
     }
     // Successful authentication, redirect or send token
-    const loginState = await User.findByIdAndUpdate(req.user._id, { $set: { lastLoginAt: new Date(), lastLoginIp: String(req.headers["x-forwarded-for"] || req.ip || "").split(",")[0].slice(0, 100), lastLoginUserAgent: String(req.headers["user-agent"] || "").slice(0, 500) } }, { new: true }).select("sessionVersion");
+    const sessionId = crypto.randomUUID();
+    const sessionIp = String(req.headers["x-forwarded-for"] || req.ip || "").split(",")[0].slice(0, 100);
+    const sessionAgent = String(req.headers["user-agent"] || "").slice(0, 500);
+    const loginState = await User.findByIdAndUpdate(req.user._id, {
+      $set: { lastLoginAt: new Date(), lastLoginIp: sessionIp, lastLoginUserAgent: sessionAgent },
+      $push: { sessions: { $each: [{ sessionId, createdAt: new Date(), lastSeenAt: new Date(), ip: sessionIp, userAgent: sessionAgent, revokedAt: null }], $slice: -30 } },
+    }, { new: true }).select("sessionVersion");
     const token = jwt.sign(
-      { id: req.user._id, role: req.user.role, sv: Number(loginState?.sessionVersion || 0) },
+      { id: req.user._id, role: req.user.role, sv: Number(loginState?.sessionVersion || 0), sid: sessionId },
       process.env.JWT_SECRET,
       { expiresIn: "7d" },
     );
@@ -357,10 +389,17 @@ async function authMiddleware(req, res, next) {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || "changeme");
     if (decoded.purpose === "two-factor-login") return res.status(401).json({ message: "Complete the login verification first." });
-    const account = await User.findById(decoded.id).select("sessionVersion role").lean();
+    const account = await User.findById(decoded.id).select("sessionVersion role sessions").lean();
     if (!account || Number(decoded.sv || 0) !== Number(account.sessionVersion || 0)) {
       res.clearCookie("token", { httpOnly: true, sameSite: "None", secure: process.env.NODE_ENV === "production" });
       return res.status(401).json({ message: "Your session has expired. Please log in again." });
+    }
+    if (decoded.sid) {
+      const activeSession = (account.sessions || []).find((session) => session.sessionId === decoded.sid && !session.revokedAt);
+      if (!activeSession) {
+        res.clearCookie("token", { httpOnly: true, sameSite: "None", secure: process.env.NODE_ENV === "production" });
+        return res.status(401).json({ message: "This device session has been signed out. Please log in again." });
+      }
     }
     req.user = { ...decoded, role: account.role };
     next();
@@ -2182,9 +2221,15 @@ router.get(
   passport.authenticate("google", { failureRedirect: "/login" }),
   async (req, res) => {
     // Successful authentication, redirect or send token
-    const loginState = await User.findByIdAndUpdate(req.user._id, { $set: { lastLoginAt: new Date(), lastLoginIp: String(req.headers["x-forwarded-for"] || req.ip || "").split(",")[0].slice(0, 100), lastLoginUserAgent: String(req.headers["user-agent"] || "").slice(0, 500) } }, { new: true }).select("sessionVersion");
+    const sessionId = crypto.randomUUID();
+    const sessionIp = String(req.headers["x-forwarded-for"] || req.ip || "").split(",")[0].slice(0, 100);
+    const sessionAgent = String(req.headers["user-agent"] || "").slice(0, 500);
+    const loginState = await User.findByIdAndUpdate(req.user._id, {
+      $set: { lastLoginAt: new Date(), lastLoginIp: sessionIp, lastLoginUserAgent: sessionAgent },
+      $push: { sessions: { $each: [{ sessionId, createdAt: new Date(), lastSeenAt: new Date(), ip: sessionIp, userAgent: sessionAgent, revokedAt: null }], $slice: -30 } },
+    }, { new: true }).select("sessionVersion");
     const token = jwt.sign(
-      { id: req.user._id, role: req.user.role, sv: Number(loginState?.sessionVersion || 0) },
+      { id: req.user._id, role: req.user.role, sv: Number(loginState?.sessionVersion || 0), sid: sessionId },
       process.env.JWT_SECRET,
       { expiresIn: "7d" },
     );
@@ -5898,8 +5943,15 @@ router.get("/admin/transactions", authMiddleware, coAdminMiddleware, async (req,
 
 /* Two-factor authentication: TOTP authenticator or registered-email OTP. */
 const twoFactorCrypto = require("../utils/twoFactor");
-function createSessionForUser(res, user) {
-  const token = jwt.sign({ id: user._id, role: user.role, sv: Number(user.sessionVersion || 0) }, process.env.JWT_SECRET, { expiresIn: "7d" });
+async function createSessionForUser(res, user, req) {
+  const sessionId = crypto.randomUUID();
+  const ip = String(req.headers["x-forwarded-for"] || req.ip || "").split(",")[0].slice(0, 100);
+  const userAgent = String(req.headers["user-agent"] || "").slice(0, 500);
+  await User.findByIdAndUpdate(user._id, {
+    $set: { lastLoginAt: new Date(), lastLoginIp: ip, lastLoginUserAgent: userAgent },
+    $push: { sessions: { $each: [{ sessionId, createdAt: new Date(), lastSeenAt: new Date(), ip, userAgent, revokedAt: null }], $slice: -30 } },
+  });
+  const token = jwt.sign({ id: user._id, role: user.role, sv: Number(user.sessionVersion || 0), sid: sessionId }, process.env.JWT_SECRET, { expiresIn: "7d" });
   res.cookie("token", token, { httpOnly: true, sameSite: "None", secure: process.env.NODE_ENV === "production", maxAge: 7 * 24 * 60 * 60 * 1000 });
   return token;
 }
@@ -6021,7 +6073,7 @@ router.post("/2fa/login/verify", async (req, res) => {
     user.lastLoginIp = String(req.headers["x-forwarded-for"] || req.ip || "").split(",")[0].slice(0, 100);
     user.lastLoginUserAgent = String(req.headers["user-agent"] || "").slice(0, 500);
     await user.save();
-    const token = createSessionForUser(res, user);
+    const token = await createSessionForUser(res, user, req);
     res.json({ token, user: { id: user._id, name: user.name, email: user.email, role: user.role }, message: "Login verified successfully." });
   } catch (err) {
     res.status(401).json({ message: "Login verification expired. Please sign in again." });
