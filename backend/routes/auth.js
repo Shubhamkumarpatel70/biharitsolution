@@ -157,6 +157,14 @@ async function notifyCashfreePaymentSuccess(subscription) {
   }
 }
 
+function parseStoredPlanPrice(value) {
+  if (value === null || value === undefined || String(value).trim() === "") return null;
+  const normalized = String(value).replace(/[₹,\s]/g, "");
+  if (!/^\d+(?:\.\d{1,2})?$/.test(normalized)) return null;
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
 async function getCheckoutPaymentMode() {
   const settings = await PaymentMode.findOne({ key: "checkout" }).lean();
   return settings?.mode === "manual" ? "manual" : "cashfree";
@@ -439,7 +447,8 @@ router.post("/cashfree/create-order", authMiddleware, async (req, res) => {
       return res.status(503).json({ message: "Online payments are temporarily unavailable. Please use manual payment." });
     }
     const planDoc = await Plan.findOne({ name: String(plan).trim() });
-    if (!planDoc || !Number.isFinite(Number(planDoc.price)) || Number(planDoc.price) <= 0) {
+    const basePlanPrice = planDoc ? parseStoredPlanPrice(planDoc.price) : null;
+    if (!planDoc || basePlanPrice === null) {
       return res.status(400).json({ message: "Selected plan is unavailable." });
     }
     const user = await User.findById(req.user.id);
@@ -458,10 +467,10 @@ router.post("/cashfree/create-order", authMiddleware, async (req, res) => {
       if (coupon.usageLimit > 0 && coupon.usedCount >= coupon.usageLimit) return res.status(400).json({ message: "Coupon usage limit reached." });
       if (coupon.usedBy.some(id => String(id) === String(user._id))) return res.status(400).json({ message: "You have already used this coupon." });
       discountAmount = coupon.discountType === 'percentage'
-        ? Number((Number(planDoc.price) * Math.min(100, Number(coupon.amount) || 0) / 100).toFixed(2))
-        : Math.min(Number(coupon.amount) || 0, Number(planDoc.price));
+        ? Number((basePlanPrice * Math.min(100, Number(coupon.amount) || 0) / 100).toFixed(2))
+        : Math.min(Number(coupon.amount) || 0, basePlanPrice);
     }
-    const amount = Number(Math.max(0, Number(planDoc.price) - discountAmount).toFixed(2));
+    const amount = Number(Math.max(0, basePlanPrice - discountAmount).toFixed(2));
     if (amount <= 0) return res.status(400).json({ message: "Coupon discount must leave a payable amount greater than zero." });
     const baseUrl = process.env.CASHFREE_ENVIRONMENT === "production"
       ? "https://api.cashfree.com/pg"
@@ -507,7 +516,7 @@ router.post("/cashfree/create-order", authMiddleware, async (req, res) => {
       plan: planEnum,
       planName: planDoc.name,
       sourcePlan: planDoc._id,
-      totalAmount: Number(planDoc.price),
+      totalAmount: basePlanPrice,
       uniqueId: orderId,
       status: "pending",
       expiresAt: new Date(Date.now() + durationDays * 86400000),
