@@ -43,6 +43,8 @@ import PublicIDCard from './pages/PublicIDCard';
 import UnsubscribeEmail from './pages/UnsubscribeEmail';
 import PrivacyCenter from './pages/PrivacyCenter';
 import SecuritySettings from './pages/SecuritySettings';
+import CookieConsent from './components/CookieConsent';
+import CookiePolicy from './pages/CookiePolicy';
 import { UserProvider, UserContext } from './UserContext';
 import axios from 'axios';
 
@@ -76,6 +78,7 @@ function App() {
   return (
     <Router>
       <Navbar />
+      <CookieConsent />
       <AppContent />
       <Footer />
     </Router>
@@ -97,6 +100,7 @@ function AppContent() {
           <Route path='/careers' element={<Careers />} />
           <Route path='/projects' element={<Projects />} />
           <Route path='/privacy' element={<Privacy />} />
+          <Route path='/cookies' element={<CookiePolicy />} />
           <Route path='/terms' element={<Terms />} />
           <Route path='/refund' element={<Refund />} />
           <Route path='/login' element={<Login />} />
