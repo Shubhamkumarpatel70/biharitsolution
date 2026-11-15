@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import PageHero from '../components/PageHero';
+import { useLocation } from 'react-router-dom';
 import { Icon } from '../components/icons';
 import axios from '../axios';
 
@@ -48,6 +49,8 @@ const features = [
 ];
 
 function Contact() {
+  const location = useLocation();
+  const planInquiry = location.state?.planInquiry;
   const [isVisible, setIsVisible] = useState(false);
   const [form, setForm] = useState({
     name: '',
@@ -62,7 +65,17 @@ function Contact() {
 
   useEffect(() => {
     setIsVisible(true);
-  }, []);
+    if (planInquiry) {
+      const featureText = Array.isArray(planInquiry.features) && planInquiry.features.length
+        ? `\\nIncluded features: ${planInquiry.features.join(", ")}`
+        : "";
+      setForm((current) => ({
+        ...current,
+        subject: `Custom pricing enquiry - ${planInquiry.planName || "Custom Plan"}`,
+        message: `Hello ASKC TECHNOLOGIES,\\n\\nI am interested in the ${planInquiry.planName || "Custom Plan"} and would like to discuss the requirements and pricing.${planInquiry.duration ? `\\nDuration: ${planInquiry.duration} days` : ""}${featureText}\\n\\nPlease contact me to discuss the next steps.`,
+      }));
+    }
+  }, [planInquiry]);
 
   const handleChange = (e) => {
     setForm({
@@ -183,6 +196,13 @@ function Contact() {
               style={{ transitionDelay: '0.4s' }}
             >
               <div className="mb-6">
+                {planInquiry && (
+                  <div className="mb-4 rounded-xl border border-primary-200 bg-primary-50 p-4">
+                    <p className="text-xs font-bold uppercase tracking-wide text-primary-700">Custom plan enquiry</p>
+                    <p className="mt-1 text-lg font-extrabold text-primary-900">{planInquiry.planName}</p>
+                    <p className="mt-1 text-sm text-primary-700">Tell us about your requirements. Our team will contact you with a custom quote.</p>
+                  </div>
+                )}
                 <h3 className="text-2xl font-bold text-primary-600 mb-2">Send Us a Message</h3>
                 <p className="text-text-muted text-sm">
                   Fill out the form below and we'll get back to you within 24 hours
