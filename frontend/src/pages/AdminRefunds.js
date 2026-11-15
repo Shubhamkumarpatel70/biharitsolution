@@ -213,9 +213,9 @@ export default function AdminRefunds() {
                   <div className="mt-4 border-t border-slate-100 pt-4 space-y-3">
                     {item.paymentMethod === "cashfree" && ["approved", "processing"].includes(status) ? (
                       <div className="flex flex-col sm:flex-row gap-2">
-                        <button type="button" disabled={locked} onClick={() => submitAction(item, status === "processing" ? "cashfree_sync" : "cashfree_initiate")}
+                        <button type="button" disabled={locked} onClick={() => submitAction(item, status === "processing" && item.refundProviderStatus !== "UNKNOWN" ? "cashfree_sync" : "cashfree_initiate")}
                           className="rounded-xl bg-sky-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-800 disabled:opacity-50">
-                          {locked ? "Checking…" : status === "processing" ? "Sync Cashfree refund status" : "Initiate Cashfree refund"}
+                          {locked ? "Checking…" : status === "processing" && item.refundProviderStatus !== "UNKNOWN" ? "Sync Cashfree refund status" : status === "processing" ? "Retry Cashfree refund safely" : "Initiate Cashfree refund"}
                         </button>
                         <p className="self-center text-xs text-slate-500">The refund is sent only after admin approval. Status is confirmed by Cashfree.</p>
                       </div>
