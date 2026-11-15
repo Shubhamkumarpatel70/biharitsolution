@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from '../axios';
 import { Icon } from '../components/icons';
+import './ClientWork.css';
 
 function ClientWork() {
   const [items, setItems] = useState([]);
@@ -41,26 +42,32 @@ function ClientWork() {
             <span className="h-9 w-9 rounded-full border-4 border-slate-200 border-t-slate-600 animate-spin" />
           </div>
         ) : items.length ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-            {items.map(item => {
-              const logo = (
-                <div className="group flex h-36 md:h-40 flex-col items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-slate-300 hover:shadow-md">
-                  <div className="flex min-h-0 flex-1 w-full items-center justify-center">
-                    <img src={item.logo} alt={item.name} loading="lazy" className="max-h-20 max-w-full object-contain transition-transform duration-200 group-hover:scale-105" />
-                  </div>
-                  <span className="w-full truncate text-center text-sm font-semibold text-slate-700">{item.name}</span>
+          <div className="client-work-marquee" aria-label="Client logos moving from right to left">
+            <div className="client-work-marquee__track">
+              {[0, 1].map(copy => (
+                <div className="client-work-marquee__group" key={copy} aria-hidden={copy === 1}>
+                  {items.map(item => {
+                    const logo = (
+                      <div className="client-work-logo-card">
+                        <div className="client-work-logo-card__image">
+                          <img src={item.logo} alt={copy === 0 ? item.name : ''} loading="lazy" />
+                        </div>
+                        <span>{item.name}</span>
+                      </div>
+                    );
+                    return (
+                      <div className="client-work-marquee__item" key={`${copy}-${item._id}`}>
+                        {copy === 0 && item.websiteUrl ? (
+                          <a href={item.websiteUrl} target="_blank" rel="noopener noreferrer" aria-label={`Visit ${item.name} website`}>
+                            {logo}
+                          </a>
+                        ) : logo}
+                      </div>
+                    );
+                  })}
                 </div>
-              );
-              return (
-                <div key={item._id} className="min-w-0">
-                  {item.websiteUrl ? (
-                    <a href={item.websiteUrl} target="_blank" rel="noopener noreferrer" aria-label={`Visit ${item.name} website`} className="block rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500 focus-visible:ring-offset-2">
-                      {logo}
-                        </a>
-                  ) : logo}
-                </div>
-              );
-            })}
+              ))}
+            </div>
           </div>
         ) : (
           <div className="mx-auto max-w-xl rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center">
