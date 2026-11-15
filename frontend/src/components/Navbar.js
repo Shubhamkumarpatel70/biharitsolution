@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { UserContext } from '../UserContext';
 import Logo from './Logo';
 import { Icon } from './icons';
+import { logoutCurrentSession } from '../utils/logout';
 
 const primaryNavLinks = [
   { to: '/', label: 'Home' },
@@ -103,11 +104,11 @@ function Navbar() {
     setTimeout(() => setIsAnimating(false), 400);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
+  const handleLogout = async () => {
+    await logoutCurrentSession();
     setUser(null);
     setUserMenuOpen(false);
-    navigate('/login');
+    navigate('/login', { replace: true, state: { message: 'You have been signed out from this device.' } });
   };
 
   const getAvatar = () => {
