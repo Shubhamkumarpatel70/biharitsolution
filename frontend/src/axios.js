@@ -78,6 +78,7 @@ instance.interceptors.response.use(
     // may already have reached the server, so a retry could create duplicates.
     const friendlyMessage = getFriendlyError(error);
     error.userMessage = friendlyMessage;
+    error.message = friendlyMessage;
 
     // Existing screens read response.data.message. Replace technical backend
     // details centrally so stack traces, infrastructure errors and raw timeouts
