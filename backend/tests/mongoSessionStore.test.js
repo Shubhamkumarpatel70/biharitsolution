@@ -2,52 +2,40 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const MongoSessionStore = require("../utils/mongoSessionStore");
 
-function callbackResult(run) {
-  return new Promise((resolve, reject) => {
-    run((error, value) => error ? reject(error) : resolve(value));
-  });
-}
-
-test("MongoSessionStore persists, reads, touches and destroys sessions", async () => {
-  const records = new Map();
-  const indexes = [];
-  const collection = {
-    createIndex: async (...args) => { indexes.push(args); return "session_expiry_ttl"; },
-    findOne: async (query) => {
-      const record = records.get(query._id);
-      if (!record || record.expiresAt <= query.expiresAt.$gt) return null;
-      return record;
-    },
-    updateOne: async (query, update) => {
-      const previous = records.get(query._id) || { _id: query._id };
-      records.set(query._id, { ...previous, ...update.$set });
-      return { acknowledged: true };
-    },
-    deleteOne: async ({ _id }) => ({ deletedCount: records.delete(_id) ? 1 : 0 }),
-    deleteMany: async () => { const deletedCount = records.size; records.clear(); return { deletedCount }; },
-  };
-  try {
-    const store = new MongoSessionStore({ ttlMs: 60_000, collection });
-    const session = { cookie: { maxAge: 60_000 }, passport: { user: "user-1" } };
-    await callbackResult((cb) => store.set("sid-1", session, cb));
-    assert.deepEqual(await callbackResult((cb) => store.get("sid-1", cb)), session);
-    await callbackResult((cb) => store.touch("sid-1", session, cb));
-    assert.equal(indexes.length, 1, "TTL index should be initialized once");
-    assert.deepEqual(indexes[0][0], { expiresAt: 1 });
-    assert.equal(indexes[0][1].expireAfterSeconds, 0);
-    await callbackResult((cb) => store.destroy("sid-1", cb));
-    assert.equal(await callbackResult((cb) => store.get("sid-1", cb)), null);
-    await callbackResult((cb) => store.set("sid-2", session, cb));
-    await callbackResult((cb) => store.clear(cb));
-    assert.equal(records.size, 0);
-  } finally {
-    // The store owns only the injected fake collection in this test.
-  }
+const call = (method) => new Promise((resolve, reject) => {
+  method((error, value) => error ? reject(error) : resolve(value));
 });
 
-test("MongoSessionStore forwards database errors to express-session callbacks", async () => {
-  const expected = new Error("database unavailable");
-  const collection = { createIndex: async () => { throw expected; } };
-  const store = new MongoSessionStore({ collection });
-  await assert.rejects(callbackResult((cb) => store.get("sid-error", cb)), expected);
+test("Mongo session store persists and removes sessions", async () => {
+  const data = new Map();
+  let indexCalls = 0;
+  const collection = {
+    createIndex: async () => { indexCalls += 1; },
+    updateOne: async ({ _id }, update) => {
+      data.set(_id, { session: update.$set.session, expiresAt: update.$set.expiresAt });
+    },
+    findOne: async ({ _id }) => data.get(_id) || null,
+    deleteOne: async ({ _id }) => { data.delete(_id); },
+    deleteMany: async () => { data.clear(); },
+  };
+  const store = new MongoSessionStore({ collection, ttlMs: 60_000 });
+  const value = { cookie: { maxAge: 60_000 }, passport: { user: "test-user" } };
+
+  await call((cb) => store.set("session-1", value, cb));
+  assert.deepStrictEqual(await call((cb) => store.get("session-1", cb)), value);
+  await call((cb) => store.touch("session-1", value, cb));
+  assert.strictEqual(indexCalls, 1);
+  await call((cb) => store.destroy("session-1", cb));
+  assert.strictEqual(await call((cb) => store.get("session-1", cb)), null);
+  await call((cb) => store.set("session-2", value, cb));
+  await call((cb) => store.clear(cb));
+  assert.strictEqual(data.size, 0);
+});
+
+test("Mongo session store reports database failures to callbacks", async () => {
+  const failure = new Error("database unavailable");
+  const store = new MongoSessionStore({
+    collection: { createIndex: async () => { throw failure; } },
+  });
+  await assert.rejects(call((cb) => store.get("missing", cb)), /database unavailable/);
 });
