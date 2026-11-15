@@ -34,7 +34,8 @@ const getFriendlyError = (error) => {
   }
   if (status === 408) {
     return "The request is taking longer than expected. Please try again in a moment.";
-  }\n  if (status === 400 || status === 422) {
+  }
+  if (status === 400 || status === 422) {
     return safeBackendMessage || "Please check the information you entered and try again.";
   }
   if (status === 401) {
