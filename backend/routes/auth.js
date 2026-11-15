@@ -696,7 +696,11 @@ router.post("/cashfree/create-order", authMiddleware, async (req, res) => {
         : Math.min(Number(coupon.amount) || 0, basePlanPrice);
     }
     const amount = Number(Math.max(0, basePlanPrice - discountAmount).toFixed(2));
-    if (amount <= 0) return res.status(400).json({ message: "Coupon discount must leave a payable amount greater than zero." });
+    if (amount <= 0) {
+      if (reservedCouponId) await Coupon.updateOne({ _id: reservedCouponId, reservedCount: { $gt: 0 } }, { $inc: { reservedCount: -1 } });
+      reservedCouponId = null;
+      return res.status(400).json({ message: "Coupon discount must leave a payable amount greater than zero." });
+    }
     const baseUrl = process.env.CASHFREE_ENVIRONMENT === "production"
       ? "https://api.cashfree.com/pg"
       : "https://sandbox.cashfree.com/pg";
@@ -1112,6 +1116,11 @@ router.delete(
   coAdminMiddleware,
   async (req, res) => {
     try {
+      const coupon = await Coupon.findById(req.params.id).select("reservedCount");
+      if (!coupon) return res.status(404).json({ message: "Coupon not found." });
+      if (Number(coupon.reservedCount || 0) > 0) {
+        return res.status(409).json({ message: "This coupon has active checkouts. Deactivate it instead; it can be deleted after those checkouts finish." });
+      }
       await Coupon.findByIdAndDelete(req.params.id);
       res.json({ success: true });
     } catch (err) {
