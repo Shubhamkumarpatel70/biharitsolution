@@ -197,7 +197,7 @@ function Login() {
     setForgotPasswordLoading(true);
     setMessage('');
     try {
-      await axios.post('/api/auth/forgot-password/send-otp', { email: forgotEmail.trim() });
+      setPasswordResetToken('');\n      await axios.post('/api/auth/forgot-password/send-otp', { email: forgotEmail.trim() });
       setShowForgotOtp(true);
       setMessage('OTP sent to your email.');
     } catch (err) {
