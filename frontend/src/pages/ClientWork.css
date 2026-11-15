@@ -10,7 +10,7 @@
 .client-work-marquee__track {
   display: flex;
   width: max-content;
-  animation: client-work-scroll 34s linear infinite;
+  animation: client-work-scroll 22s linear infinite;
   will-change: transform;
 }
 
@@ -95,7 +95,7 @@
 
 @media (max-width: 640px) {
   .client-work-marquee__track {
-    animation-duration: 27s;
+    animation-duration: 18s;
   }
 
   .client-work-marquee__group {
