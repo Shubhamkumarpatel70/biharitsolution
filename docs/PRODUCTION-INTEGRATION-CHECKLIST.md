@@ -20,6 +20,7 @@ The backend unit suite covers Mongo session-store behavior and cookie-authentica
 ## External integration checklist
 
 ### Cashfree sandbox
+- [ ] Run `node backend/scripts/cashfree-sandbox-smoke.js` with sandbox-only `CASHFREE_APP_ID` and `CASHFREE_SECRET_KEY`; this creates a ₹1 test order but does not complete a payment.
 - [ ] Use sandbox credentials in a protected test environment.
 - [ ] Create a low-value sandbox order and verify server-side pricing.
 - [ ] Complete payment; verify activation and coupon redemption exactly once.
@@ -28,6 +29,7 @@ The backend unit suite covers Mongo session-store behavior and cookie-authentica
 - [ ] Confirm webhook retries and delivery in Cashfree dashboard.
 
 ### MongoDB concurrency
+- [ ] Run `MONGODB_TEST_URI="<dedicated-test-db-uri>" npm test --prefix backend` against a dedicated, disposable test database. The integration suite uses a random database name and drops only that temporary database.
 - [ ] Use a dedicated Atlas test database with replica-set support.
 - [ ] Race coupon reservations against a limited-use coupon; capacity must never be exceeded.
 - [ ] Race initial-admin bootstrap attempts; only one may succeed.
@@ -48,11 +50,13 @@ The backend unit suite covers Mongo session-store behavior and cookie-authentica
 - [ ] Verify cookie-authenticated writes reject missing/untrusted Origin/Referer; safe methods and Bearer clients remain unaffected.
 
 ### Resend
+- [ ] Run `RESEND_TEST_RECIPIENT="<mailbox-you-control>" node backend/scripts/resend-smoke.js` with a verified sender; confirm delivery in the mailbox and Resend dashboard.
 - [ ] Verify sending domain and sender identity.
 - [ ] Test registration OTP, password-reset OTP, transactional, and consented marketing emails.
 - [ ] Verify delivery events, bounces, unsubscribe links, and suppression.
 
 ### Render production smoke test
+- [ ] Run `RENDER_HEALTH_URL="https://<your-render-service>/<health-path>" node backend/scripts/render-health-smoke.js` after confirming the exact health path.
 - [ ] Confirm intended branch and Node 22 runtime.
 - [ ] Verify `/api/health` returns HTTP 200 and MongoDB is connected; do not expose credentials.
 - [ ] Smoke-test login, 2FA, dashboard, manual payment, Cashfree checkout/webhook, and logout with test accounts.
