@@ -30,8 +30,8 @@ header{height:125px;display:flex;align-items:center;justify-content:space-betwee
 .hbg{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;}
 .hlogo{display:flex;align-items:center;gap:10px;z-index:10;}
 .hlogo img{width:46px;height:46px;object-fit:contain;border-radius:6px;}
-.hlogo h1{font-size:18px;color:#061d4b;font-weight:800;}
-.hlogo p{font-size:9px;color:#475569;font-weight:600;text-transform:uppercase;letter-spacing:.5px;}
+.hlogo h1{font-size:18px;line-height:1.05;color:#061d4b;font-weight:850;letter-spacing:.25px;}
+.hlogo p{font-size:9px;color:#1756a2;font-weight:700;text-transform:uppercase;letter-spacing:1.1px;margin-top:4px;}
 .htitle{text-align:right;z-index:2;}
 .htitle p{font-size:11px;font-weight:700;letter-spacing:1px;color:#475569;text-transform:uppercase;}
 .htitle h2{font-size:24px;font-weight:800;color:#061d4b;}
@@ -74,7 +74,7 @@ const head = (title) => `<!DOCTYPE html><html lang="en"><head><meta charset="UTF
 
 const hdr = (sub,title) => `<header>
 <svg class="hbg" viewBox="0 0 1000 125" preserveAspectRatio="none"><path d="M0,0 L1000,0 L1000,90 L0,115 Z" fill="#f8fafc"/><path d="M0,115 L1000,90 L1000,93 L0,118 Z" fill="rgba(6,29,75,0.07)"/></svg>
-<div class="hlogo"><img src="${LOGO}" alt="Logo"><div><h1>${CO}</h1><p>Digital Excellence</p></div></div>
+<div class="hlogo"><img src="${LOGO}" alt="Logo"><div><h1>ASKC<br><span style="color:#1756a2;">TECHNOLOGIES</span></h1><p>Ideas to digital impact</p></div></div>
 <div class="htitle"><p>${sub}</p><h2>${title}</h2></div></header>`;
 
 const ftr = (docCode) => `<footer>
