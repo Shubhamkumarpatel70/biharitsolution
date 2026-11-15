@@ -93,7 +93,6 @@ function Plans() {
     const details = [
       plan?.name ? `Plan: ${plan.name}` : "",
       plan?.price ? `Price: ₹${plan.price}` : "",
-      plan?.duration ? `Duration: ${plan.duration} days` : "",
     ]
       .filter(Boolean)
       .join(" · ");
@@ -323,7 +322,7 @@ function Plans() {
                         </div>
                         <div className="flex items-center justify-center gap-2 text-text-muted text-sm">
                           <Icon name="clock" className="w-4 h-4" />
-                          <span>{plan.duration} days</span>
+                          <span>Estimated delivery: {plan.duration} days</span>
                         </div>
                       </div>
 
