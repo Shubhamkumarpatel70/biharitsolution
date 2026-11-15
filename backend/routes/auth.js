@@ -3738,7 +3738,7 @@ router.get("/admin/stats", authMiddleware, coAdminMiddleware, async (req, res) =
                           $filter: {
                             input: { $ifNull: ["$paymentEntries", []] },
                             as: "entry",
-                            cond: { $eq: ["$entry.status", "confirmed"] },
+                            cond: { $eq: ["$$entry.status", "confirmed"] },
                           },
                         },
                         as: "entry",
