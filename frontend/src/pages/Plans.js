@@ -31,8 +31,8 @@ const planBenefits = [
 
 const parsePlanAmount = (value) => {
   if (value === null || value === undefined || String(value).trim() === "") return null;
-  const normalized = String(value).replace(/[₹,\\s]/g, "");
-  if (!/^\\d+(?:\\.\\d{1,2})?$/.test(normalized)) return null;
+  const normalized = String(value).replace(/[₹,\s]/g, "");
+  if (!/^\d+(?:\\.\d{1,2})?$/.test(normalized)) return null;
   const amount = Number(normalized);
   return Number.isFinite(amount) && amount >= 0 ? amount : null;
 };
