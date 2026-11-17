@@ -248,7 +248,7 @@ const Payment = () => {
     setError('');
     try {
       const response = await axios.post('/api/auth/cashfree/create-order', {
-        plan: planObj.name, phone: phone.replace(/\D/g, '').slice(-10), couponCode: discount > 0 ? coupon.trim().toUpperCase() : ''
+        plan: planObj.name, phone: phone.replace(/\D/g, '').slice(-10), couponCode: discount > 0 ? coupon.trim() : ''
       }, { headers: { Authorization: `Bearer ${token}` } });
       const loadCashfree = () => new Promise((resolve, reject) => {
         if (window.Cashfree) return resolve();
