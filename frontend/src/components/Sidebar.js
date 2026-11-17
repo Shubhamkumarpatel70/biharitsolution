@@ -67,18 +67,18 @@ const MobileBottomNav = ({ user, onLogout }) => {
 
 const Sidebar = ({ onLogout, isPlanExpired, user, onClose }) => (
   <>
-    <div className="h-full min-h-0 w-[15.5rem] max-w-[100vw] bg-slate-900 border-r border-slate-800 flex flex-col shadow-xl overflow-hidden">
-      <div className="shrink-0 px-3 py-4 border-b border-slate-800 bg-slate-950/50">
+    <div className="h-full min-h-0 w-full max-w-[100vw] bg-white border-r border-slate-200 flex flex-col shadow-xl overflow-hidden">
+      <div className="shrink-0 px-4 py-4 border-b border-slate-200 bg-sky-50">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-blue-300 bg-white text-[11px] font-black tracking-tight text-blue-800 shadow-sm">ASKC</div>
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-sky-200 bg-white text-[11px] font-black tracking-tight text-sky-800 shadow-sm">ASKC</div>
           <div className="flex-1 min-w-0">
-            <h2 className="truncate text-xs font-extrabold uppercase tracking-wider text-white">ASKC Technologies</h2>
-            <p className="mt-0.5 truncate text-[11px] leading-tight text-slate-400">{user?.name || 'Member workspace'}</p>
+            <h2 className="truncate text-xs font-extrabold uppercase tracking-wider text-slate-900">ASKC Technologies</h2>
+            <p className="mt-0.5 truncate text-[11px] leading-tight text-slate-500">{user?.name || 'Member workspace'}</p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="lg:hidden p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
+            className="lg:hidden p-2 rounded-lg hover:bg-sky-100 text-slate-500 hover:text-slate-900 transition-colors"
             aria-label="Close sidebar"
           >
             <Icon name="close" className="w-5 h-5" />
@@ -86,7 +86,7 @@ const Sidebar = ({ onLogout, isPlanExpired, user, onClose }) => (
         </div>
       </div>
 
-      <nav className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-y-contain px-2.5 py-4 space-y-1">
+      <nav className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-y-contain px-3 py-4 space-y-1.5">
         {navItems.map((item) => (
           <NavLink
             key={item.to}
@@ -95,8 +95,8 @@ const Sidebar = ({ onLogout, isPlanExpired, user, onClose }) => (
             className={({ isActive }) =>
               `group flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 min-w-0 border border-transparent ${
                 isActive
-                  ? 'bg-white text-slate-950 shadow-md font-bold ring-1 ring-white/30 translate-x-0.5'
-                  : 'text-slate-300 hover:bg-slate-800/90 hover:text-white hover:translate-x-0.5'
+                  ? 'bg-sky-50 text-sky-900 shadow-sm font-bold ring-1 ring-sky-100'
+                  : 'text-slate-600 hover:bg-slate-50 hover:text-sky-800'
               }`
             }
             tabIndex={0}
@@ -106,7 +106,7 @@ const Sidebar = ({ onLogout, isPlanExpired, user, onClose }) => (
               <>
                 <Icon
                   name={item.iconName}
-                  className={`w-4 h-4 shrink-0 ${isActive ? 'text-slate-900' : 'text-slate-400 group-hover:text-white'}`}
+                  className={`w-4 h-4 shrink-0 ${isActive ? 'text-sky-700' : 'text-slate-400 group-hover:text-sky-700'}`}
                   strokeWidth={2}
                 />
                 <span className="font-medium text-[13px] leading-tight break-words min-w-0">{item.label}</span>
@@ -133,11 +133,11 @@ const Sidebar = ({ onLogout, isPlanExpired, user, onClose }) => (
         )}
       </nav>
 
-      <div className="shrink-0 p-2 border-t border-slate-800 mt-auto">
+      <div className="shrink-0 p-3 border-t border-slate-200 mt-auto bg-slate-50">
         <button
           type="button"
           onClick={onLogout}
-          className="w-full flex items-center justify-center gap-2 px-2.5 py-2 bg-slate-800 hover:bg-red-950/50 text-slate-200 hover:text-red-300 rounded-lg text-[13px] font-medium transition-all duration-200 border border-slate-700 hover:border-red-900/50"
+          className="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-white hover:bg-red-50 text-slate-600 hover:text-red-600 rounded-xl text-[13px] font-semibold transition-all duration-200 border border-slate-200 hover:border-red-200"
           tabIndex={0}
         >
           <Icon name="logout" className="w-4 h-4" strokeWidth={2} />
