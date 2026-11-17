@@ -44,7 +44,7 @@ const AdminCancellations = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       
-      setCancellations(res.data.cancellations || []);
+      setCancellations(Array.isArray(res.data?.cancellations) ? res.data.cancellations : []);
     } catch (err) {
       console.error('Error fetching cancellations:', err);
       setError('Could not fetch subscription cancellations.');
