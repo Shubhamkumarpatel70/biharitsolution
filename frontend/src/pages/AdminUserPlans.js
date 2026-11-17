@@ -23,8 +23,8 @@ const AdminUserPlans = () => {
           axios.get('/api/auth/admin/users', { headers }),
           axios.get('/api/auth/admin/all-subscriptions', { headers })
         ]);
-        const users = usersRes.data.users || [];
-        const allSubs = subsRes.data.subscriptions || [];
+        const users = Array.isArray(usersRes.data?.users) ? usersRes.data.users : [];
+        const allSubs = Array.isArray(subsRes.data?.subscriptions) ? subsRes.data.subscriptions : [];
         const planData = users.map(user => {
           const userSubs = allSubs
             .filter(s => s.user && (s.user._id === user._id || s.user === user._id))
@@ -79,8 +79,8 @@ const AdminUserPlans = () => {
       setSuccess('Subscription terminated successfully.');
       const usersRes = await axios.get('/api/auth/admin/users', { headers: { Authorization: 'Bearer ' + token } });
       const subsRes = await axios.get('/api/auth/admin/all-subscriptions', { headers: { Authorization: 'Bearer ' + token } });
-      const allSubs = subsRes.data.subscriptions || [];
-      setData((usersRes.data.users || []).map(account => {
+      const allSubs = Array.isArray(subsRes.data?.subscriptions) ? subsRes.data.subscriptions : [];
+      setData((Array.isArray(usersRes.data?.users) ? usersRes.data.users : []).map(account => {
         const latest = allSubs.filter(s => s.user && (s.user._id === account._id || s.user === account._id)).sort((a,b) => new Date(b.createdAt || 0)-new Date(a.createdAt || 0))[0];
         return { id: account._id, name: account.name, email: account.email, registeredAt: account.createdAt, plan: latest ? (latest.planName || latest.plan) : 'None', subscriptionId: latest?._id, totalAmount: Number(latest?.totalAmount || 0), discountAmount: Number(latest?.discountAmount || 0), payableAmount: Math.max(0, Number(latest?.totalAmount || 0) - Number(latest?.discountAmount || 0)), amountPaid: Array.isArray(latest?.paymentEntries) && latest.paymentEntries.some(entry => entry.status === 'confirmed') ? latest.paymentEntries.filter(entry => entry.status === 'confirmed').reduce((sum, entry) => sum + Number(entry.amount || 0), 0) : Number(latest?.amountPaid || 0), couponCode: latest?.couponCode || '', transactionId: latest?.transactionId || latest?.cashfreeOrderId || '', uniqueId: latest?.uniqueId || '', createdAt: latest?.createdAt, cancellationReason: latest?.cancellationReason || '', cancellationInitiatedBy: latest?.cancellationInitiatedBy || '', cancellationStatus: latest?.cancellationStatus || 'none', refundStatus: latest?.refundStatus || 'not_reviewed', refundAmount: Number(latest?.refundAmount || 0), canceled: Boolean(latest?.canceled), expiresAt: latest?.expiresAt, status: latest ? (latest.canceled ? 'cancelled' : latest.status) : 'N/A' };
       }));

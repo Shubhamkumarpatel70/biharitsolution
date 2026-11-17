@@ -24,7 +24,7 @@ const AdminApprove = () => {
       const res = await axios.get('/api/auth/admin/pending-subscriptions', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setSubs(res.data.subscriptions);
+      setSubs(Array.isArray(res.data?.subscriptions) ? res.data.subscriptions : []);
     } catch (err) {
       setError('Could not fetch subscriptions.');
     }
@@ -79,7 +79,7 @@ const AdminApprove = () => {
 
   // Always show View Image button if paymentImage exists, even if it's empty string
   const hasPaymentImage = (sub) => {
-    return sub.paymentImage && sub.paymentImage.trim().length > 0;
+    return typeof sub?.paymentImage === 'string' && sub.paymentImage.trim().length > 0;
   };
 
   return (
