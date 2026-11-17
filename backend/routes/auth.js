@@ -2659,6 +2659,44 @@ router.patch("/admin/refunds/:id", authMiddleware, adminMiddleware, async (req, 
   }
 });
 
+// User-only refund history. Always scope records to the authenticated account.
+router.get("/user/refunds", authMiddleware, async (req, res) => {
+  try {
+    const records = await Subscription.find({
+      user: req.user.id,
+      $or: [
+        { cancellationStatus: { $in: ["pending", "approved", "rejected"] } },
+        { canceled: true },
+        { refundStatus: { $in: ["not_reviewed", "approved", "processing", "processed", "rejected", "not_eligible"] } }
+      ]
+    }).sort({ cancellationRequestDate: -1, updatedAt: -1, createdAt: -1 }).limit(500).lean();
+
+    const refunds = records.map((sub) => {
+      const paymentStatus = String(sub.paymentStatus || "").toLowerCase();
+      const cashfreePaid = ["paid", "partial", "success", "successful", "completed"].includes(paymentStatus)
+        ? Number(sub.amountPaid || 0) : 0;
+      const manualPaid = Array.isArray(sub.paymentEntries)
+        ? sub.paymentEntries.filter((entry) => String(entry.status || "").toLowerCase() === "confirmed")
+            .reduce((sum, entry) => sum + Number(entry.amount || 0), 0)
+        : 0;
+      return {
+        ...sub,
+        paidAmount: Math.max(cashfreePaid, manualPaid),
+        refundStatus: sub.refundStatus || "not_reviewed",
+        refundEligible: sub.refundEligible === true,
+        refundAmount: Number(sub.refundAmount || 0)
+      };
+    });
+
+    res.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
+    res.set("Pragma", "no-cache");
+    return res.json({ refunds });
+  } catch (error) {
+    console.error("User refund history fetch failed:", error?.message || error);
+    return res.status(500).json({ message: "Could not load your refund details." });
+  }
+});
+
 // ========== CAREERS (public) ==========
 router.get("/careers", async (req, res) => {
   try {
