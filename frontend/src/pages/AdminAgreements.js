@@ -65,7 +65,7 @@ export default function AdminAgreements() {
     setLoading(true);
     try {
       const r = await axios.get('/api/auth/admin/agreements-clients', { headers });
-      setClients(r.data.clients || []);
+      setClients(Array.isArray(r.data?.clients) ? r.data.clients : []);
     } catch { showToast('Failed to load clients', 'error'); }
     finally { setLoading(false); }
   }, []); // eslint-disable-line
@@ -78,7 +78,7 @@ export default function AdminAgreements() {
         `/api/auth/admin/agreements/client/${encodeURIComponent(clientName)}`,
         { headers }
       );
-      setFolderDocs(r.data.agreements || []);
+      setFolderDocs(Array.isArray(r.data?.agreements) ? r.data.agreements : []);
     } catch { showToast('Failed to load documents', 'error'); }
     finally { setLoading(false); }
   }, []); // eslint-disable-line
@@ -197,7 +197,7 @@ export default function AdminAgreements() {
       }));
       let match = null;
       for (const folder of folders) {
-        const doc = folder.documents.find(item => [item.docCode, item.documentTitle, item.htmlContent, item.notes].filter(Boolean).join(' ').toUpperCase().includes(code));
+        const doc = (Array.isArray(folder?.documents) ? folder.documents : []).find(item => [item.docCode, item.documentTitle, item.htmlContent, item.notes].filter(Boolean).join(' ').toUpperCase().includes(code));
         if (doc) { match = { client: folder.client, doc }; break; }
       }
       if (match) setAgreementSearchResult(match);
