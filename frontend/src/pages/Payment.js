@@ -248,7 +248,7 @@ const Payment = () => {
     setError('');
     try {
       const response = await axios.post('/api/auth/cashfree/create-order', {
-        plan: planObj.name, phone: phone.replace(/\D/g, '').slice(-10), couponCode: discount > 0 ? coupon.trim().toUpperCase() : ''
+        plan: planObj.name, phone: phone.replace(/\D/g, '').slice(-10), couponCode: discount > 0 ? coupon.trim() : ''
       }, { headers: { Authorization: `Bearer ${token}` } });
       const loadCashfree = () => new Promise((resolve, reject) => {
         if (window.Cashfree) return resolve();
@@ -320,7 +320,7 @@ const Payment = () => {
       formData.append('transactionId', transactionId);
       formData.append('method', paymentMethod === 'qr' ? 'upi' : paymentMethod);
       formData.append('paymentImage', paymentImage);
-      if (discount > 0 && coupon.trim()) formData.append('couponCode', coupon.trim().toUpperCase());
+      if (discount > 0 && coupon.trim()) formData.append('couponCode', coupon.trim());
       
       // Don't set Content-Type header - let axios/browser set it with boundary
       const res = await axios.post(

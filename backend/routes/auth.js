@@ -934,7 +934,7 @@ router.post("/cashfree/create-order", authMiddleware, async (req, res) => {
     let discountAmount = 0;
     let normalizedCouponCode = "";
     if (couponCode) {
-      normalizedCouponCode = String(couponCode).trim().toUpperCase();
+      normalizedCouponCode = String(couponCode).trim();
       const coupon = await Coupon.findOneAndUpdate(
         {
           code: normalizedCouponCode,
@@ -1325,7 +1325,7 @@ router.post("/coupons", authMiddleware, coAdminMiddleware, async (req, res) => {
         return res.status(400).json({ message: "One or more selected pricing plans are invalid." });
     }
     const coupon = await Coupon.create({
-      code: String(code).trim().toUpperCase(),
+      code: String(code).trim(),
       amount: value,
       discountType: type,
       eligiblePlans: validPlanIds,
@@ -1391,7 +1391,7 @@ router.delete(
 // User: Apply a coupon (with usage tracking and per-user limit)
 router.post("/coupons/apply", async (req, res) => {
   try {
-    const code = String(req.body?.code || "").trim().toUpperCase();
+    const code = String(req.body?.code || "").trim();
     const planId = req.body?.planId;
     if (!code) return res.status(400).json({ message: "Coupon code is required." });
     await expireAbandonedCouponOrders(code);
