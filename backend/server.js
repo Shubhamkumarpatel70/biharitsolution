@@ -90,7 +90,7 @@ app.use(
           "wss://askcweb.in",
           "wss://www.askcweb.in",
         ],
-        frameSrc: ["'self'", "https://www.googletagmanager.com", "https://payments.cashfree.com", "https://sandbox.cashfree.com", "https://api.cashfree.com"],
+        frameSrc: ["'self'", "https://www.google.com", "https://www.googletagmanager.com", "https://payments.cashfree.com", "https://sandbox.cashfree.com", "https://api.cashfree.com"],
       },
     },
   }),

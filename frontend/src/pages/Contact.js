@@ -50,7 +50,13 @@ const features = [
 
 function Contact() {
   const location = useLocation();
-  const planInquiry = location.state?.planInquiry;
+  const rawPlanInquiry = location.state?.planInquiry;
+  const planInquiry = rawPlanInquiry && typeof rawPlanInquiry === "object" && !Array.isArray(rawPlanInquiry)
+    ? rawPlanInquiry
+    : null;
+  const planFeatures = Array.isArray(planInquiry?.features)
+    ? planInquiry.features.filter((feature) => typeof feature === "string" && feature.trim())
+    : [];
   const [isVisible, setIsVisible] = useState(false);
   const [form, setForm] = useState({
     name: '',
@@ -66,8 +72,8 @@ function Contact() {
   useEffect(() => {
     setIsVisible(true);
     if (planInquiry) {
-      const featureText = Array.isArray(planInquiry.features) && planInquiry.features.length
-        ? `\nIncluded features: ${planInquiry.features.join(", ")}`
+      const featureText = planFeatures.length
+        ? `\nIncluded features: ${planFeatures.join(", ")}`
         : "";
       setForm((current) => ({
         ...current,
@@ -329,14 +335,14 @@ function Contact() {
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
             <div className="w-full min-h-[220px] h-[50vh] sm:h-80 md:h-96 max-h-[480px]">
               <iframe
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3771.5!2d72.8777!3d19.0760!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMTnCsDA0JzM2LjAiTiA3MsKwNTInNDAuMCJF!5e0!3m2!1sen!2sin!4v1234567890"
+                src="https://www.google.com/maps?q=Patna%2C%20Bihar%2C%20India&output=embed"
                 width="100%"
                 height="100%"
                 style={{ border: 0 }}
                 allowFullScreen=""
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
-                title="Custom Web Location"
+                title="ASKC TECHNOLOGIES location in Patna, Bihar"
               ></iframe>
             </div>
             <div className="p-6 border-t border-gray-200">
