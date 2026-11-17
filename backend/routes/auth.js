@@ -474,6 +474,249 @@ function coAdminMiddleware(req, res, next) {
     .json({ message: "Admin or Co-admin access required." });
 }
 
+
+// Pricing plans, customer management and funds ledger APIs used by the admin workspace.
+// These endpoints intentionally return no-store responses so dashboard data is always fresh.
+router.get("/plans", async (req, res) => {
+  try {
+    const plans = await Plan.find().sort({ createdAt: 1 }).lean();
+    res.set("Cache-Control", "no-store");
+    return res.json({ plans: Array.isArray(plans) ? plans : [] });
+  } catch (error) {
+    console.error("Pricing plans fetch failed:", error?.message || error);
+    return res.status(500).json({ message: "Could not load pricing plans." });
+  }
+});
+
+router.post("/plans", authMiddleware, coAdminMiddleware, async (req, res) => {
+  try {
+    const body = req.body || {};
+    const name = String(body.name || "").trim();
+    const price = String(body.price ?? "").trim();
+    const duration = String(body.duration || "").trim();
+    if (!name || !price || !duration) return res.status(400).json({ message: "Plan name, price and duration are required." });
+    const plan = await Plan.create({
+      name, price, duration,
+      oldPrice: String(body.oldPrice || "").trim(),
+      savings: String(body.savings || "").trim(),
+      features: Array.isArray(body.features) ? body.features.filter(v => typeof v === "string").map(v => v.trim()).filter(Boolean) : [],
+      notes: Array.isArray(body.notes) ? body.notes.filter(v => typeof v === "string").map(v => v.trim()).filter(Boolean) : [],
+      highlight: body.highlight === true,
+      color: String(body.color || "").trim(),
+    });
+    return res.status(201).json({ plan, message: "Plan created successfully." });
+  } catch (error) {
+    console.error("Pricing plan create failed:", error?.message || error);
+    return res.status(500).json({ message: "Could not create pricing plan." });
+  }
+});
+
+router.put("/plans/:id", authMiddleware, coAdminMiddleware, async (req, res) => {
+  try {
+    const body = req.body || {};
+    const update = {};
+    for (const key of ["name", "price", "oldPrice", "savings", "duration", "color"]) {
+      if (body[key] !== undefined) update[key] = String(body[key] ?? "").trim();
+    }
+    if (body.features !== undefined) update.features = Array.isArray(body.features) ? body.features.filter(v => typeof v === "string").map(v => v.trim()).filter(Boolean) : [];
+    if (body.notes !== undefined) update.notes = Array.isArray(body.notes) ? body.notes.filter(v => typeof v === "string").map(v => v.trim()).filter(Boolean) : [];
+    if (body.highlight !== undefined) update.highlight = body.highlight === true;
+    if (!update.name || !update.price || !update.duration) return res.status(400).json({ message: "Plan name, price and duration are required." });
+    const plan = await Plan.findByIdAndUpdate(req.params.id, { $set: update }, { new: true, runValidators: true });
+    if (!plan) return res.status(404).json({ message: "Plan not found." });
+    return res.json({ plan, message: "Plan updated successfully." });
+  } catch (error) {
+    console.error("Pricing plan update failed:", error?.message || error);
+    return res.status(500).json({ message: "Could not update pricing plan." });
+  }
+});
+
+router.delete("/plans/:id", authMiddleware, coAdminMiddleware, async (req, res) => {
+  try {
+    const plan = await Plan.findByIdAndDelete(req.params.id);
+    if (!plan) return res.status(404).json({ message: "Plan not found." });
+    return res.json({ message: "Plan deleted successfully." });
+  } catch (error) {
+    console.error("Pricing plan delete failed:", error?.message || error);
+    return res.status(500).json({ message: "Could not delete pricing plan." });
+  }
+});
+
+router.get("/admin/users", authMiddleware, coAdminMiddleware, async (req, res) => {
+  try {
+    const users = await User.find().select("-password -twoFactorSecret -twoFactorPendingSecret").sort({ createdAt: -1 }).lean();
+    const userIds = users.map(user => user._id);
+    const subscriptions = userIds.length
+      ? await Subscription.find({ user: { $in: userIds } }).sort({ createdAt: -1 }).lean()
+      : [];
+    const latestByUser = new Map();
+    for (const subscription of subscriptions) {
+      const key = String(subscription.user);
+      if (!latestByUser.has(key)) latestByUser.set(key, subscription);
+    }
+    const result = users.map(user => ({ ...user, latestSubscription: latestByUser.get(String(user._id)) || null }));
+    res.set("Cache-Control", "no-store");
+    return res.json({ users: result, count: result.length });
+  } catch (error) {
+    console.error("Admin users fetch failed:", error?.message || error);
+    return res.status(500).json({ message: "Could not load users." });
+  }
+});
+
+router.put("/admin/users/:id/role", authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const role = String(req.body?.role || "").trim().toLowerCase();
+    if (!["user", "admin", "coadmin"].includes(role)) return res.status(400).json({ message: "Choose a valid account role." });
+    if (String(req.user.id) === String(req.params.id) && role !== "admin") return res.status(409).json({ message: "You cannot remove your own admin access." });
+    const user = await User.findByIdAndUpdate(req.params.id, { $set: { role } }, { new: true, runValidators: true }).select("-password -twoFactorSecret -twoFactorPendingSecret");
+    if (!user) return res.status(404).json({ message: "User not found." });
+    return res.json({ user, message: "User role updated successfully." });
+  } catch (error) {
+    console.error("Admin user role update failed:", error?.message || error);
+    return res.status(500).json({ message: "Could not update user role." });
+  }
+});
+
+router.post("/admin/users/:id/assign-plan", authMiddleware, coAdminMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).select("_id name email");
+    if (!user) return res.status(404).json({ message: "User not found." });
+    const body = req.body || {};
+    const totalAmount = Number(body.totalAmount);
+    const durationDays = Number(body.durationDays);
+    if (!Number.isFinite(totalAmount) || totalAmount < 0 || !Number.isInteger(durationDays) || durationDays < 1 || durationDays > 3650) {
+      return res.status(400).json({ message: "Enter a valid amount and duration between 1 and 3650 days." });
+    }
+    let sourcePlan = null;
+    if (body.planId) {
+      sourcePlan = await Plan.findById(body.planId);
+      if (!sourcePlan) return res.status(400).json({ message: "Selected pricing plan was not found." });
+    }
+    const planName = String(body.planName || sourcePlan?.name || "").trim();
+    if (!planName) return res.status(400).json({ message: "Plan name is required." });
+    const normalizedName = planName.toLowerCase();
+    const plan = normalizedName.includes("premium") ? "premium" : normalizedName.includes("pro") ? "pro" : "starter";
+    const subscription = await Subscription.create({
+      user: user._id,
+      plan,
+      planName,
+      sourcePlan: sourcePlan?._id || null,
+      totalAmount,
+      amountPaid: 0,
+      durationDays,
+      uniqueId: "ASKC-" + Date.now() + "-" + crypto.randomBytes(4).toString("hex").toUpperCase(),
+      status: "pending",
+      paymentStatus: "pending",
+      paymentMethod: "upi",
+      paymentEntries: [],
+      cancellationStatus: "none",
+      refundStatus: "not_reviewed",
+    });
+    return res.status(201).json({ subscription, message: "Plan assigned successfully. Record the payment to activate it." });
+  } catch (error) {
+    console.error("Admin plan assignment failed:", error?.message || error);
+    return res.status(500).json({ message: "Could not assign plan." });
+  }
+});
+
+router.post("/admin/users/:id/record-payment", authMiddleware, coAdminMiddleware, async (req, res) => {
+  try {
+    const amount = Number(req.body?.amount);
+    if (!Number.isFinite(amount) || amount <= 0) return res.status(400).json({ message: "Enter a valid payment amount." });
+    const user = await User.findById(req.params.id).select("_id");
+    if (!user) return res.status(404).json({ message: "User not found." });
+    const subscription = await Subscription.findOne({ user: user._id, status: { $in: ["pending", "active"] } }).sort({ createdAt: -1 });
+    if (!subscription) return res.status(404).json({ message: "No pending or active subscription exists for this user." });
+    const confirmedSoFar = (subscription.paymentEntries || []).filter(entry => entry.status === "confirmed").reduce((sum, entry) => sum + Number(entry.amount || 0), 0);
+    const nextPaid = Math.round((confirmedSoFar + amount) * 100) / 100;
+    if (subscription.totalAmount > 0 && nextPaid > Number(subscription.totalAmount) + 0.01) return res.status(409).json({ message: "Payment exceeds the outstanding subscription amount." });
+    subscription.paymentEntries.push({
+      amount,
+      method: String(req.body?.method || "manual").slice(0, 40),
+      reference: String(req.body?.reference || "").trim().slice(0, 160),
+      status: "confirmed",
+      recordedBy: req.user.id,
+      recordedAt: new Date(),
+    });
+    subscription.amountPaid = nextPaid;
+    if (subscription.totalAmount === 0 || nextPaid >= Number(subscription.totalAmount)) {
+      subscription.status = "active";
+      subscription.paymentStatus = "paid";
+      subscription.expiresAt = new Date(Date.now() + Number(subscription.durationDays || 30) * 24 * 60 * 60 * 1000);
+    } else {
+      subscription.status = "pending";
+      subscription.paymentStatus = "partially_paid";
+    }
+    await subscription.save();
+    return res.json({ subscription, message: "Payment recorded successfully." });
+  } catch (error) {
+    console.error("Admin user payment record failed:", error?.message || error);
+    return res.status(500).json({ message: "Could not record payment." });
+  }
+});
+
+router.get("/admin/funds", authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const transactions = await FundTransaction.find()
+      .populate("createdBy", "name email")
+      .populate("voidedBy", "name email")
+      .sort({ createdAt: -1 })
+      .lean();
+    const balance = transactions.reduce((total, item) => {
+      if (item.voidedAt) return total;
+      return total + (item.type === "add" ? Number(item.amount || 0) : -Number(item.amount || 0));
+    }, 0);
+    res.set("Cache-Control", "no-store");
+    return res.json({ transactions, balance: Math.round(balance * 100) / 100 });
+  } catch (error) {
+    console.error("Admin funds fetch failed:", error?.message || error);
+    return res.status(500).json({ message: "Could not load funds ledger." });
+  }
+});
+
+router.post("/admin/funds", authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const type = String(req.body?.type || "").trim();
+    const amount = Number(req.body?.amount);
+    const reason = String(req.body?.reason || "").trim();
+    if (!["add", "withdraw"].includes(type) || !Number.isFinite(amount) || amount < 1 || !reason || reason.length > 300) {
+      return res.status(400).json({ message: "Enter a valid transaction type, amount and reason." });
+    }
+    const current = await FundTransaction.find({ voidedAt: null }).select("type amount").lean();
+    const balance = current.reduce((total, item) => total + (item.type === "add" ? Number(item.amount || 0) : -Number(item.amount || 0)), 0);
+    if (type === "withdraw" && amount > balance) return res.status(409).json({ message: "Withdrawal amount cannot exceed current balance." });
+    const transaction = await FundTransaction.create({ type, amount, reason, createdBy: req.user.id });
+    const nextBalance = balance + (type === "add" ? amount : -amount);
+    return res.status(201).json({ transaction, balance: Math.round(nextBalance * 100) / 100 });
+  } catch (error) {
+    console.error("Admin funds transaction failed:", error?.message || error);
+    return res.status(500).json({ message: "Could not save funds transaction." });
+  }
+});
+
+router.post("/admin/funds/:id/void", authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const reason = String(req.body?.reason || "").trim();
+    if (reason.length < 5 || reason.length > 500) return res.status(400).json({ message: "Enter a void reason between 5 and 500 characters." });
+    const transaction = await FundTransaction.findById(req.params.id);
+    if (!transaction) return res.status(404).json({ message: "Fund ledger entry not found." });
+    if (transaction.voidedAt) return res.status(409).json({ message: "This ledger entry is already voided." });
+    const current = await FundTransaction.find({ voidedAt: null, _id: { $ne: transaction._id } }).select("type amount").lean();
+    const balanceWithoutEntry = current.reduce((total, item) => total + (item.type === "add" ? Number(item.amount || 0) : -Number(item.amount || 0)), 0);
+    if (balanceWithoutEntry < 0) return res.status(409).json({ message: "This entry cannot be voided because it would make the funds balance negative. Void later withdrawals first." });
+    transaction.voidedAt = new Date();
+    transaction.voidedBy = req.user.id;
+    transaction.voidReason = reason;
+    await transaction.save();
+    const remaining = await FundTransaction.find({ voidedAt: null }).select("type amount").lean();
+    const balance = remaining.reduce((total, item) => total + (item.type === "add" ? Number(item.amount || 0) : -Number(item.amount || 0)), 0);
+    return res.json({ transaction, balance: Math.round(balance * 100) / 100 });
+  } catch (error) {
+    console.error("Admin funds void failed:", error?.message || error);
+    return res.status(500).json({ message: "Could not void fund ledger entry." });
+  }
+});
+
 /**
  * Absolute base URL of the public website (scheme + host, no trailing slash).
  * Used for links inside emails so they never point to localhost in production.
