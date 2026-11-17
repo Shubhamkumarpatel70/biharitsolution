@@ -30,7 +30,7 @@ const DashboardHome = () => {
         const res = await axios.get('/api/auth/user-subscriptions', {
           headers: { Authorization: `Bearer ${token}` }
         });
-        setSubs(res.data.subscriptions || []);
+        setSubs(Array.isArray(res.data?.subscriptions) ? res.data.subscriptions : []);
       } catch (err) {
         setSubsError('Could not fetch subscription info.');
       }
@@ -44,7 +44,7 @@ const DashboardHome = () => {
         const res = await axios.get('/api/auth/user-notifications', {
           headers: { Authorization: `Bearer ${token}` }
         });
-        setNotifications(res.data.notifications || []);
+        setNotifications(Array.isArray(res.data?.notifications) ? res.data.notifications : []);
       } catch (err) {
         setNotifError('Could not fetch notifications.');
       }
@@ -58,7 +58,7 @@ const DashboardHome = () => {
         const res = await axios.get('/api/auth/complaints', {
           headers: { Authorization: `Bearer ${token}` }
         });
-        setComplaints(res.data.complaints || []);
+        setComplaints(Array.isArray(res.data?.complaints) ? res.data.complaints : []);
       } catch (err) {
         setComplaintsError('Could not fetch complaints.');
       }

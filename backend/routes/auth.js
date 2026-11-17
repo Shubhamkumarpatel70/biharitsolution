@@ -8,6 +8,7 @@ const {
   changeUserPassword,
   getUserNotifications,
   markNotificationRead,
+  autoExpiryNotifications,
   cancelUserSubscription,
   renewUserSubscription,
   verifyEmailForPasswordReset,
@@ -4007,6 +4008,260 @@ router.get("/admin/stats", authMiddleware, coAdminMiddleware, async (req, res) =
   } catch (error) {
     console.error("Admin dashboard stats failed:", error?.message || error);
     return res.status(500).json({ message: "Could not load dashboard statistics." });
+  }
+});
+
+
+
+// Public contact form and newsletter preference endpoints.
+router.post("/contact", async (req, res) => {
+  try {
+    const name = String(req.body?.name || "").trim();
+    const email = String(req.body?.email || "").trim().toLowerCase();
+    const phone = String(req.body?.phone || "").trim();
+    const subject = String(req.body?.subject || "").trim();
+    const message = String(req.body?.message || "").trim();
+    if (name.length < 2 || name.length > 120 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || message.length < 5 || message.length > 5000) {
+      return res.status(400).json({ message: "Enter a valid name, email and message." });
+    }
+    const contact = await Contact.create({ name, email, phone: phone.slice(0, 40), subject: subject.slice(0, 180), message });
+    return res.status(201).json({ success: true, contactId: contact._id, message: "Your enquiry has been received." });
+  } catch (error) {
+    console.error("Contact form submission failed:", error?.message || error);
+    return res.status(500).json({ message: "Could not submit your enquiry." });
+  }
+});
+
+router.post("/newsletter/subscribe", async (req, res) => {
+  try {
+    const email = String(req.body?.email || "").trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ message: "Enter a valid email address." });
+    const existing = await NewsletterSubscriber.findOne({ email });
+    if (existing?.status === "unsubscribed") return res.status(409).json({ message: "This address previously unsubscribed. Please contact support if you want to change that preference." });
+    await NewsletterSubscriber.findOneAndUpdate(
+      { email },
+      { $set: { status: "subscribed", consentedAt: new Date(), consentSource: "newsletter-form" } },
+      { upsert: true, new: true, setDefaultsOnInsert: true },
+    );
+    await User.updateOne({ email }, { $set: { marketingConsent: true, marketingConsentAt: new Date(), subscribeOffers: true } });
+    return res.json({ success: true, message: "You are subscribed to ASKC TECHNOLOGIES updates." });
+  } catch (error) {
+    console.error("Newsletter subscribe failed:", error?.message || error);
+    return res.status(500).json({ message: "Could not update newsletter subscription." });
+  }
+});
+router.post("/newsletter/unsubscribe", async (req, res) => {
+  try {
+    const email = String(req.body?.email || "").trim().toLowerCase();
+    const token = String(req.body?.token || "").trim();
+    if (token) {
+      const hash = crypto.createHash("sha256").update(token).digest("hex");
+      const subscriber = await NewsletterSubscriber.findOneAndUpdate(
+        { unsubscribeTokenHash: hash, status: "subscribed" },
+        { $set: { status: "unsubscribed", unsubscribeTokenHash: null, consentedAt: null } },
+        { new: true },
+      );
+      if (!subscriber) return res.status(404).json({ message: "This unsubscribe link is invalid or has already been used." });
+      await User.updateOne({ email: subscriber.email }, { $set: { marketingConsent: false, marketingConsentAt: null, subscribeOffers: false } });
+      return res.json({ success: true, message: "You have been unsubscribed successfully." });
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ message: "Enter a valid email address." });
+    await NewsletterSubscriber.findOneAndUpdate(
+      { email },
+      { $set: { status: "unsubscribed", consentedAt: null, unsubscribeTokenHash: null }, $setOnInsert: { email, consentSource: "footer-preference" } },
+      { upsert: true, new: true, setDefaultsOnInsert: true },
+    );
+    await User.updateOne({ email }, { $set: { marketingConsent: false, marketingConsentAt: null, subscribeOffers: false } });
+    return res.json({ success: true, message: "Your promotional email preference has been updated." });
+  } catch (error) {
+    console.error("Newsletter unsubscribe failed:", error?.message || error);
+    return res.status(500).json({ message: "Could not update newsletter preference." });
+  }
+});
+
+// Admin and user dashboard data APIs. All list responses are normalized and
+// explicitly marked no-store to prevent stale dashboard data.
+router.get("/admin/approved-subscriptions", authMiddleware, coAdminMiddleware, async (req, res) => {
+  try {
+    const status = String(req.query.status || "all");
+    const search = String(req.query.search || "").trim().slice(0, 120);
+    const query = {};
+    if (status === "active") query.status = "active";
+    else if (status === "expired") query.$or = [{ status: "expired" }, { expiresAt: { $lte: new Date() }, status: "active" }];
+    else if (status === "cancelled") query.$or = [{ canceled: true }, { cancellationStatus: "approved" }];
+    const subscriptions = await Subscription.find(query)
+      .populate("user", "name email")
+      .sort({ updatedAt: -1 })
+      .limit(1000)
+      .lean();
+    const filtered = search
+      ? subscriptions.filter((item) => [item.uniqueId, item.transactionId, item.cashfreeOrderId, item.user?.name, item.user?.email].some((value) => String(value || "").toLowerCase().includes(search.toLowerCase())))
+      : subscriptions;
+    res.set("Cache-Control", "no-store");
+    return res.json({ subscriptions: filtered });
+  } catch (error) {
+    console.error("Admin approved subscriptions fetch failed:", error?.message || error);
+    return res.status(500).json({ message: "Could not load approved subscriptions." });
+  }
+});
+
+router.get("/admin/notifications", authMiddleware, coAdminMiddleware, async (req, res) => {
+  try {
+    const notifications = await Notification.find().populate("user", "name email").sort({ createdAt: -1 }).limit(500).lean();
+    res.set("Cache-Control", "no-store");
+    return res.json({ notifications: Array.isArray(notifications) ? notifications : [] });
+  } catch (error) {
+    console.error("Admin notifications fetch failed:", error?.message || error);
+    return res.status(500).json({ message: "Could not load notifications." });
+  }
+});
+
+router.post("/admin/notifications", authMiddleware, coAdminMiddleware, async (req, res) => {
+  try {
+    const message = String(req.body?.message || "").trim();
+    const userId = String(req.body?.userId || "").trim();
+    if (!message || message.length > 2000) return res.status(400).json({ message: "Enter a message of up to 2000 characters." });
+    let user = null;
+    if (userId) {
+      user = await User.findById(userId).select("_id");
+      if (!user) return res.status(404).json({ message: "Selected user was not found." });
+    }
+    const notification = await Notification.create({ message, title: "ASKC TECHNOLOGIES", type: "general", user: user?._id || null, expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) });
+    return res.status(201).json({ notification, message: "Notification sent successfully." });
+  } catch (error) {
+    console.error("Admin notification create failed:", error?.message || error);
+    return res.status(500).json({ message: "Could not send notification." });
+  }
+});
+router.post("/admin/auto-expiry-notifications", authMiddleware, coAdminMiddleware, autoExpiryNotifications);
+
+router.get("/admin/id-cards", authMiddleware, coAdminMiddleware, async (req, res) => {
+  try {
+    const idCards = await IDCard.find().sort({ createdAt: -1 }).lean();
+    res.set("Cache-Control", "no-store");
+    return res.json({ idCards: Array.isArray(idCards) ? idCards : [] });
+  } catch (error) {
+    console.error("Admin ID cards fetch failed:", error?.message || error);
+    return res.status(500).json({ message: "Could not load ID cards." });
+  }
+});
+router.post("/admin/id-cards", authMiddleware, coAdminMiddleware, async (req, res) => {
+  try {
+    const name = String(req.body?.name || "").trim();
+    const role = String(req.body?.role || "").trim();
+    const idNumber = String(req.body?.idNumber || "").trim();
+    if (!name || !role || !idNumber) return res.status(400).json({ message: "Name, role and ID number are required." });
+    if (idNumber.length > 80 || name.length > 120 || role.length > 120) return res.status(400).json({ message: "One or more ID card fields are too long." });
+    const photoInput = String(req.body?.photo || "").trim();
+    let photo = photoInput;
+    if (photoInput.startsWith("data:image/")) photo = await uploadDataUri(photoInput, "askc-technologies/id-cards");
+    else if (photoInput && !/^https:\/\//i.test(photoInput)) return res.status(400).json({ message: "Photo must be a secure image URL or supported image upload." });
+    const idCard = await IDCard.create({ name, role, idNumber, photo });
+    return res.status(201).json({ idCard, message: "ID card saved successfully." });
+  } catch (error) {
+    console.error("Admin ID card save failed:", error?.message || error);
+    return res.status(500).json({ message: "Could not save ID card." });
+  }
+});
+router.delete("/admin/id-cards/:id", authMiddleware, coAdminMiddleware, async (req, res) => {
+  try {
+    const card = await IDCard.findByIdAndDelete(req.params.id);
+    if (!card) return res.status(404).json({ message: "ID card not found." });
+    return res.json({ success: true, message: "ID card deleted." });
+  } catch (error) {
+    console.error("Admin ID card delete failed:", error?.message || error);
+    return res.status(500).json({ message: "Could not delete ID card." });
+  }
+});
+
+router.get("/contacts", authMiddleware, coAdminMiddleware, async (req, res) => {
+  try {
+    const contacts = await Contact.find().sort({ createdAt: -1 }).limit(1000).lean();
+    res.set("Cache-Control", "no-store");
+    return res.json({ contacts: Array.isArray(contacts) ? contacts : [] });
+  } catch (error) {
+    console.error("Admin contact enquiries fetch failed:", error?.message || error);
+    return res.status(500).json({ message: "Could not fetch contact messages." });
+  }
+});
+
+router.get("/admin/newsletter-subscribers", authMiddleware, coAdminMiddleware, async (req, res) => {
+  try {
+    const subscribers = await NewsletterSubscriber.find().select("email status consentedAt consentSource consentedBy createdAt updatedAt").sort({ createdAt: -1 }).limit(5000).lean();
+    res.set("Cache-Control", "no-store");
+    return res.json({ subscribers: Array.isArray(subscribers) ? subscribers : [] });
+  } catch (error) {
+    console.error("Newsletter subscribers fetch failed:", error?.message || error);
+    return res.status(500).json({ message: "Could not load newsletter subscribers." });
+  }
+});
+router.get("/admin/newsletter-unsubscribed", authMiddleware, coAdminMiddleware, async (req, res) => {
+  try {
+    const subscribers = await NewsletterSubscriber.find({ status: "unsubscribed" }).select("email status updatedAt createdAt").sort({ updatedAt: -1 }).limit(5000).lean();
+    res.set("Cache-Control", "no-store");
+    return res.json({ subscribers: Array.isArray(subscribers) ? subscribers : [] });
+  } catch (error) {
+    console.error("Unsubscribed newsletter list failed:", error?.message || error);
+    return res.status(500).json({ message: "Could not load unsubscribed users." });
+  }
+});
+router.delete("/admin/newsletter-unsubscribed/:id", authMiddleware, coAdminMiddleware, async (req, res) => {
+  try {
+    const subscriber = await NewsletterSubscriber.findOne({ _id: req.params.id, status: "unsubscribed" });
+    if (!subscriber) return res.status(404).json({ message: "Unsubscribe record not found." });
+    // Keep the suppression in place: deleting a row must never silently opt an address back in.
+    // This endpoint therefore reports that the suppression record is retained.
+    return res.status(409).json({ message: "Unsubscribe suppression records are retained to protect recipient preferences. A fresh explicit opt-in is required before sending." });
+  } catch (error) {
+    console.error("Unsubscribe suppression lookup failed:", error?.message || error);
+    return res.status(500).json({ message: "Could not update unsubscribe record." });
+  }
+});
+
+router.get("/user-subscriptions", authMiddleware, async (req, res) => {
+  try {
+    const subscriptions = await Subscription.find({ user: req.user.id }).sort({ createdAt: -1 }).lean();
+    res.set("Cache-Control", "no-store");
+    return res.json({ subscriptions: Array.isArray(subscriptions) ? subscriptions : [] });
+  } catch (error) {
+    console.error("User subscriptions fetch failed:", error?.message || error);
+    return res.status(500).json({ message: "Could not fetch subscription info." });
+  }
+});
+router.get("/user-notifications", authMiddleware, async (req, res) => {
+  try {
+    const notifications = await Notification.find({ $or: [{ user: req.user.id }, { user: null }] }).sort({ createdAt: -1 }).limit(200).lean();
+    res.set("Cache-Control", "no-store");
+    return res.json({ notifications: notifications.map((item) => ({ ...item, read: Array.isArray(item.readBy) && item.readBy.some((id) => String(id) === String(req.user.id)) })) });
+  } catch (error) {
+    console.error("User notifications fetch failed:", error?.message || error);
+    return res.status(500).json({ message: "Could not fetch notifications." });
+  }
+});
+router.post("/notifications/:id/read", authMiddleware, markNotificationRead);
+router.get("/complaints", authMiddleware, async (req, res) => {
+  try {
+    const complaints = await Complaint.find({ user: req.user.id }).sort({ updatedAt: -1 }).limit(100).lean();
+    res.set("Cache-Control", "no-store");
+    return res.json({ complaints: Array.isArray(complaints) ? complaints : [] });
+  } catch (error) {
+    console.error("User complaints fetch failed:", error?.message || error);
+    return res.status(500).json({ message: "Could not fetch complaints." });
+  }
+});
+router.post("/complaints/:id/reopen", authMiddleware, async (req, res) => {
+  try {
+    const complaint = await Complaint.findOne({ _id: req.params.id, user: req.user.id });
+    if (!complaint) return res.status(404).json({ message: "Complaint not found." });
+    if (complaint.status !== "resolved") return res.status(409).json({ message: "Only resolved complaints can be reopened." });
+    if (complaint.reopenStatus === "pending") return res.status(409).json({ message: "A reopen request is already pending." });
+    complaint.reopenRequested = true;
+    complaint.reopenStatus = "pending";
+    await complaint.save();
+    return res.json({ success: true, complaint, message: "Reopen request submitted." });
+  } catch (error) {
+    console.error("Complaint reopen request failed:", error?.message || error);
+    return res.status(500).json({ message: "Could not submit reopen request." });
   }
 });
 
