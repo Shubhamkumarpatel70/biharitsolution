@@ -4012,6 +4012,73 @@ router.get("/admin/stats", authMiddleware, coAdminMiddleware, async (req, res) =
 });
 
 
+
+// Public contact form and newsletter preference endpoints.
+router.post("/contact", async (req, res) => {
+  try {
+    const name = String(req.body?.name || "").trim();
+    const email = String(req.body?.email || "").trim().toLowerCase();
+    const phone = String(req.body?.phone || "").trim();
+    const subject = String(req.body?.subject || "").trim();
+    const message = String(req.body?.message || "").trim();
+    if (name.length < 2 || name.length > 120 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || message.length < 5 || message.length > 5000) {
+      return res.status(400).json({ message: "Enter a valid name, email and message." });
+    }
+    const contact = await Contact.create({ name, email, phone: phone.slice(0, 40), subject: subject.slice(0, 180), message });
+    return res.status(201).json({ success: true, contactId: contact._id, message: "Your enquiry has been received." });
+  } catch (error) {
+    console.error("Contact form submission failed:", error?.message || error);
+    return res.status(500).json({ message: "Could not submit your enquiry." });
+  }
+});
+
+router.post("/newsletter/subscribe", async (req, res) => {
+  try {
+    const email = String(req.body?.email || "").trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ message: "Enter a valid email address." });
+    const existing = await NewsletterSubscriber.findOne({ email });
+    if (existing?.status === "unsubscribed") return res.status(409).json({ message: "This address previously unsubscribed. Please contact support if you want to change that preference." });
+    await NewsletterSubscriber.findOneAndUpdate(
+      { email },
+      { $set: { status: "subscribed", consentedAt: new Date(), consentSource: "newsletter-form" } },
+      { upsert: true, new: true, setDefaultsOnInsert: true },
+    );
+    await User.updateOne({ email }, { $set: { marketingConsent: true, marketingConsentAt: new Date(), subscribeOffers: true } });
+    return res.json({ success: true, message: "You are subscribed to ASKC TECHNOLOGIES updates." });
+  } catch (error) {
+    console.error("Newsletter subscribe failed:", error?.message || error);
+    return res.status(500).json({ message: "Could not update newsletter subscription." });
+  }
+});
+router.post("/newsletter/unsubscribe", async (req, res) => {
+  try {
+    const email = String(req.body?.email || "").trim().toLowerCase();
+    const token = String(req.body?.token || "").trim();
+    if (token) {
+      const hash = crypto.createHash("sha256").update(token).digest("hex");
+      const subscriber = await NewsletterSubscriber.findOneAndUpdate(
+        { unsubscribeTokenHash: hash, status: "subscribed" },
+        { $set: { status: "unsubscribed", unsubscribeTokenHash: null, consentedAt: null } },
+        { new: true },
+      );
+      if (!subscriber) return res.status(404).json({ message: "This unsubscribe link is invalid or has already been used." });
+      await User.updateOne({ email: subscriber.email }, { $set: { marketingConsent: false, marketingConsentAt: null, subscribeOffers: false } });
+      return res.json({ success: true, message: "You have been unsubscribed successfully." });
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ message: "Enter a valid email address." });
+    await NewsletterSubscriber.findOneAndUpdate(
+      { email },
+      { $set: { status: "unsubscribed", consentedAt: null, unsubscribeTokenHash: null }, $setOnInsert: { email, consentSource: "footer-preference" } },
+      { upsert: true, new: true, setDefaultsOnInsert: true },
+    );
+    await User.updateOne({ email }, { $set: { marketingConsent: false, marketingConsentAt: null, subscribeOffers: false } });
+    return res.json({ success: true, message: "Your promotional email preference has been updated." });
+  } catch (error) {
+    console.error("Newsletter unsubscribe failed:", error?.message || error);
+    return res.status(500).json({ message: "Could not update newsletter preference." });
+  }
+});
+
 // Admin and user dashboard data APIs. All list responses are normalized and
 // explicitly marked no-store to prevent stale dashboard data.
 router.get("/admin/approved-subscriptions", authMiddleware, coAdminMiddleware, async (req, res) => {
@@ -4161,7 +4228,15 @@ router.get("/user-subscriptions", authMiddleware, async (req, res) => {
     return res.status(500).json({ message: "Could not fetch subscription info." });
   }
 });
-router.get("/user-notifications", authMiddleware, getUserNotifications);
+router.get("/user-notifications", authMiddleware, async (req, res) => {
+  try {
+    const notifications = await Notification.find({ $or: [{ user: req.user.id }, { user: null }] }).sort({ createdAt: -1 }).limit(200).lean();
+    return res.json({ notifications: notifications.map((item) => ({ ...item, read: Array.isArray(item.readBy) && item.readBy.some((id) => String(id) === String(req.user.id)) })) });
+  } catch (error) {
+    console.error("User notifications fetch failed:", error?.message || error);
+    return res.status(500).json({ message: "Could not fetch notifications." });
+  }
+});
 router.post("/notifications/:id/read", authMiddleware, markNotificationRead);
 router.get("/complaints", authMiddleware, async (req, res) => {
   try {
