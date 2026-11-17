@@ -89,7 +89,7 @@ function Dashboard() {
 
       <aside
         id="user-dashboard-sidebar"
-        className={`fixed left-0 top-[88px] bottom-0 z-[1900] h-[calc(100dvh-88px)] max-h-[calc(100dvh-88px)] w-[min(19rem,88vw)] transform transition-transform duration-300 ease-in-out shadow-2xl shadow-slate-950/20 will-change-transform lg:sticky lg:top-0 lg:inset-y-auto lg:z-auto lg:h-dvh lg:max-h-dvh lg:w-[15.5rem] lg:shrink-0 lg:translate-x-0 ${
+        className={`fixed left-0 top-[88px] bottom-0 z-[1900] h-[calc(100dvh-88px)] max-h-[calc(100dvh-88px)] w-[min(19rem,88vw)] transform transition-transform duration-300 ease-in-out shadow-2xl shadow-slate-950/20 will-change-transform lg:sticky lg:top-[88px] lg:inset-y-auto lg:z-auto lg:h-[calc(100dvh-88px)] lg:max-h-[calc(100dvh-88px)] lg:w-[15.5rem] lg:shrink-0 lg:translate-x-0 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -101,7 +101,7 @@ function Dashboard() {
       </aside>
 
       <main className="flex-1 min-w-0 min-h-screen flex flex-col">
-        <div className="h-[88px] shrink-0 lg:hidden" aria-hidden="true" />
+        <div className="h-[88px] shrink-0" aria-hidden="true" />
 
         <div className="flex-1 p-3 sm:p-4 md:p-6 lg:p-8 pb-24 lg:pb-8 w-full max-w-full min-w-0">
           <Outlet context={{ user }} />
