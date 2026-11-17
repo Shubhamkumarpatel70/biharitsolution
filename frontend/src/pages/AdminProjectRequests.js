@@ -80,7 +80,7 @@ const AdminProjectRequests = () => {
       const res = await axios.get(url, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setProjects(res.data.projectRequirements || []);
+      setProjects(Array.isArray(res.data?.projectRequirements) ? res.data.projectRequirements : []);
     } catch (err) {
       console.error('Error fetching projects:', err);
       setError('Could not fetch project requirements.');
