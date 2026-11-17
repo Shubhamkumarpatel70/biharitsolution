@@ -6,6 +6,7 @@ const userSchema = new mongoose.Schema(
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     password: { type: String, select: false }, // Hide password by default
+    mustChangePassword: { type: Boolean, default: false, index: true },
     role: { type: String, enum: ["user", "admin", "coadmin"], default: "user" },
     image: { type: String },
     subscribeOffers: { type: Boolean, default: false },

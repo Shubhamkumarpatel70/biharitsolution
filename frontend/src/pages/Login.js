@@ -29,6 +29,11 @@ function Login() {
   const [twoFactorChallenge, setTwoFactorChallenge] = useState(null);
   const [twoFactorCode, setTwoFactorCode] = useState('');
   const [twoFactorBusy, setTwoFactorBusy] = useState(false);
+  const [firstLoginChallenge, setFirstLoginChallenge] = useState(null);
+  const [firstLoginPassword, setFirstLoginPassword] = useState('');
+  const [firstLoginConfirmPassword, setFirstLoginConfirmPassword] = useState('');
+  const [firstLoginBusy, setFirstLoginBusy] = useState(false);
+  const [firstLoginError, setFirstLoginError] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
   const { setUser } = useContext(UserContext);
@@ -85,6 +90,12 @@ function Login() {
         captchaId,
         captchaAnswer: captchaInput.trim(),
       });
+      if (res.data.requiresPasswordChange) {
+        setFirstLoginChallenge({ setupToken: res.data.setupToken, user: res.data.user });
+        setFirstLoginPassword(''); setFirstLoginConfirmPassword(''); setFirstLoginError('');
+        setLoading(false); setIsSubmitting(false);
+        return;
+      }
       if (res.data.requiresTwoFactor) {
         setTwoFactorChallenge({ token: res.data.challengeToken, method: res.data.method });
         setTwoFactorCode(''); setMessage(res.data.message || 'Complete two-factor verification to continue.');
@@ -135,6 +146,21 @@ function Login() {
     }
   }, [location.search]);
 
+  const handleFirstLoginPasswordChange = async event => {
+    event.preventDefault();
+    if (!firstLoginChallenge?.setupToken || firstLoginBusy) return;
+    if (firstLoginPassword.length < 8) { setFirstLoginError('Password must be at least 8 characters.'); return; }
+    if (firstLoginPassword !== firstLoginConfirmPassword) { setFirstLoginError('Passwords do not match.'); return; }
+    setFirstLoginBusy(true); setFirstLoginError("");
+    try {
+      const response = await axios.post('/api/auth/first-login/change-password', { setupToken: firstLoginChallenge.setupToken, newPassword: firstLoginPassword, confirmPassword: firstLoginConfirmPassword });
+      localStorage.setItem('token', response.data.token);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+      setUser(response.data.user); setFirstLoginChallenge(null);
+      navigate('/dashboard', { replace: true });
+    } catch (error) { setFirstLoginError(error.response?.data?.message || "Could not save your new password. Please try again."); }
+    finally { setFirstLoginBusy(false); }
+  };
   const handleVerifyTwoFactor = async e => {
     e.preventDefault();
     if (!twoFactorChallenge || twoFactorCode.length !== 6 || twoFactorBusy) return;
@@ -446,6 +472,29 @@ function Login() {
       </form>
       )}
 
+      {firstLoginChallenge && (
+        <div className="fixed inset-0 z-[11000] flex items-center justify-center bg-slate-950/80 px-4 py-8 backdrop-blur-sm">
+          <form onSubmit={handleFirstLoginPasswordChange} className="w-full max-w-lg space-y-5 rounded-3xl border border-slate-200 bg-white p-6 text-slate-800 shadow-2xl sm:p-8">
+            <div className="text-center">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-700"><Icon name="lock" className="h-7 w-7" /></div>
+              <p className="mt-4 text-xs font-extrabold uppercase tracking-widest text-blue-600">ASKC TECHNOLOGIES</p>
+              <h2 className="mt-2 text-2xl font-extrabold text-slate-900">Change your password</h2>
+              <p className="mt-2 text-sm leading-6 text-slate-500">Welcome, {firstLoginChallenge.user?.name || "Client"}. Create a new password before continuing to your dashboard.</p>
+            </div>
+            <label className="block text-sm font-bold">New password
+              <input type="password" required minLength="8" maxLength="128" autoComplete="new-password" value={firstLoginPassword} onChange={event => setFirstLoginPassword(event.target.value)} placeholder="Enter a new password" className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-3 font-normal outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
+            </label>
+            <label className="block text-sm font-bold">Confirm new password
+              <input type="password" required minLength="8" maxLength="128" autoComplete="new-password" value={firstLoginConfirmPassword} onChange={event => setFirstLoginConfirmPassword(event.target.value)} placeholder="Re-enter your new password" className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-3 font-normal outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
+            </label>
+            <p className="text-xs text-slate-500">Use at least 8 characters. The temporary password cannot be reused.</p>
+            {firstLoginError && <p role="alert" className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{firstLoginError}</p>}
+            <button type="submit" disabled={firstLoginBusy || firstLoginPassword.length < 8 || !firstLoginConfirmPassword} className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-700 px-5 py-3.5 text-sm font-bold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50">
+              {firstLoginBusy ? 'Saving password…' : 'Save new password & continue'}
+            </button>
+          </form>
+        </div>
+      )}
       {showForgotPassword && (
         <div
           className="fixed inset-0 z-[10000] flex items-center justify-center overflow-y-auto bg-slate-950/70 px-4 py-8 backdrop-blur-md"

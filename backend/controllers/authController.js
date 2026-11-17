@@ -463,6 +463,17 @@ exports.loginUser = async (req, res) => {
       return res.status(400).json({ message: "Invalid email or password." });
     }
 
+    // Require admin-created clients to replace their temporary password before a full session is issued.
+    if (user.mustChangePassword === true) {
+      if (!process.env.JWT_SECRET) return res.status(503).json({ message: "Password setup is temporarily unavailable." });
+      const setupToken = jwt.sign({ id: String(user._id), purpose: "first-login-password-change" }, process.env.JWT_SECRET, { expiresIn: "15m" });
+      res.set("Cache-Control", "no-store");
+      return res.status(200).json({
+        requiresPasswordChange: true, setupToken,
+        user: { id: user._id, name: user.name, email: user.email, role: user.role },
+        message: "Set a new password to finish setting up your account.",
+      });
+    }
     // If 2FA is enabled, issue only a short-lived challenge token (never a full session yet).
     if (user.twoFactorEnabled && ["email", "authenticator"].includes(user.twoFactorMethod)) {
       const challenge = await issueTwoFactorChallenge({ user, Otp, jwtSecret: process.env.JWT_SECRET });
@@ -598,6 +609,58 @@ exports.registerAdmin = async (req, res) => {
   }
 };
 
+exports.createClientAccount = async (req, res) => {
+  try {
+    const email = String(req.body?.email || "").trim().toLowerCase();
+    const temporaryPassword = String(req.body?.password || "");
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ message: "Enter a valid client email address." });
+    if (temporaryPassword.length < 8 || temporaryPassword.length > 128) return res.status(400).json({ message: "Temporary password must be between 8 and 128 characters." });
+    const existing = await User.findOne({ $expr: { $eq: [{ $toLower: "$email" }, email] } }).select("_id");
+    if (existing) return res.status(409).json({ message: "An account with this email already exists." });
+    const localPart = email.split("@")[0].replace(/[._+-]+/g, " ").trim();
+    const name = localPart ? localPart.replace(/\b\w/g, character => character.toUpperCase()) : "Client";
+    const user = await User.create({ name, email, password: await bcrypt.hash(temporaryPassword, 12), role: "user", mustChangePassword: true });
+    res.set("Cache-Control", "no-store");
+    return res.status(201).json({ success: true, message: "Client account created. The client must change the temporary password at first login.", user: { id: user._id, name: user.name, email: user.email, role: user.role, mustChangePassword: true } });
+  } catch (error) {
+    if (error?.code === 11000) return res.status(409).json({ message: "An account with this email already exists." });
+    console.error("Admin client account creation failed:", error?.message || error);
+    return res.status(500).json({ message: "Could not create the client account." });
+  }
+};
+
+exports.completeFirstLoginPasswordChange = async (req, res) => {
+  try {
+    const setupToken = String(req.body?.setupToken || "");
+    const newPassword = String(req.body?.newPassword || "");
+    const confirmPassword = String(req.body?.confirmPassword || "");
+    if (!setupToken) return res.status(400).json({ message: "Your password setup session is missing. Please sign in again." });
+    if (newPassword.length < 8 || newPassword.length > 128) return res.status(400).json({ message: "New password must be between 8 and 128 characters." });
+    if (newPassword !== confirmPassword) return res.status(400).json({ message: "New password and confirmation do not match." });
+    if (!process.env.JWT_SECRET) return res.status(503).json({ message: "Password setup is temporarily unavailable." });
+    let decoded;
+    try { decoded = jwt.verify(setupToken, process.env.JWT_SECRET); }
+    catch { return res.status(401).json({ message: "Your password setup session expired. Please sign in again." }); }
+    if (decoded.purpose !== "first-login-password-change" || !decoded.id) return res.status(401).json({ message: "Invalid password setup session. Please sign in again." });
+    const user = await User.findById(decoded.id).select("+password");
+    if (!user || user.role !== "user" || user.mustChangePassword !== true) return res.status(409).json({ message: "This account no longer requires first-time password setup. Please sign in again." });
+    if (await bcrypt.compare(newPassword, user.password)) return res.status(400).json({ message: "Choose a password different from the temporary password." });
+    user.password = await bcrypt.hash(newPassword, 12);
+    user.mustChangePassword = false;
+    user.sessionVersion = Number(user.sessionVersion || 0) + 1;
+    user.lastLogoutAllAt = new Date();
+    if (Array.isArray(user.sessions)) user.sessions.forEach(session => { if (!session.revokedAt) session.revokedAt = new Date(); });
+    await user.save();
+    const loginState = await recordSuccessfulLogin(user._id, req);
+    const token = jwt.sign({ id: user._id, role: user.role, sv: Number(loginState?.sessionVersion || 0), sid: loginState.sessionId }, process.env.JWT_SECRET, { expiresIn: "7d" });
+    res.cookie("token", token, { httpOnly: true, sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: 7 * 24 * 60 * 60 * 1000 });
+    res.set("Cache-Control", "no-store");
+    return res.json({ success: true, token, user: { id: user._id, name: user.name, email: user.email, role: user.role }, message: "Password updated successfully." });
+  } catch (error) {
+    console.error("First-login password change failed:", error?.message || error);
+    return res.status(500).json({ message: "Could not save your new password. Please try again." });
+  }
+};
 exports.updateUserProfile = async (req, res) => {
   try {
     const { name, email } = req.body;

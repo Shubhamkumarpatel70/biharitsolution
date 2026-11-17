@@ -16,6 +16,9 @@ const AdminUsers = () => {
   const [existingPlans, setExistingPlans] = useState([]);
   const [planChoice, setPlanChoice] = useState('');
   const [planForm, setPlanForm] = useState({ planName: 'Custom Plan', totalAmount: '5000', durationDays: '30', note: '' });
+  const [showCreateClient, setShowCreateClient] = useState(false);
+  const [clientForm, setClientForm] = useState({ email: '', password: '' });
+  const [creatingClient, setCreatingClient] = useState(false);
 
   // Filter users based on search and filters
   const filteredUsers = useMemo(() => {
@@ -155,6 +158,25 @@ const AdminUsers = () => {
     finally { setBillingBusy(null); }
   };
 
+  const createClient = async event => {
+    event.preventDefault();
+    const email = clientForm.email.trim().toLowerCase();
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setError("Enter a valid client email address."); return; }
+    if (clientForm.password.length < 8) { setError("Temporary password must be at least 8 characters."); return; }
+    setCreatingClient(true); setError(""); setSuccess("");
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.post("/api/auth/admin/users/create-client", { email, password: clientForm.password }, { headers: { Authorization: "Bearer " + token } });
+      setSuccess(response.data?.message || "Client account created successfully.");
+      setClientForm({ email: "", password: "" });
+      setShowCreateClient(false);
+      try {
+        const refreshed = await axios.get("/api/auth/admin/users", { headers: { Authorization: "Bearer " + token } });
+        setUsers(Array.isArray(refreshed.data?.users) ? refreshed.data.users : []);
+      } catch { /* Account creation succeeded; keep the current list if refresh is temporarily unavailable. */ }
+    } catch (err) { setError(err.response?.data?.message || "Could not create the client account."); }
+    finally { setCreatingClient(false); }
+  };
   const roleOptions = [
     { value: 'user', label: 'User' },
     { value: 'coadmin', label: 'Co-Admin' },
@@ -166,6 +188,7 @@ const AdminUsers = () => {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4 md:mb-0">
           <h2 className="text-success-500 font-black text-2xl sm:text-3xl">Manage Users</h2>
+          <button type="button" onClick={() => setShowCreateClient(true)} className="inline-flex items-center justify-center rounded-xl border border-emerald-400/40 bg-emerald-500/10 px-4 py-2 text-sm font-bold text-emerald-200 hover:bg-emerald-500/20">+ Add New User</button>
           <button type="button" onClick={() => window.dispatchEvent(new Event('askc-open-user-plans'))} className="inline-flex items-center justify-center rounded-xl border border-blue-400/40 bg-blue-500/10 px-4 py-2 text-sm font-bold text-blue-200 hover:bg-blue-500/20">Subscriptions</button>
         </div>
         <div className="text-sm text-gray-400">
@@ -352,6 +375,25 @@ const AdminUsers = () => {
           </>
         )}
       </div>
+      {showCreateClient && (
+        <div className="fixed inset-0 z-[260] flex items-center justify-center bg-slate-950/75 p-3 sm:p-5" onClick={() => !creatingClient && setShowCreateClient(false)}>
+          <form onSubmit={createClient} onClick={event => event.stopPropagation()} className="w-full max-w-lg space-y-5 rounded-2xl border border-slate-200 bg-white p-5 text-slate-900 shadow-2xl sm:p-6">
+            <div className="flex items-start justify-between gap-3">
+              <div><p className="text-xs font-bold uppercase tracking-wider text-blue-600">ASKC TECHNOLOGIES</p><h3 className="mt-1 text-xl font-extrabold">Create client account</h3><p className="mt-1 text-sm text-slate-500">Create login credentials. The client must replace the temporary password at first login.</p></div>
+              <button type="button" onClick={() => setShowCreateClient(false)} disabled={creatingClient} className="rounded-lg px-3 py-1 text-2xl text-slate-500 hover:bg-slate-100 disabled:opacity-50" aria-label="Close">×</button>
+            </div>
+            <label className="block text-sm font-bold">Client email address
+              <input type="email" required maxLength="254" autoComplete="email" value={clientForm.email} onChange={event => setClientForm(current => ({ ...current, email: event.target.value }))} placeholder="client@example.com" className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-3 font-normal outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
+            </label>
+            <label className="block text-sm font-bold">Temporary password
+              <input type="password" required minLength="8" maxLength="128" autoComplete="new-password" value={clientForm.password} onChange={event => setClientForm(current => ({ ...current, password: event.target.value }))} placeholder="At least 8 characters" className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-3 font-normal outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
+            </label>
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">Share these temporary credentials with the client securely. The client cannot access the dashboard until a new password is saved.</div>
+            {error && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button type="button" onClick={() => setShowCreateClient(false)} disabled={creatingClient} className="rounded-xl border border-slate-300 px-4 py-3 text-sm font-bold text-slate-700">Cancel</button><button type="submit" disabled={creatingClient || !clientForm.email.trim() || clientForm.password.length < 8} className="rounded-xl bg-emerald-600 px-5 py-3 text-sm font-bold text-white disabled:opacity-50">{creatingClient ? "Creating…" : "Create Client"}</button></div>
+          </form>
+        </div>
+      )}
       {planModalUser && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center bg-slate-950/75 p-3 sm:p-5" onClick={() => !billingBusy && setPlanModalUser(null)}>
           <form onSubmit={assignPlan} onClick={e => e.stopPropagation()} className="max-h-[92dvh] w-full max-w-xl space-y-4 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-5 text-slate-900 shadow-2xl sm:p-6">
