@@ -21,6 +21,8 @@ function Projects() {
     return () => { active = false; };
   }, []);
 
+  const safeProjects = Array.isArray(projects) ? projects.filter((project) => project && typeof project === 'object') : [];
+
   return (
     <section className="py-16 md:py-24 bg-white" aria-labelledby="latest-projects-title">
       <div className="container">
@@ -35,9 +37,9 @@ function Projects() {
           <div className="flex justify-center py-10" role="status" aria-label="Loading latest projects">
             <span className="h-9 w-9 rounded-full border-4 border-slate-200 border-t-slate-600 animate-spin" />
           </div>
-        ) : projects.length ? (
+        ) : safeProjects.length ? (
           <div className="flex gap-5 overflow-x-auto pb-4 -mx-4 px-4 snap-x snap-mandatory scrollbar-thin md:mx-0 md:px-0 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-6 lg:gap-8 md:overflow-visible md:pb-0">
-            {projects.map((project, index) => {
+            {safeProjects.map((project, index) => {
               const accent = /^#[0-9a-fA-F]{6}$/.test(project.color || '') ? project.color : '#64748b';
               const card = (
                 <article className="group h-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-slate-300 hover:shadow-lg">
@@ -51,9 +53,9 @@ function Projects() {
                   </div>
                   <div className="p-5 md:p-6">
                     {project.highlight && <p className="mb-1 text-xs font-semibold uppercase tracking-wide" style={{ color: accent }}>{project.highlight}</p>}
-                    <h3 className="mb-2 text-lg font-bold leading-snug text-slate-900 md:text-xl">{project.title}</h3>
-                    <p className="mb-4 text-sm leading-relaxed text-slate-600">{project.description}</p>
-                    {!!project.technologies?.length && (
+                    <h3 className="mb-2 text-lg font-bold leading-snug text-slate-900 md:text-xl">{project.title || 'Untitled project'}</h3>
+                    <p className="mb-4 text-sm leading-relaxed text-slate-600">{project.description || ''}</p>
+                    {(Array.isArray(project.technologies) && project.technologies.length > 0) && (
                       <div className="flex flex-wrap gap-2">
                         {project.technologies.map(technology => (
                           <span key={technology} className="rounded-lg border border-slate-100 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-700">{technology}</span>
