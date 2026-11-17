@@ -30,6 +30,18 @@ function Dashboard() {
       });
   }, [navigate]);
 
+  // The global navbar owns the dashboard menu trigger on mobile.
+  useEffect(() => {
+    const toggleSidebar = () => setSidebarOpen((open) => !open);
+    const openSidebar = () => setSidebarOpen(true);
+    window.addEventListener('askc:toggle-dashboard-sidebar', toggleSidebar);
+    window.addEventListener('askc:open-dashboard-sidebar', openSidebar);
+    return () => {
+      window.removeEventListener('askc:toggle-dashboard-sidebar', toggleSidebar);
+      window.removeEventListener('askc:open-dashboard-sidebar', openSidebar);
+    };
+  }, []);
+
   // Lock background scrolling while the mobile navigation drawer is open.
   useEffect(() => {
     if (!sidebarOpen) return undefined;
@@ -71,13 +83,13 @@ function Dashboard() {
           type="button"
           aria-label="Close dashboard menu"
           onClick={() => setSidebarOpen(false)}
-          className="fixed inset-0 z-[9998] bg-slate-950/65 backdrop-blur-[2px] lg:hidden"
+          className="fixed inset-x-0 top-[88px] bottom-0 z-[1800] bg-slate-950/45 backdrop-blur-[2px] lg:hidden"
         />
       )}
 
       <aside
         id="user-dashboard-sidebar"
-        className={`fixed inset-y-0 left-0 z-[9999] h-dvh max-h-dvh w-[min(19rem,88vw)] transform transition-transform duration-300 ease-in-out shadow-2xl shadow-slate-950/30 will-change-transform lg:sticky lg:top-0 lg:inset-y-auto lg:z-auto lg:h-dvh lg:max-h-dvh lg:w-[15.5rem] lg:shrink-0 lg:translate-x-0 ${
+        className={`fixed left-0 top-[88px] bottom-0 z-[1900] h-[calc(100dvh-88px)] max-h-[calc(100dvh-88px)] w-[min(19rem,88vw)] transform transition-transform duration-300 ease-in-out shadow-2xl shadow-slate-950/20 will-change-transform lg:sticky lg:top-[88px] lg:inset-y-auto lg:z-auto lg:h-[calc(100dvh-88px)] lg:max-h-[calc(100dvh-88px)] lg:w-[15.5rem] lg:shrink-0 lg:translate-x-0 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -89,24 +101,7 @@ function Dashboard() {
       </aside>
 
       <main className="flex-1 min-w-0 min-h-screen flex flex-col">
-        {/* Mobile-only dashboard header. The previous hidden + lg:hidden
-            combination hid this trigger at every screen width. */}
-        <header className="sticky top-0 z-[1000] flex lg:hidden h-14 shrink-0 items-center gap-3 border-b border-slate-200 bg-white/95 px-3 shadow-sm backdrop-blur">
-          <button
-            type="button"
-            onClick={() => setSidebarOpen(true)}
-            aria-label="Open dashboard sidebar"
-            aria-controls="user-dashboard-sidebar"
-            aria-expanded={sidebarOpen}
-            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
-          >
-            <span className="text-xl leading-none" aria-hidden="true">☰</span>
-          </button>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-bold text-slate-900">ASKC Technologies</p>
-            <p className="text-xs text-slate-500">User Dashboard</p>
-          </div>
-        </header>
+        <div className="h-[88px] shrink-0" aria-hidden="true" />
 
         <div className="flex-1 p-3 sm:p-4 md:p-6 lg:p-8 pb-24 lg:pb-8 w-full max-w-full min-w-0">
           <Outlet context={{ user }} />
