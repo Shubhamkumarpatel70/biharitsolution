@@ -320,7 +320,7 @@ const Payment = () => {
       formData.append('transactionId', transactionId);
       formData.append('method', paymentMethod === 'qr' ? 'upi' : paymentMethod);
       formData.append('paymentImage', paymentImage);
-      if (discount > 0 && coupon.trim()) formData.append('couponCode', coupon.trim().toUpperCase());
+      if (discount > 0 && coupon.trim()) formData.append('couponCode', coupon.trim());
       
       // Don't set Content-Type header - let axios/browser set it with boundary
       const res = await axios.post(
