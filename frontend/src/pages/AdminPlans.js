@@ -54,7 +54,7 @@ const AdminPlans = () => {
 
   const fetchPlans = async () => {
     const res = await axios.get("/api/auth/plans");
-    setPlans(res.data.plans);
+    setPlans(Array.isArray(res.data?.plans) ? res.data.plans : []);
   };
 
   useEffect(() => {
@@ -140,7 +140,7 @@ const AdminPlans = () => {
 
   // Filter and sort plans
   useEffect(() => {
-    let filtered = [...plans];
+    let filtered = Array.isArray(plans) ? [...plans] : [];
 
     // Search filter
     if (searchTerm) {
