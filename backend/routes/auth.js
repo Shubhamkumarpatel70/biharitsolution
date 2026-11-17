@@ -18,6 +18,8 @@ const {
   verifyRegisterOtp,
   sendForgotOtp,
   verifyForgotOtp,
+  createClientAccount,
+  completeFirstLoginPasswordChange,
 } = require("../controllers/authController");
 // OTP routes for registration
 router.post("/register/send-otp", sendRegisterOtp);
@@ -235,6 +237,7 @@ function clearAuthCookies(res) {
 router.post("/register", registerUser);
 router.get("/captcha", getLoginCaptcha);
 router.post("/login", loginUser);
+router.post("/first-login/change-password", completeFirstLoginPasswordChange);
 router.post("/register-admin", registerAdmin);
 // Users are considered online for 2 minutes after their latest authenticated heartbeat.
 router.post("/activity/heartbeat", authMiddleware, async (req, res) => {
@@ -245,6 +248,8 @@ router.post("/activity/heartbeat", authMiddleware, async (req, res) => {
     res.status(500).json({ message: "Could not update activity." });
   }
 });
+
+router.post("/admin/users/create-client", authMiddleware, coAdminMiddleware, createClientAccount);
 
 router.get("/admin/active-users", authMiddleware, adminMiddleware, async (req, res) => {
   try {
