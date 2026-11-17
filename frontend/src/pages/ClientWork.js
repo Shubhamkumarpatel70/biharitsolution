@@ -26,6 +26,8 @@ function ClientWork() {
     return () => { active = false; };
   }, []);
 
+  const safeItems = Array.isArray(items) ? items.filter((item) => item && typeof item === 'object') : [];
+
   return (
     <section className="py-16 md:py-24 bg-white" aria-labelledby="client-work-title">
       <div className="container">
@@ -41,18 +43,18 @@ function ClientWork() {
           <div className="flex justify-center py-10" role="status" aria-label="Loading client work">
             <span className="h-9 w-9 rounded-full border-4 border-slate-200 border-t-slate-600 animate-spin" />
           </div>
-        ) : items.length ? (
+        ) : safeItems.length ? (
           <div className="client-work-marquee" aria-label="Client logos moving from right to left">
             <div className="client-work-marquee__track">
               {[0, 1].map(copy => (
                 <div className="client-work-marquee__group" key={copy} aria-hidden={copy === 1}>
-                  {items.map(item => {
+                  {safeItems.map(item => {
                     const logo = (
                       <div className="client-work-logo-card">
                         <div className="client-work-logo-card__image">
-                          <img src={item.logo} alt={copy === 0 ? item.name : ''} loading="lazy" />
+                          <img src={item.logo || ''} alt={copy === 0 ? (item.name || 'Client') : ''} loading="lazy" />
                         </div>
-                        <span>{item.name}</span>
+                        <span>{item.name || 'Client'}</span>
                       </div>
                     );
                     return (
