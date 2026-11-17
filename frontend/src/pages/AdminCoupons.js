@@ -104,7 +104,7 @@ const AdminCoupons = () => {
 
   const handleChange = event => {
     const { name, value } = event.target;
-    setForm(current => ({ ...current, [name]: name === 'code' ? value.toUpperCase().replace(/\\s/g, '') : value }));
+    setForm(current => ({ ...current, [name]: value }));
   };
 
   const handleSubmit = async event => {
@@ -220,7 +220,7 @@ const AdminCoupons = () => {
           <label className="block">
             <span className="mb-1.5 block text-sm font-semibold text-slate-700">Coupon code</span>
             <input name="code" value={form.code} onChange={handleChange} placeholder="e.g. WELCOME500" required maxLength={32}
-              className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-3 text-sm font-semibold uppercase tracking-wide text-slate-900 outline-none transition placeholder:font-normal placeholder:normal-case placeholder:tracking-normal focus:border-blue-500 focus:ring-4 focus:ring-blue-100" />
+              className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-3 text-sm font-semibold tracking-wide text-slate-900 outline-none transition placeholder:font-normal placeholder:tracking-normal focus:border-blue-500 focus:ring-4 focus:ring-blue-100" />
           </label>
           <label className="block">
             <span className="mb-1.5 block text-sm font-semibold text-slate-700">Discount type</span>
