@@ -43,7 +43,7 @@ export default function AdminRefunds() {
     setError("");
     try {
       const response = await axios.get("/api/auth/admin/refunds");
-      setRecords(response.data.refunds || []);
+      setRecords(Array.isArray(response.data?.refunds) ? response.data.refunds : []);
       setStats(response.data.stats || {});
     } catch (err) {
       setError(err.response?.data?.message || "Could not load refund records.");
