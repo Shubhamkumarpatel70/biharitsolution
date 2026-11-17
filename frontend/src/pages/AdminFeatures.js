@@ -38,7 +38,7 @@ const AdminFeatures = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       // Sort features by order
-      const sortedFeatures = (response.data.features || []).sort((a, b) => (a.order || 0) - (b.order || 0));
+      const sortedFeatures = (Array.isArray(response.data?.features) ? response.data.features : []).sort((a, b) => (a.order || 0) - (b.order || 0));
       setFeatures(sortedFeatures);
     } catch (err) {
       setError('Failed to fetch features');
@@ -125,7 +125,7 @@ const AdminFeatures = () => {
       category: feature.category || 'other',
       order: feature.order || 0,
       color: feature.color || '#667eea',
-      benefits: feature.benefits || []
+      benefits: Array.isArray(feature.benefits) ? feature.benefits : []
     });
     setShowAddForm(true);
   };

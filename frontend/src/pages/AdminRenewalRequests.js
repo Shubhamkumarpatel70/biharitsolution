@@ -16,7 +16,7 @@ const AdminRenewalRequests = () => {
       const res = await axios.get('/api/auth/admin/renewal-requests', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setRenewalRequests(res.data.subscriptions);
+      setRenewalRequests(Array.isArray(res.data?.subscriptions) ? res.data.subscriptions : []);
       setLoading(false);
     } catch (err) {
       setError('Could not fetch renewal requests.');

@@ -22,7 +22,7 @@ export default function AdminActiveUsers() {
       const response = await axios.get('/api/auth/admin/active-users', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setUsers(response.data.users || []);
+      setUsers(Array.isArray(response.data?.users) ? response.data.users : []);
       setCheckedAt(response.data.checkedAt || new Date().toISOString());
     } catch (err) {
       setError(err.response?.data?.message || 'Active users could not be loaded.');

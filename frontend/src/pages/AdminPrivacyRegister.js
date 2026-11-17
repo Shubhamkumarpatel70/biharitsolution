@@ -17,7 +17,7 @@ export default function AdminPrivacyRegister() {
   const headers = useMemo(() => ({ Authorization: `Bearer ${localStorage.getItem("token")}` }), []);
   const load = useCallback(async () => {
     setLoading(true); setError("");
-    try { const response = await axios.get("/api/privacy-register", { headers }); setEntries(response.data.entries || []); }
+    try { const response = await axios.get("/api/privacy-register", { headers }); setEntries(Array.isArray(response.data?.entries) ? response.data.entries : []); }
     catch (e) { setError(e.response?.data?.message || "Could not load privacy registers."); }
     finally { setLoading(false); }
   }, [headers]);

@@ -23,7 +23,7 @@ const AdminApprovedPlans = () => {
   const fetchPlans = async () => {
     try {
       const res = await axios.get('/api/auth/plans');
-      setPlans(res.data.plans || res.data || []);
+      setPlans(Array.isArray(res.data?.plans) ? res.data.plans : Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error('Error fetching plans:', err);
     }
@@ -45,7 +45,7 @@ const AdminApprovedPlans = () => {
       const res = await axios.get(`/api/auth/admin/approved-subscriptions?${params.toString()}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setSubscriptions(res.data.subscriptions);
+      setSubscriptions(Array.isArray(res.data?.subscriptions) ? res.data.subscriptions : []);
     } catch (err) {
       console.error('Error fetching subscriptions:', err);
       setError('Could not fetch approved subscriptions.');

@@ -15,7 +15,7 @@ const AdminPromotionalUnsubscribed = () => {
       const res = await axios.get('/api/auth/admin/newsletter-unsubscribed', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setUsers(res.data?.subscribers || []);
+      setUsers(Array.isArray(res.data?.subscribers) ? res.data.subscribers : []);
     } catch (err) {
       setError('Could not fetch unsubscribed users.');
     } finally {

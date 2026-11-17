@@ -5,7 +5,7 @@ import './AdminWorkspace.css';
 
 function AdminCareerApplications(){
  const [applications,setApplications]=useState([]),[loading,setLoading]=useState(true),[error,setError]=useState(''),[search,setSearch]=useState('');
- useEffect(()=>{const load=async()=>{setLoading(true);setError('');try{const r=await axios.get('/api/auth/admin/career-applications');setApplications(r.data.applications||[]);}catch(e){setError('Could not load applications.');}finally{setLoading(false);}};load();},[]);
+ useEffect(()=>{const load=async()=>{setLoading(true);setError('');try{const r=await axios.get('/api/auth/admin/career-applications');setApplications(Array.isArray(r.data?.applications) ? r.data.applications : []);}catch(e){setError('Could not load applications.');}finally{setLoading(false);}};load();},[]);
  const ext=mime=>mime==='application/pdf'?'.pdf':mime==='application/msword'?'.doc':mime?.includes('wordprocessingml')?'.docx':'';
  const date=value=>value?new Date(value).toLocaleString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
  const visible=useMemo(()=>{const q=search.trim().toLowerCase();return applications.filter(a=>!q||[a.name,a.email,a.phone,a.city,a.state,a.career?.title].join(' ').toLowerCase().includes(q));},[applications,search]);

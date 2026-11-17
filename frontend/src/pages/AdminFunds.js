@@ -32,7 +32,7 @@ const AdminFunds = () => {
       const res = await axios.get('/api/auth/admin/funds', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setTransactions(res.data.transactions || []);
+      setTransactions(Array.isArray(res.data?.transactions) ? res.data.transactions : []);
       setBalance(Number(res.data.balance || 0));
     } catch (err) {
       setError('Failed to load funds data.');
@@ -91,7 +91,7 @@ const AdminFunds = () => {
       );
 
       if (res.data?.transaction) {
-        setTransactions((prev) => [res.data.transaction, ...prev]);
+        setTransactions((prev) => [res.data.transaction, ...(Array.isArray(prev) ? prev : [])]);
       }
       setBalance(Number(res.data?.balance || 0));
       closeModal();

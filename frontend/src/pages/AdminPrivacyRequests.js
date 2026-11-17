@@ -18,7 +18,7 @@ const PrivacyRequestsAdmin = () => {
       const response = await axios.get("/api/auth/admin/privacy/requests", {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
       });
-      setRequests(response.data.requests || []);
+      setRequests(Array.isArray(response.data?.requests) ? response.data.requests : []);
       setStats(response.data.stats || {});
       setDrafts(current => {
         const next = { ...current };
