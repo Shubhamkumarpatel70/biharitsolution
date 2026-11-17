@@ -167,11 +167,13 @@ const AdminUsers = () => {
     try {
       const token = localStorage.getItem("token");
       const response = await axios.post("/api/auth/admin/users/create-client", { email, password: clientForm.password }, { headers: { Authorization: "Bearer " + token } });
-      const refreshed = await axios.get("/api/auth/admin/users", { headers: { Authorization: "Bearer " + token } });
-      setUsers(Array.isArray(refreshed.data?.users) ? refreshed.data.users : []);
       setSuccess(response.data?.message || "Client account created successfully.");
       setClientForm({ email: "", password: "" });
       setShowCreateClient(false);
+      try {
+        const refreshed = await axios.get("/api/auth/admin/users", { headers: { Authorization: "Bearer " + token } });
+        setUsers(Array.isArray(refreshed.data?.users) ? refreshed.data.users : []);
+      } catch { /* Account creation succeeded; keep the current list if refresh is temporarily unavailable. */ }
     } catch (err) { setError(err.response?.data?.message || "Could not create the client account."); }
     finally { setCreatingClient(false); }
   };
