@@ -19,7 +19,7 @@ const AdminUsers = () => {
 
   // Filter users based on search and filters
   const filteredUsers = useMemo(() => {
-    let filtered = [...users];
+    let filtered = Array.isArray(users) ? [...users] : [];
 
     // Search filter
     if (searchTerm) {
@@ -64,14 +64,14 @@ const AdminUsers = () => {
         const res = await axios.get('/api/auth/admin/users', {
           headers: { Authorization: `Bearer ${token}` }
         });
-        setUsers(res.data.users);
+        setUsers(Array.isArray(res.data?.users) ? res.data.users : []);
       } catch (err) {
         setError('Could not fetch users.');
       }
       setLoading(false);
     };
     fetchUsers();
-    axios.get('/api/auth/plans').then(r => setExistingPlans(r.data.plans || [])).catch(() => setExistingPlans([]));
+    axios.get('/api/auth/plans').then(r => setExistingPlans(Array.isArray(r.data?.plans) ? r.data.plans : [])).catch(() => setExistingPlans([]));
   }, []);
 
   const handleRoleChange = async (userId, newRole) => {
@@ -132,7 +132,7 @@ const AdminUsers = () => {
         planName: planForm.planName.trim(), totalAmount, durationDays, note: planForm.note.trim()
       }, { headers: { Authorization: 'Bearer ' + token } });
       const r = await axios.get('/api/auth/admin/users', { headers: { Authorization: 'Bearer ' + token } });
-      setUsers(r.data.users || []);
+      setUsers(Array.isArray(r.data?.users) ? r.data.users : []);
       setSuccess('Plan assigned successfully.');
       setPlanModalUser(null);
     } catch (err) { setError(err.response?.data?.message || 'Could not assign plan.'); }
