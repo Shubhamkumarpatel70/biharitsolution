@@ -17,10 +17,10 @@ const AdminPrivacyCompliance = () => {
     setLoading(true); setError("");
     try {
       const response = await axios.get("/api/privacy-compliance", { headers });
-      setPayload(response.data);
+      setPayload({ ...response.data, checklist: Array.isArray(response.data?.checklist) ? response.data.checklist : [], reviews: Array.isArray(response.data?.reviews) ? response.data.reviews : [] });
       const current = response.data.current;
       setMonth(current.month);
-      setItems(response.data.checklist.map(check => current.items.find(item => item.key === check.key) || { key: check.key, completed: false, evidence: "", notes: "" }));
+      setItems((Array.isArray(response.data?.checklist) ? response.data.checklist : []).map(check => current.items.find(item => item.key === check.key) || { key: check.key, completed: false, evidence: "", notes: "" }));
       setSummary(current.summary || "");
       setStatus(current.status || "in_progress");
     } catch (err) { setError(err.response?.data?.message || "Could not load compliance reviews."); }
@@ -50,7 +50,7 @@ const AdminPrivacyCompliance = () => {
   const chooseMonth = async value => {
     setMonth(value);
     const found = payload.reviews.find(review => review.month === value);
-    setItems(payload.checklist.map(check => found?.items?.find(item => item.key === check.key) || { key: check.key, completed: false, evidence: "", notes: "" }));
+    setItems((Array.isArray(payload?.checklist) ? payload.checklist : []).map(check => found?.items?.find(item => item.key === check.key) || { key: check.key, completed: false, evidence: "", notes: "" }));
     setSummary(found?.summary || ""); setStatus(found?.status || "in_progress");
   };
 
