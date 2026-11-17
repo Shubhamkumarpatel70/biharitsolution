@@ -4231,6 +4231,7 @@ router.get("/user-subscriptions", authMiddleware, async (req, res) => {
 router.get("/user-notifications", authMiddleware, async (req, res) => {
   try {
     const notifications = await Notification.find({ $or: [{ user: req.user.id }, { user: null }] }).sort({ createdAt: -1 }).limit(200).lean();
+    res.set("Cache-Control", "no-store");
     return res.json({ notifications: notifications.map((item) => ({ ...item, read: Array.isArray(item.readBy) && item.readBy.some((id) => String(id) === String(req.user.id)) })) });
   } catch (error) {
     console.error("User notifications fetch failed:", error?.message || error);
