@@ -4282,6 +4282,20 @@ router.get("/user-notifications", authMiddleware, async (req, res) => {
   }
 });
 router.post("/notifications/:id/read", authMiddleware, markNotificationRead);
+
+router.post("/notifications/read-all", authMiddleware, async (req, res) => {
+  try {
+    const result = await Notification.updateMany(
+      { $or: [{ user: req.user.id }, { user: null }], readBy: { $ne: req.user.id } },
+      { $addToSet: { readBy: req.user.id } }
+    );
+    res.set("Cache-Control", "no-store");
+    return res.json({ success: true, modifiedCount: result.modifiedCount || 0 });
+  } catch (error) {
+    console.error("Mark all notifications as read failed:", error?.message || error);
+    return res.status(500).json({ message: "Could not mark all notifications as read." });
+  }
+});
 router.get("/complaints", authMiddleware, async (req, res) => {
   try {
     const complaints = await Complaint.find({ user: req.user.id }).sort({ updatedAt: -1 }).limit(100).lean();
@@ -4292,6 +4306,60 @@ router.get("/complaints", authMiddleware, async (req, res) => {
     return res.status(500).json({ message: "Could not fetch complaints." });
   }
 });
+
+router.get("/complaints/:id", authMiddleware, async (req, res) => {
+  try {
+    if (!/^[a-f\d]{24}$/i.test(String(req.params.id || ""))) {
+      return res.status(400).json({ message: "Invalid complaint ID." });
+    }
+    const complaint = await Complaint.findOne({ _id: req.params.id, user: req.user.id }).lean();
+    if (!complaint) return res.status(404).json({ message: "Complaint not found." });
+    res.set("Cache-Control", "no-store");
+    return res.json({ complaint });
+  } catch (error) {
+    console.error("Complaint fetch failed:", error?.message || error);
+    return res.status(500).json({ message: "Could not load complaint." });
+  }
+});
+
+router.get("/complaints/:id/chat", authMiddleware, async (req, res) => {
+  try {
+    if (!/^[a-f\d]{24}$/i.test(String(req.params.id || ""))) {
+      return res.status(400).json({ message: "Invalid complaint ID." });
+    }
+    const complaint = await Complaint.findOne({ _id: req.params.id, user: req.user.id }).select("chat").lean();
+    if (!complaint) return res.status(404).json({ message: "Complaint not found." });
+    res.set("Cache-Control", "no-store");
+    return res.json({ chat: Array.isArray(complaint.chat) ? complaint.chat : [] });
+  } catch (error) {
+    console.error("Complaint chat fetch failed:", error?.message || error);
+    return res.status(500).json({ message: "Could not load complaint chat." });
+  }
+});
+
+router.post("/complaints/:id/chat", authMiddleware, async (req, res) => {
+  try {
+    if (!/^[a-f\d]{24}$/i.test(String(req.params.id || ""))) {
+      return res.status(400).json({ message: "Invalid complaint ID." });
+    }
+    const message = String(req.body?.text || "").trim();
+    if (!message) return res.status(400).json({ message: "Message cannot be empty." });
+    if (message.length > 2000) return res.status(400).json({ message: "Message must be 2,000 characters or fewer." });
+    const complaint = await Complaint.findOne({ _id: req.params.id, user: req.user.id });
+    if (!complaint) return res.status(404).json({ message: "Complaint not found." });
+    if (complaint.status !== "open" && complaint.reopenStatus !== "accepted") {
+      return res.status(409).json({ message: "This complaint chat is closed." });
+    }
+    complaint.chat.push({ from: "user", text: message, time: new Date() });
+    await complaint.save();
+    res.set("Cache-Control", "no-store");
+    return res.json({ success: true, chat: complaint.chat });
+  } catch (error) {
+    console.error("Complaint chat message failed:", error?.message || error);
+    return res.status(500).json({ message: "Could not send message." });
+  }
+});
+
 router.post("/complaints/:id/reopen", authMiddleware, async (req, res) => {
   try {
     const complaint = await Complaint.findOne({ _id: req.params.id, user: req.user.id });
