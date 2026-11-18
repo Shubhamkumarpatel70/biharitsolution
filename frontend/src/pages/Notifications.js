@@ -32,6 +32,7 @@ const Notifications = () => {
   const [pushStatus, setPushStatus] = useState('');
   const [pushBusy, setPushBusy] = useState(false);
   const [clockNow, setClockNow] = useState(Date.now());
+  const [serverTimeOffset, setServerTimeOffset] = useState(0);
 
   useEffect(() => { const timer = window.setInterval(() => setClockNow(Date.now()), 1000); return () => window.clearInterval(timer); }, []);
 
@@ -47,6 +48,7 @@ const Notifications = () => {
       const res = await axios.get('/api/auth/user-notifications', {
         headers: { Authorization: `Bearer ${token}` }
       });
+      if (res.data.serverNow) setServerTimeOffset(new Date(res.data.serverNow).getTime() - Date.now());
       setNotifications(res.data.notifications || []);
     } catch (err) {
       setError('Could not fetch notifications.');
@@ -96,9 +98,10 @@ const Notifications = () => {
     finally { setPushBusy(false); }
   };
 
-  const visibleNotifications = notifications.filter(n => !n.countdownEndsAt || new Date(n.countdownEndsAt).getTime() > clockNow);
+  const authoritativeNow = clockNow + serverTimeOffset;
+  const visibleNotifications = notifications.filter(n => !n.countdownEndsAt || new Date(n.countdownEndsAt).getTime() > authoritativeNow);
   const countdownText = end => {
-    const seconds = Math.max(0, Math.floor((new Date(end).getTime() - clockNow) / 1000));
+    const seconds = Math.max(0, Math.floor((new Date(end).getTime() - authoritativeNow) / 1000));
     const days = Math.floor(seconds / 86400);
     const hours = Math.floor((seconds % 86400) / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
