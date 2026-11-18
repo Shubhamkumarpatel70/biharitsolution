@@ -15,6 +15,9 @@ const Subscription = () => {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [canceling, setCanceling] = useState(false);
+  const [paymentTransactionId, setPaymentTransactionId] = useState('');
+  const [paymentProof, setPaymentProof] = useState(null);
+  const [paymentSubmitting, setPaymentSubmitting] = useState(false);
   const navigate = useNavigate();
 
   const fetchSubscription = async () => {
@@ -39,6 +42,38 @@ const Subscription = () => {
     fetchSubscription();
   }, []);
 
+
+  const handleAssignedPaymentSubmit = async () => {
+    if (!subscription?.assignedByAdmin) return;
+    if (!paymentTransactionId.trim() || !paymentProof) {
+      setError('Enter the transaction ID and upload the payment screenshot.');
+      return;
+    }
+    setPaymentSubmitting(true);
+    setError('');
+    try {
+      const token = localStorage.getItem('token');
+      const paymentImage = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error('Could not read payment screenshot.'));
+        reader.readAsDataURL(paymentProof);
+      });
+      const response = await axios.post(
+        `/api/auth/user/subscriptions/${subscription._id}/payment-details`,
+        { transactionId: paymentTransactionId.trim(), paymentImage },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setSubscription(response.data.subscription);
+      setPaymentTransactionId('');
+      setPaymentProof(null);
+      setError('');
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || 'Could not submit payment details.');
+    } finally {
+      setPaymentSubmitting(false);
+    }
+  };
 
   const handleCancelSubscription = async () => {
     if (!cancelReason.trim()) {
@@ -192,6 +227,21 @@ const Subscription = () => {
             </div>
           </div>
           
+          {subscription.assignedByAdmin === true && subscription.status === 'pending' && !subscription.canceled && !['paid', 'success', 'completed'].includes(String(subscription.paymentStatus || '').toLowerCase()) && (
+            <div className="mt-5 rounded-xl border border-sky-200 bg-sky-50 p-4">
+              <h3 className="font-bold text-sky-900 mb-2">Assigned plan payment</h3>
+              <p className="text-sm text-sky-800 mb-3">This plan was assigned by ASKC TECHNOLOGIES. Submit your transaction ID and payment screenshot for verification. Your plan will activate only after admin approval.</p>
+              {subscription.paymentSubmittedAt && <p className="text-xs text-sky-700 mb-2">Last submitted: {new Date(subscription.paymentSubmittedAt).toLocaleString('en-IN')}</p>}
+              <label className="block text-sm font-semibold text-slate-700 mb-1" htmlFor="assigned-payment-transaction">Transaction / UTR ID</label>
+              <input id="assigned-payment-transaction" value={paymentTransactionId} onChange={e => setPaymentTransactionId(e.target.value)} maxLength={160} className="w-full rounded-lg border border-slate-300 px-3 py-2 mb-3" placeholder="Enter transaction or UTR ID" />
+              <label className="block text-sm font-semibold text-slate-700 mb-1" htmlFor="assigned-payment-proof">Payment screenshot / receipt</label>
+              <input id="assigned-payment-proof" type="file" accept="image/png,image/jpeg,image/webp" onChange={e => setPaymentProof(e.target.files?.[0] || null)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 mb-3" />
+              <button type="button" onClick={handleAssignedPaymentSubmit} disabled={paymentSubmitting || !paymentTransactionId.trim() || !paymentProof} className="w-full sm:w-auto rounded-lg bg-blue-700 px-5 py-2.5 font-bold text-white disabled:opacity-50">
+                {paymentSubmitting ? 'Submitting...' : 'Submit Payment Details'}
+              </button>
+            </div>
+          )}
+
           {cancellationPending && (
             <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 p-4 rounded-lg mb-4">
               ⏳ Cancellation request is pending approval from admin.
