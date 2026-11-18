@@ -30,7 +30,7 @@ const Notifications = () => {
   const markAsRead = async (notificationId) => {
     try {
       const token = localStorage.getItem('token');
-      await axios.post(`/api/auth/notifications/read/${notificationId}`, {}, {
+      await axios.post(`/api/auth/notifications/${notificationId}/read`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
