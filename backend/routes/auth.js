@@ -4159,6 +4159,14 @@ async function archiveExpiredAdminNotifications() {
   );
 }
 
+// Archive custom admin notifications automatically, even when the admin page is not open.
+const notificationArchiveTimer = setInterval(() => {
+  archiveExpiredAdminNotifications().catch((error) => {
+    console.error("Automatic notification archiving failed:", error?.message || error);
+  });
+}, 60 * 1000);
+if (typeof notificationArchiveTimer.unref === "function") notificationArchiveTimer.unref();
+
 router.get("/admin/notifications", authMiddleware, coAdminMiddleware, async (req, res) => {
   try {
     await archiveExpiredAdminNotifications();
