@@ -14,7 +14,7 @@ function safeNotificationHtml(html) {
     }
     const el = document.createElement(node.tagName.toLowerCase());
     if (node.tagName === 'SPAN') {
-      const color = (node.getAttribute('style') || '').match(/color\\s*:\\s*(#[0-9a-fA-F]{6})/);
+      const color = (node.getAttribute('style') || '').match(/color\s*:\s*(#[0-9a-fA-F]{6}|rgb\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*\))/);
       if (color) el.style.color = color[1];
     }
     Array.from(node.childNodes).forEach(child => el.appendChild(clean(child)));
@@ -108,7 +108,7 @@ const AdminNotifications = () => {
             <div className="flex flex-wrap items-center gap-2 rounded-t-xl border border-slate-200 bg-slate-50 p-2">
               <button type="button" onClick={() => { editorRef.current?.focus(); document.execCommand('bold'); setForm(editorRef.current?.innerHTML || ''); }} className="rounded-lg border bg-white px-3 py-1.5 text-sm font-bold">B</button>
               <button type="button" onClick={() => { editorRef.current?.focus(); document.execCommand('italic'); setForm(editorRef.current?.innerHTML || ''); }} className="rounded-lg border bg-white px-3 py-1.5 text-sm italic">I</button>
-              <label className="flex items-center gap-2 rounded-lg border bg-white px-2 py-1 text-xs font-semibold">Text color <input aria-label="Text color" type="color" defaultValue="#1d4ed8" onChange={e => { editorRef.current?.focus(); document.execCommand('foreColor', false, e.target.value); setForm(editorRef.current?.innerHTML || ''); }} /></label>
+              <label className="flex items-center gap-2 rounded-lg border bg-white px-2 py-1 text-xs font-semibold">Text color <input aria-label="Text color" type="color" defaultValue="#1d4ed8" onChange={e => { editorRef.current?.focus(); document.execCommand('styleWithCSS', false, true); document.execCommand('foreColor', false, e.target.value); setForm(editorRef.current?.innerHTML || ''); }} /></label>
             </div>
             <div ref={editorRef} contentEditable suppressContentEditableWarning onInput={e => setForm(e.currentTarget.innerHTML)} className="min-h-[120px] rounded-b-xl border border-t-0 border-slate-200 bg-white p-3 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-blue-100" />
             <p className="text-xs text-slate-500">Use Bold, Italic and Text color. Unsupported formatting and unsafe HTML are removed before saving.</p>
