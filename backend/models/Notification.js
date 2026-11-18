@@ -11,6 +11,7 @@ const notificationSchema = new mongoose.Schema({
   source: { type: String, enum: ['system', 'admin_custom'], default: 'system', index: true },
   isArchived: { type: Boolean, default: false, index: true },
   archiveAt: { type: Date, default: null, index: true },
+  countdownEndsAt: { type: Date, default: null, index: true },
   expiresAt: { 
     type: Date, 
     default: function() {

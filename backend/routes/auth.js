@@ -49,6 +49,7 @@ const jwt = require("jsonwebtoken");
 const Plan = require("../models/Plan");
 const Contact = require("../models/Contact");
 const Notification = require("../models/Notification");
+const { sanitizeNotificationHtml, notificationPlainText } = require("../utils/sanitizeNotificationHtml");
 const User = require("../models/User");
 const Otp = require("../models/Otp");
 const cookieParser = require("cookie-parser");
@@ -4232,9 +4233,16 @@ router.delete("/push/subscribe", authMiddleware, async (req, res) => {
 
 router.post("/admin/notifications", authMiddleware, coAdminMiddleware, async (req, res) => {
   try {
-    const message = String(req.body?.message || "").trim();
+    const rawMessage = String(req.body?.message || "").trim();
+    const message = sanitizeNotificationHtml(rawMessage);
+    const plainMessage = notificationPlainText(message);
     const userId = String(req.body?.userId || "").trim();
-    if (!message || message.length > 2000) return res.status(400).json({ message: "Enter a message of up to 2000 characters." });
+    const countdownEnabled = req.body?.countdownEnabled === true;
+    const countdownMinutes = Number(req.body?.countdownMinutes);
+    if (!plainMessage || plainMessage.length > 2000) return res.status(400).json({ message: "Enter a message of up to 2000 characters." });
+    if (countdownEnabled && (!Number.isInteger(countdownMinutes) || countdownMinutes < 1 || countdownMinutes > 10080)) {
+      return res.status(400).json({ message: "Countdown must be between 1 minute and 7 days." });
+    }
     let user = null;
     if (userId) {
       if (!/^[a-f\\d]{24}$/i.test(userId)) return res.status(400).json({ message: "Invalid recipient." });
@@ -4246,12 +4254,13 @@ router.post("/admin/notifications", authMiddleware, coAdminMiddleware, async (re
     const notification = await Notification.create({
       message, title: "ASKC TECHNOLOGIES", type: "general", link: "/dashboard/notifications", user: user?._id || null,
       source: "admin_custom", isArchived: false, archiveAt,
+      countdownEndsAt: countdownEnabled ? new Date(now.getTime() + countdownMinutes * 60 * 1000) : null,
       expiresAt: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
     });
     const recipients = user ? [await User.findById(user._id).select("_id name pushSubscriptions")] : await User.find({ role: "user" }).select("_id name pushSubscriptions");
     const delivery = await Promise.all(recipients.map(recipient => {
       const personal = user ? notification.message : notification.message;
-      return sendWebPushToUser(recipient, { title: notification.title, body: personal, url: "https://askctechnologies.in/dashboard/notifications", notificationId: String(notification._id) });
+      return sendWebPushToUser(recipient, { title: notification.title, body: plainMessage, url: "https://askctechnologies.in/dashboard/notifications", notificationId: String(notification._id) });
     }));
     const pushSent = delivery.reduce((sum, result) => sum + result.sent, 0);
     return res.status(201).json({ notification, pushSent, pushConfigured: PUSH_READY, message: PUSH_READY ? `Notification saved. Push sent to ${pushSent} subscribed device(s); it will be archived after 3 days.` : "Notification saved in the website centre. Configure VAPID keys to enable mobile push delivery." });
@@ -4406,9 +4415,14 @@ router.get("/user-subscriptions", authMiddleware, async (req, res) => {
 });
 router.get("/user-notifications", authMiddleware, async (req, res) => {
   try {
-    const notifications = await Notification.find({ $or: [{ user: req.user.id }, { user: null }] }).sort({ createdAt: -1 }).limit(200).lean();
+    const notifications = await Notification.find({
+      $and: [
+        { $or: [{ user: req.user.id }, { user: null }] },
+        { $or: [{ countdownEndsAt: null }, { countdownEndsAt: { $exists: false } }, { countdownEndsAt: { $gt: new Date() } }] }
+      ]
+    }).sort({ createdAt: -1 }).limit(200).lean();
     res.set("Cache-Control", "no-store");
-    return res.json({ notifications: notifications.map((item) => ({ ...item, read: Array.isArray(item.readBy) && item.readBy.some((id) => String(id) === String(req.user.id)) })) });
+    return res.json({ serverNow: new Date().toISOString(), notifications: notifications.map((item) => ({ ...item, read: Array.isArray(item.readBy) && item.readBy.some((id) => String(id) === String(req.user.id)) })) });
   } catch (error) {
     console.error("User notifications fetch failed:", error?.message || error);
     return res.status(500).json({ message: "Could not fetch notifications." });
