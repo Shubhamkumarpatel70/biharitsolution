@@ -4,7 +4,7 @@ import axios from '../axios';
 const getConfirmedPaid = (sub) => {
   const entries = Array.isArray(sub?.paymentEntries) ? sub.paymentEntries.filter(entry => entry.status === 'confirmed') : [];
   if (entries.length) return entries.reduce((sum, entry) => sum + Number(entry.amount || 0), 0);
-  return ['paid', 'success', 'completed'].includes(String(sub?.paymentStatus || '').toLowerCase()) ? Number(sub?.amountPaid || 0) : 0;
+  return ['paid', 'success', 'completed', 'partially_paid'].includes(String(sub?.paymentStatus || '').toLowerCase()) ? Number(sub?.amountPaid || 0) : 0;
 };
 
 const formatDateTime = (value) => value ? new Date(value).toLocaleString('en-IN', {
