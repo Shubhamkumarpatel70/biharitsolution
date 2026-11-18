@@ -144,7 +144,11 @@ const AdminUsers = () => {
 
 
   const recordPayment = async (user) => {
-    const balance = Math.max(0, Number(user.latestSubscription?.totalAmount || 0) - Number(user.latestSubscription?.amountPaid || 0));
+    const sub = user.latestSubscription;
+    const payable = Math.max(0, Number(sub?.totalAmount || 0) - Number(sub?.discountAmount || 0));
+    const entries = Array.isArray(sub?.paymentEntries) ? sub.paymentEntries.filter(entry => entry.status === 'confirmed') : [];
+    const paid = entries.length ? entries.reduce((sum, entry) => sum + Number(entry.amount || 0), 0) : (['paid','success','completed','partially_paid'].includes(String(sub?.paymentStatus || '').toLowerCase()) ? Number(sub?.amountPaid || 0) : 0);
+    const balance = Math.max(0, payable - paid);
     const amount = window.prompt('Payment received (INR). Outstanding: ₹' + balance, '');
     if (amount === null || !Number.isFinite(Number(amount)) || Number(amount) <= 0) return;
     const reference = window.prompt('Transaction / receipt reference (optional):', '') || '';
@@ -177,6 +181,13 @@ const AdminUsers = () => {
     } catch (err) { setError(err.response?.data?.message || "Could not create the client account."); }
     finally { setCreatingClient(false); }
   };
+  const getPaidAmount = (sub) => {
+    if (!sub) return 0;
+    const entries = Array.isArray(sub.paymentEntries) ? sub.paymentEntries.filter(entry => entry.status === 'confirmed') : [];
+    if (entries.length) return entries.reduce((sum, entry) => sum + Number(entry.amount || 0), 0);
+    return ['paid','success','completed','partially_paid'].includes(String(sub.paymentStatus || '').toLowerCase()) ? Number(sub.amountPaid || 0) : 0;
+  };
+  const getPayableAmount = (sub) => Math.max(0, Number(sub?.totalAmount || 0) - Number(sub?.discountAmount || 0));
   const roleOptions = [
     { value: 'user', label: 'User' },
     { value: 'coadmin', label: 'Co-Admin' },
@@ -184,15 +195,15 @@ const AdminUsers = () => {
   ];
 
   return (
-    <div className="askc-admin-page admin-redesign-page text-gray-200 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+    <div className="askc-admin-page admin-redesign-page text-slate-800 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4 md:mb-0">
-          <h2 className="text-success-500 font-black text-2xl sm:text-3xl">Manage Users</h2>
+          <h2 className="text-blue-700 font-black text-2xl sm:text-3xl">Manage Users</h2>
           <button type="button" onClick={() => setShowCreateClient(true)} className="inline-flex items-center justify-center rounded-xl border border-emerald-400/40 bg-emerald-500/10 px-4 py-2 text-sm font-bold text-emerald-200 hover:bg-emerald-500/20">+ Add New User</button>
           <button type="button" onClick={() => window.dispatchEvent(new Event('askc-open-user-plans'))} className="inline-flex items-center justify-center rounded-xl border border-blue-400/40 bg-blue-500/10 px-4 py-2 text-sm font-bold text-blue-200 hover:bg-blue-500/20">Subscriptions</button>
         </div>
-        <div className="text-sm text-gray-400">
-          Showing <span className="text-success-400 font-bold">{filteredUsers.length}</span> of <span className="text-gray-300 font-bold">{users.length}</span> users
+        <div className="text-sm text-slate-500">
+          Showing <span className="text-blue-700 font-bold">{filteredUsers.length}</span> of <span className="text-slate-700 font-bold">{users.length}</span> users
         </div>
       </div>
 
@@ -213,11 +224,11 @@ const AdminUsers = () => {
       
       {/* Success Message */}
       {success && (
-        <div className="bg-green-600 text-white p-3 sm:p-4 rounded-lg mb-4 flex justify-between items-center animate-fade-in-up">
+        <div className="bg-emerald-600 text-slate-900 p-3 sm:p-4 rounded-lg mb-4 flex justify-between items-center animate-fade-in-up">
           <span className="text-sm sm:text-base">{success}</span>
           <button 
             onClick={() => setSuccess('')}
-            className="bg-transparent border-none text-white cursor-pointer text-lg hover:opacity-80 transition-opacity"
+            className="bg-transparent border-none text-slate-900 cursor-pointer text-lg hover:opacity-80 transition-opacity"
             aria-label="Close"
           >
             ✕
@@ -227,11 +238,11 @@ const AdminUsers = () => {
       
       {/* Error Message */}
       {error && (
-        <div className="bg-red-600 text-white p-3 sm:p-4 rounded-lg mb-4 flex justify-between items-center animate-fade-in-up">
+        <div className="bg-rose-600 text-slate-900 p-3 sm:p-4 rounded-lg mb-4 flex justify-between items-center animate-fade-in-up">
           <span className="text-sm sm:text-base">{error}</span>
           <button 
             onClick={() => setError('')}
-            className="bg-transparent border-none text-white cursor-pointer text-lg hover:opacity-80 transition-opacity"
+            className="bg-transparent border-none text-slate-900 cursor-pointer text-lg hover:opacity-80 transition-opacity"
             aria-label="Close"
           >
             ✕
@@ -239,11 +250,11 @@ const AdminUsers = () => {
         </div>
       )}
       
-      <div className="bg-gray-800 rounded-xl p-4 sm:p-6 lg:p-8 shadow-lg overflow-x-auto">
+      <div className="bg-white rounded-xl p-4 sm:p-6 lg:p-8 shadow-lg overflow-x-auto">
         {loading ? (
-          <div className="text-center py-8 text-gray-400">Loading users...</div>
+          <div className="text-center py-8 text-slate-500">Loading users...</div>
         ) : filteredUsers.length === 0 ? (
-          <div className="text-center py-12 text-gray-400">
+          <div className="text-center py-12 text-slate-500">
             <div className="text-5xl mb-4">🔍</div>
             <p className="text-lg mb-2">No users found</p>
             <p className="text-sm">Try adjusting your search or filters</p>
@@ -252,63 +263,63 @@ const AdminUsers = () => {
           <>
             {/* Desktop Table View */}
             <div className="hidden md:block overflow-x-auto">
-              <table className="w-full border-collapse text-gray-200">
+              <table className="w-full border-collapse text-slate-800">
                 <thead>
-                  <tr className="bg-gray-900">
-                    <th className="p-3 text-left border-b border-gray-700 text-sm font-semibold">Name</th>
-                    <th className="p-3 text-left border-b border-gray-700 text-sm font-semibold">Email</th>
-                    <th className="p-3 text-left border-b border-gray-700 text-sm font-semibold">Role</th><th className="p-3 text-left border-b border-gray-700 text-sm font-semibold">Plan / Payment</th>
-                    <th className="p-3 text-left border-b border-gray-700 text-sm font-semibold">Actions</th>
-                    <th className="p-3 text-left border-b border-gray-700 text-sm font-semibold">Created</th>
+                  <tr className="bg-slate-50">
+                    <th className="p-3 text-left border-b border-slate-200 text-sm font-semibold">Name</th>
+                    <th className="p-3 text-left border-b border-slate-200 text-sm font-semibold">Email</th>
+                    <th className="p-3 text-left border-b border-slate-200 text-sm font-semibold">Role</th><th className="p-3 text-left border-b border-slate-200 text-sm font-semibold">Plan / Payment</th>
+                    <th className="p-3 text-left border-b border-slate-200 text-sm font-semibold">Actions</th>
+                    <th className="p-3 text-left border-b border-slate-200 text-sm font-semibold">Created</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredUsers.map(user => (
-                    <tr key={user._id} className="bg-gray-800 hover:bg-gray-750 transition-colors">
-                      <td className="p-3 border-b border-gray-700 text-sm sm:text-base">{user.name}</td>
-                      <td className="p-3 border-b border-gray-700 text-sm sm:text-base break-all">{user.email}</td>
-                      <td className="p-3 border-b border-gray-700">
-                        <span className={`inline-block px-2 py-1 rounded text-xs font-medium text-white ${
-                          user.role === 'admin' ? 'bg-red-600' : 
+                    <tr key={user._id} className="bg-white hover:bg-blue-50 transition-colors">
+                      <td className="p-3 border-b border-slate-200 text-sm sm:text-base">{user.name}</td>
+                      <td className="p-3 border-b border-slate-200 text-sm sm:text-base break-all">{user.email}</td>
+                      <td className="p-3 border-b border-slate-200">
+                        <span className={`inline-block px-2 py-1 rounded text-xs font-medium text-slate-900 ${
+                          user.role === 'admin' ? 'bg-rose-600' : 
                           user.role === 'coadmin' ? 'bg-amber-500' : 
-                          'bg-green-600'
+                          'bg-emerald-600'
                         }`}>
                           {user.role === 'coadmin' ? 'Co-Admin' : user.role.charAt(0).toUpperCase() + user.role.slice(1)}
                         </span>
                       </td>
-                      <td className="p-3 border-b border-gray-700 min-w-[220px]">
+                      <td className="p-3 border-b border-slate-200 min-w-[220px]">
                         <div className="space-y-1 text-xs">
-                          <p className="font-bold text-white">{user.latestSubscription ? (user.latestSubscription.status === 'active' && !user.latestSubscription.canceled ? (user.latestSubscription.planName || user.latestSubscription.plan) : 'No active plan · Last: ' + (user.latestSubscription.planName || user.latestSubscription.plan)) : 'No active plan assigned'}</p>
-                          <p className="text-gray-400">Original ₹{Number(user.latestSubscription?.totalAmount || 0).toLocaleString('en-IN')} · Discount ₹{Number(user.latestSubscription?.discountAmount || 0).toLocaleString('en-IN')}</p>
-                          <p className="text-gray-400">Coupon: {user.latestSubscription?.couponCode || 'No coupon'} · Received ₹{Number(user.latestSubscription?.amountPaid || 0).toLocaleString('en-IN')}</p>
-                          <p className="text-gray-400 break-all">Transaction: {user.latestSubscription?.transactionId || user.latestSubscription?.cashfreeOrderId || '—'}</p>
-                          <p className="text-gray-400">Plan status: <span className="capitalize">{user.latestSubscription?.canceled ? 'cancelled' : user.latestSubscription?.status || 'No active plan'}</span></p>
-                          {user.latestSubscription?.canceled && <p className="text-gray-400">Cancelled by: <span className="font-semibold text-amber-300">{user.latestSubscription.cancellationInitiatedBy === 'askc' ? 'ASKC TECHNOLOGIES' : user.latestSubscription.cancellationInitiatedBy === 'user' ? 'Self (User)' : 'Not recorded'}</span></p>}
-                          {user.latestSubscription?.canceled && <p className="text-gray-400">Refund status: <span className="capitalize">{String(user.latestSubscription.refundStatus || 'not_reviewed').replace(/_/g, ' ')}</span></p>}
+                          <p className="font-bold text-slate-900">{user.latestSubscription ? (user.latestSubscription.status === 'active' && !user.latestSubscription.canceled ? (user.latestSubscription.planName || user.latestSubscription.plan) : 'No active plan · Last: ' + (user.latestSubscription.planName || user.latestSubscription.plan)) : 'No active plan assigned'}</p>
+                          <p className="text-slate-500">Original ₹{Number(user.latestSubscription?.totalAmount || 0).toLocaleString('en-IN')} · Discount ₹{Number(user.latestSubscription?.discountAmount || 0).toLocaleString('en-IN')}</p>
+                          <p className="text-slate-500">Coupon: {user.latestSubscription?.couponCode || 'No coupon'} · Received ₹{getPaidAmount(user.latestSubscription).toLocaleString('en-IN')} · Due ₹{Math.max(0, getPayableAmount(user.latestSubscription) - getPaidAmount(user.latestSubscription)).toLocaleString('en-IN')}</p>
+                          <p className="text-slate-500 break-all">Transaction: {user.latestSubscription?.transactionId || user.latestSubscription?.cashfreeOrderId || '—'}</p>
+                          <p className="text-slate-500">Plan status: <span className="capitalize">{user.latestSubscription?.canceled ? 'cancelled' : user.latestSubscription?.status || 'No active plan'}</span></p>
+                          {user.latestSubscription?.canceled && <p className="text-slate-500">Cancelled by: <span className="font-semibold text-amber-300">{user.latestSubscription.cancellationInitiatedBy === 'askc' ? 'ASKC TECHNOLOGIES' : user.latestSubscription.cancellationInitiatedBy === 'user' ? 'Self (User)' : 'Not recorded'}</span></p>}
+                          {user.latestSubscription?.canceled && <p className="text-slate-500">Refund status: <span className="capitalize">{String(user.latestSubscription.refundStatus || 'not_reviewed').replace(/_/g, ' ')}</span></p>}
                           <div className="flex flex-wrap gap-1">
-                            <button onClick={() => openAssignPlan(user)} disabled={billingBusy === user._id} className="rounded-lg bg-blue-600 px-2 py-1.5 font-bold text-white disabled:opacity-50">{user.latestSubscription ? 'Change plan' : 'Assign plan'}</button>
-                            {user.latestSubscription && <button onClick={() => recordPayment(user)} disabled={billingBusy === user._id} className="rounded-lg bg-emerald-600 px-2 py-1.5 font-bold text-white disabled:opacity-50">Add payment</button>}
+                            <button onClick={() => openAssignPlan(user)} disabled={billingBusy === user._id} className="rounded-lg bg-blue-600 px-2 py-1.5 font-bold text-slate-900 disabled:opacity-50">{user.latestSubscription ? 'Change plan' : 'Assign plan'}</button>
+                            {user.latestSubscription && <button onClick={() => recordPayment(user)} disabled={billingBusy === user._id} className="rounded-lg bg-emerald-600 px-2 py-1.5 font-bold text-slate-900 disabled:opacity-50">Add payment</button>}
                           </div>
                         </div>
                       </td>
-                      <td className="p-3 border-b border-gray-700">
+                      <td className="p-3 border-b border-slate-200">
                         <div className="flex items-center gap-2">
                           <select
                             value={user.role}
                             onChange={(e) => handleRoleChange(user._id, e.target.value)}
                             disabled={changingRole === user._id}
-                            className="px-2 py-1 rounded bg-gray-700 text-gray-200 border border-gray-600 text-sm cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 hover:bg-gray-600 transition-colors"
+                            className="px-2 py-1 rounded bg-white text-slate-800 border border-gray-600 text-sm cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 hover:bg-blue-50 transition-colors"
                           >
                             <option value="user">User</option>
                             <option value="coadmin">Co-Admin</option>
                             <option value="admin">Admin</option>
                           </select>
                           {changingRole === user._id && (
-                            <span className="text-xs text-gray-400">Updating...</span>
+                            <span className="text-xs text-slate-500">Updating...</span>
                           )}
                         </div>
                       </td>
-                      <td className="p-3 border-b border-gray-700 text-sm text-gray-400">
+                      <td className="p-3 border-b border-slate-200 text-sm text-slate-500">
                         {user.createdAt ? new Date(user.createdAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
                       </td>
                     </tr>
@@ -320,52 +331,52 @@ const AdminUsers = () => {
             {/* Mobile Card View */}
             <div className="md:hidden space-y-4">
               {filteredUsers.map(user => (
-                <div key={user._id} className="bg-gray-900 rounded-lg p-4 border border-gray-700">
+                <div key={user._id} className="bg-slate-50 rounded-lg p-4 border border-slate-200">
                   <div className="flex justify-between items-start mb-3">
                     <div>
-                      <h3 className="text-white font-semibold text-base">{user.name}</h3>
-                      <p className="text-gray-400 text-sm break-all mt-1">{user.email}</p>
+                      <h3 className="text-slate-900 font-semibold text-base">{user.name}</h3>
+                      <p className="text-slate-500 text-sm break-all mt-1">{user.email}</p>
                     </div>
-                    <span className={`px-2 py-1 rounded text-xs font-medium text-white ${
-                      user.role === 'admin' ? 'bg-red-600' : 
+                    <span className={`px-2 py-1 rounded text-xs font-medium text-slate-900 ${
+                      user.role === 'admin' ? 'bg-rose-600' : 
                       user.role === 'coadmin' ? 'bg-amber-500' : 
-                      'bg-green-600'
+                      'bg-emerald-600'
                     }`}>
                       {user.role === 'coadmin' ? 'Co-Admin' : user.role.charAt(0).toUpperCase() + user.role.slice(1)}
                     </span>
                   </div>
                   <div className="mb-3 rounded-lg border border-slate-700 bg-slate-950/40 p-3">
                     <p className="text-xs font-bold text-slate-300">Plan & payment</p>
-                    <p className="mt-1 text-sm font-semibold text-white">{user.latestSubscription?.planName || 'No plan assigned'}</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-900">{user.latestSubscription?.planName || 'No plan assigned'}</p>
                     <p className="text-xs text-slate-400">Original ₹{Number(user.latestSubscription?.totalAmount || 0).toLocaleString('en-IN')} · Discount ₹{Number(user.latestSubscription?.discountAmount || 0).toLocaleString('en-IN')}</p>
-                    <p className="text-xs text-slate-400">Coupon: {user.latestSubscription?.couponCode || 'No coupon'} · Received ₹{Number(user.latestSubscription?.amountPaid || 0).toLocaleString('en-IN')}</p>
+                    <p className="text-xs text-slate-400">Coupon: {user.latestSubscription?.couponCode || 'No coupon'} · Received ₹{getPaidAmount(user.latestSubscription).toLocaleString('en-IN')} · Due ₹{Math.max(0, getPayableAmount(user.latestSubscription) - getPaidAmount(user.latestSubscription)).toLocaleString('en-IN')}</p>
                     <p className="text-xs text-slate-400 break-all">Transaction: {user.latestSubscription?.transactionId || user.latestSubscription?.cashfreeOrderId || '—'}</p>
                     <p className="text-xs text-slate-400">Plan status: <span className="capitalize">{user.latestSubscription?.canceled ? 'cancelled' : user.latestSubscription?.status || 'No active plan'}</span></p>
                     {user.latestSubscription?.canceled && <p className="text-xs text-slate-400">Cancelled by: <span className="font-semibold text-amber-300">{user.latestSubscription.cancellationInitiatedBy === 'askc' ? 'ASKC TECHNOLOGIES' : user.latestSubscription.cancellationInitiatedBy === 'user' ? 'Self (User)' : 'Not recorded'}</span></p>}
                     {user.latestSubscription?.canceled && <p className="text-xs text-slate-400">Refund status: <span className="capitalize">{String(user.latestSubscription.refundStatus || 'not_reviewed').replace(/_/g, ' ')}</span></p>}
                     <div className="mt-2 flex flex-wrap gap-2">
-                      <button onClick={() => openAssignPlan(user)} className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-white">{user.latestSubscription ? 'Change plan' : 'Assign plan'}</button>
-                      {user.latestSubscription && <button onClick={() => recordPayment(user)} className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white">Add payment</button>}
+                      <button onClick={() => openAssignPlan(user)} className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-slate-900">{user.latestSubscription ? 'Change plan' : 'Assign plan'}</button>
+                      {user.latestSubscription && <button onClick={() => recordPayment(user)} className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-slate-900">Add payment</button>}
                     </div>
                   </div>
                   <div className="space-y-2">
                     <div>
-                      <label className="text-xs text-gray-400 block mb-1">Change Role</label>
+                      <label className="text-xs text-slate-500 block mb-1">Change Role</label>
                       <select
                         value={user.role}
                         onChange={(e) => handleRoleChange(user._id, e.target.value)}
                         disabled={changingRole === user._id}
-                        className="w-full px-3 py-2 rounded bg-gray-700 text-gray-200 border border-gray-600 text-sm cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                        className="w-full px-3 py-2 rounded bg-white text-slate-800 border border-gray-600 text-sm cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         <option value="user">User</option>
                         <option value="coadmin">Co-Admin</option>
                         <option value="admin">Admin</option>
                       </select>
                       {changingRole === user._id && (
-                        <span className="text-xs text-gray-400 mt-1 block">Updating...</span>
+                        <span className="text-xs text-slate-500 mt-1 block">Updating...</span>
                       )}
                     </div>
-                    <div className="text-xs text-gray-400">
+                    <div className="text-xs text-slate-500">
                       Registered: {user.createdAt ? new Date(user.createdAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
                     </div>
                   </div>
@@ -390,7 +401,7 @@ const AdminUsers = () => {
             </label>
             <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">Share these temporary credentials with the client securely. The client cannot access the dashboard until a new password is saved.</div>
             {error && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
-            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button type="button" onClick={() => setShowCreateClient(false)} disabled={creatingClient} className="rounded-xl border border-slate-300 px-4 py-3 text-sm font-bold text-slate-700">Cancel</button><button type="submit" disabled={creatingClient || !clientForm.email.trim() || clientForm.password.length < 8} className="rounded-xl bg-emerald-600 px-5 py-3 text-sm font-bold text-white disabled:opacity-50">{creatingClient ? "Creating…" : "Create Client"}</button></div>
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button type="button" onClick={() => setShowCreateClient(false)} disabled={creatingClient} className="rounded-xl border border-slate-300 px-4 py-3 text-sm font-bold text-slate-700">Cancel</button><button type="submit" disabled={creatingClient || !clientForm.email.trim() || clientForm.password.length < 8} className="rounded-xl bg-emerald-600 px-5 py-3 text-sm font-bold text-slate-900 disabled:opacity-50">{creatingClient ? "Creating…" : "Create Client"}</button></div>
           </form>
         </div>
       )}
@@ -437,7 +448,7 @@ const AdminUsers = () => {
               </label>
             </div>
             <div className="rounded-xl bg-slate-50 p-3 text-xs text-slate-600">A new subscription record will be created. Existing subscription history will remain available in User Plans.</div>
-            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button type="button" onClick={() => setPlanModalUser(null)} className="rounded-xl border border-slate-300 px-4 py-3 text-sm font-bold text-slate-700">Cancel</button><button disabled={billingBusy === planModalUser._id} className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-bold text-white disabled:opacity-50">{billingBusy === planModalUser._id ? 'Saving…' : 'Assign Plan'}</button></div>
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button type="button" onClick={() => setPlanModalUser(null)} className="rounded-xl border border-slate-300 px-4 py-3 text-sm font-bold text-slate-700">Cancel</button><button disabled={billingBusy === planModalUser._id} className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-bold text-slate-900 disabled:opacity-50">{billingBusy === planModalUser._id ? 'Saving…' : 'Assign Plan'}</button></div>
           </form>
         </div>
       )}
