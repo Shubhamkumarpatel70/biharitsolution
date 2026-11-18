@@ -1,4 +1,20 @@
 const express = require("express");
+const webpush = require("web-push");
+const PUSH_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || "";
+const PUSH_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || "";
+const PUSH_READY = Boolean(PUSH_PUBLIC_KEY && PUSH_PRIVATE_KEY);
+if (PUSH_READY) webpush.setVapidDetails(process.env.VAPID_SUBJECT || "mailto:askctechnologies@gmail.com", PUSH_PUBLIC_KEY, PUSH_PRIVATE_KEY);
+
+async function sendWebPushToUser(user, payload) {
+  if (!PUSH_READY || !Array.isArray(user?.pushSubscriptions) || !user.pushSubscriptions.length) return { sent: 0 };
+  let sent = 0; const stale = [];
+  await Promise.all(user.pushSubscriptions.map(async (subscription) => {
+    try { await webpush.sendNotification(subscription, JSON.stringify(payload), { TTL: 60 * 60, urgency: "high" }); sent += 1; }
+    catch (error) { if (error.statusCode === 404 || error.statusCode === 410) stale.push(subscription.endpoint); else console.warn("Web push delivery failed:", error.statusCode || error.message); }
+  }));
+  if (stale.length) await User.updateOne({ _id: user._id }, { $pull: { pushSubscriptions: { endpoint: { $in: stale } } } });
+  return { sent };
+}
 const router = express.Router();
 const {
   registerUser,
@@ -4193,6 +4209,27 @@ router.get("/admin/notification-archives", authMiddleware, coAdminMiddleware, as
   }
 });
 
+router.get("/push/public-key", authMiddleware, (req, res) => {
+  res.set("Cache-Control", "no-store");
+  return res.json({ enabled: PUSH_READY, publicKey: PUSH_READY ? PUSH_PUBLIC_KEY : "" });
+});
+router.post("/push/subscribe", authMiddleware, async (req, res) => {
+  try {
+    const sub = req.body?.subscription;
+    if (!sub?.endpoint || !sub?.keys?.p256dh || !sub?.keys?.auth || !/^https:\/\//i.test(sub.endpoint)) return res.status(400).json({ message: "Invalid push subscription." });
+    await User.updateOne({ _id: req.user.id }, { $pull: { pushSubscriptions: { endpoint: sub.endpoint } } });
+    await User.updateOne({ _id: req.user.id }, { $push: { pushSubscriptions: { endpoint: sub.endpoint, keys: sub.keys, createdAt: new Date() } } });
+    return res.json({ success: true, message: "Mobile push notifications enabled." });
+  } catch (error) { return res.status(500).json({ message: "Could not enable push notifications." }); }
+});
+router.delete("/push/subscribe", authMiddleware, async (req, res) => {
+  try {
+    const endpoint = String(req.body?.endpoint || "");
+    await User.updateOne({ _id: req.user.id }, { $pull: { pushSubscriptions: { endpoint } } });
+    return res.json({ success: true });
+  } catch (error) { return res.status(500).json({ message: "Could not disable push notifications." }); }
+});
+
 router.post("/admin/notifications", authMiddleware, coAdminMiddleware, async (req, res) => {
   try {
     const message = String(req.body?.message || "").trim();
@@ -4207,11 +4244,17 @@ router.post("/admin/notifications", authMiddleware, coAdminMiddleware, async (re
     const now = new Date();
     const archiveAt = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
     const notification = await Notification.create({
-      message, title: "ASKC TECHNOLOGIES", type: "general", user: user?._id || null,
+      message, title: "ASKC TECHNOLOGIES", type: "general", link: "/dashboard/notifications", user: user?._id || null,
       source: "admin_custom", isArchived: false, archiveAt,
       expiresAt: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
     });
-    return res.status(201).json({ notification, message: "Notification sent successfully. It will be archived automatically after 3 days." });
+    const recipients = user ? [await User.findById(user._id).select("_id name pushSubscriptions")] : await User.find({ role: "user" }).select("_id name pushSubscriptions");
+    const delivery = await Promise.all(recipients.map(recipient => {
+      const personal = user ? notification.message : notification.message;
+      return sendWebPushToUser(recipient, { title: notification.title, body: personal, url: "https://askctechnologies.in/dashboard/notifications", notificationId: String(notification._id) });
+    }));
+    const pushSent = delivery.reduce((sum, result) => sum + result.sent, 0);
+    return res.status(201).json({ notification, pushSent, pushConfigured: PUSH_READY, message: PUSH_READY ? `Notification saved. Push sent to ${pushSent} subscribed device(s); it will be archived after 3 days.` : "Notification saved in the website centre. Configure VAPID keys to enable mobile push delivery." });
   } catch (error) {
     console.error("Admin notification create failed:", error?.message || error);
     return res.status(500).json({ message: "Could not send notification." });

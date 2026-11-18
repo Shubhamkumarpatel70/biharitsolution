@@ -6,6 +6,8 @@ const Notifications = () => {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [pushStatus, setPushStatus] = useState('');
+  const [pushBusy, setPushBusy] = useState(false);
 
   useEffect(() => {
     fetchNotifications();
@@ -42,6 +44,32 @@ const Notifications = () => {
     }
   };
 
+
+  const enablePushNotifications = async () => {
+    setPushBusy(true); setPushStatus('');
+    try {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
+        setPushStatus('This browser does not support mobile push notifications.'); return;
+      }
+      const token = localStorage.getItem('token');
+      const keyRes = await axios.get('/api/auth/push/public-key', { headers: { Authorization: `Bearer ${token}` } });
+      if (!keyRes.data.enabled || !keyRes.data.publicKey) {
+        setPushStatus('Push service is not configured on the server yet.'); return;
+      }
+      const permission = await window.Notification.requestPermission();
+      if (permission !== 'granted') { setPushStatus('Notification permission was not granted.'); return; }
+      const registration = await navigator.serviceWorker.register('/service-worker.js');
+      const existing = await registration.pushManager.getSubscription();
+      const subscription = existing || await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: Uint8Array.from(atob(keyRes.data.publicKey.replace(/-/g, '+').replace(/_/g, '/')), ch => ch.charCodeAt(0))
+      });
+      await axios.post('/api/auth/push/subscribe', { subscription: subscription.toJSON() }, { headers: { Authorization: `Bearer ${token}` } });
+      setPushStatus('Push notifications enabled on this device.');
+    } catch (err) { setPushStatus(err.response?.data?.message || 'Could not enable push notifications.'); }
+    finally { setPushBusy(false); }
+  };
+
   const unreadCount = notifications.filter(n => !n.read).length;
 
   const markAllAsRead = async () => {
@@ -65,8 +93,9 @@ const Notifications = () => {
     <div className="max-w-4xl mx-auto px-2 sm:px-0">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><h2 className="text-2xl sm:text-3xl font-bold text-primary-900">
         Notifications {unreadCount > 0 && <span className="bg-red-500 text-white rounded-full px-3 py-1 text-sm ml-2">{unreadCount}</span>}
-      </h2>{unreadCount > 0 && <button onClick={markAllAsRead} className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Mark all as read</button>}</div>
+      </h2><button onClick={enablePushNotifications} disabled={pushBusy} className="rounded-lg bg-blue-700 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50">{pushBusy ? 'Enabling…' : '🔔 Enable mobile notifications'}</button>{unreadCount > 0 && <button onClick={markAllAsRead} className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Mark all as read</button>}</div>
       
+      {pushStatus && <div role="status" className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">{pushStatus}</div>}
       {error && (
         <div className="text-red-700 mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
           {error}
