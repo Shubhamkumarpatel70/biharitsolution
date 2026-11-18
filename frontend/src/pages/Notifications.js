@@ -14,7 +14,7 @@ function safeNotificationHtml(html) {
     }
     const el = document.createElement(node.tagName.toLowerCase());
     if (node.tagName === 'SPAN') {
-      const color = (node.getAttribute('style') || '').match(/color\s*:\s*(#[0-9a-fA-F]{6})/);
+      const color = (node.getAttribute('style') || '').match(/color\s*:\s*(#[0-9a-fA-F]{6}|rgb\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*\))/);
       if (color) el.style.color = color[1];
     }
     Array.from(node.childNodes).forEach(child => el.appendChild(clean(child)));
