@@ -199,8 +199,8 @@ const AdminUsers = () => {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4 md:mb-0">
           <h2 className="text-blue-700 font-black text-2xl sm:text-3xl">Manage Users</h2>
-          <button type="button" onClick={() => setShowCreateClient(true)} className="inline-flex items-center justify-center rounded-xl border border-emerald-400/40 bg-emerald-500/10 px-4 py-2 text-sm font-bold text-emerald-200 hover:bg-emerald-500/20">+ Add New User</button>
-          <button type="button" onClick={() => window.dispatchEvent(new Event('askc-open-user-plans'))} className="inline-flex items-center justify-center rounded-xl border border-blue-400/40 bg-blue-500/10 px-4 py-2 text-sm font-bold text-blue-200 hover:bg-blue-500/20">Subscriptions</button>
+          <button type="button" onClick={() => setShowCreateClient(true)} className="inline-flex items-center justify-center rounded-xl border border-emerald-400/40 bg-emerald-500/10 px-4 py-2 text-sm font-bold text-emerald-800 hover:bg-emerald-500/20">+ Add New User</button>
+          <button type="button" onClick={() => window.dispatchEvent(new Event('askc-open-user-plans'))} className="inline-flex items-center justify-center rounded-xl border border-blue-400/40 bg-blue-500/10 px-4 py-2 text-sm font-bold text-blue-800 hover:bg-blue-500/20">Subscriptions</button>
         </div>
         <div className="text-sm text-slate-500">
           Showing <span className="text-blue-700 font-bold">{filteredUsers.length}</span> of <span className="text-slate-700 font-bold">{users.length}</span> users
@@ -294,11 +294,11 @@ const AdminUsers = () => {
                           <p className="text-slate-500">Coupon: {user.latestSubscription?.couponCode || 'No coupon'} · Received ₹{getPaidAmount(user.latestSubscription).toLocaleString('en-IN')} · Due ₹{Math.max(0, getPayableAmount(user.latestSubscription) - getPaidAmount(user.latestSubscription)).toLocaleString('en-IN')}</p>
                           <p className="text-slate-500 break-all">Transaction: {user.latestSubscription?.transactionId || user.latestSubscription?.cashfreeOrderId || '—'}</p>
                           <p className="text-slate-500">Plan status: <span className="capitalize">{user.latestSubscription?.canceled ? 'cancelled' : user.latestSubscription?.status || 'No active plan'}</span></p>
-                          {user.latestSubscription?.canceled && <p className="text-slate-500">Cancelled by: <span className="font-semibold text-amber-300">{user.latestSubscription.cancellationInitiatedBy === 'askc' ? 'ASKC TECHNOLOGIES' : user.latestSubscription.cancellationInitiatedBy === 'user' ? 'Self (User)' : 'Not recorded'}</span></p>}
+                          {user.latestSubscription?.canceled && <p className="text-slate-500">Cancelled by: <span className="font-semibold text-amber-800">{user.latestSubscription.cancellationInitiatedBy === 'askc' ? 'ASKC TECHNOLOGIES' : user.latestSubscription.cancellationInitiatedBy === 'user' ? 'Self (User)' : 'Not recorded'}</span></p>}
                           {user.latestSubscription?.canceled && <p className="text-slate-500">Refund status: <span className="capitalize">{String(user.latestSubscription.refundStatus || 'not_reviewed').replace(/_/g, ' ')}</span></p>}
                           <div className="flex flex-wrap gap-1">
-                            <button onClick={() => openAssignPlan(user)} disabled={billingBusy === user._id} className="rounded-lg bg-blue-600 px-2 py-1.5 font-bold text-slate-900 disabled:opacity-50">{user.latestSubscription ? 'Change plan' : 'Assign plan'}</button>
-                            {user.latestSubscription && <button onClick={() => recordPayment(user)} disabled={billingBusy === user._id} className="rounded-lg bg-emerald-600 px-2 py-1.5 font-bold text-slate-900 disabled:opacity-50">Add payment</button>}
+                            <button onClick={() => openAssignPlan(user)} disabled={billingBusy === user._id} className="rounded-lg bg-blue-600 px-2 py-1.5 font-bold text-white disabled:opacity-50">{user.latestSubscription ? 'Change plan' : 'Assign plan'}</button>
+                            {user.latestSubscription && <button onClick={() => recordPayment(user)} disabled={billingBusy === user._id} className="rounded-lg bg-emerald-600 px-2 py-1.5 font-bold text-white disabled:opacity-50">Add payment</button>}
                           </div>
                         </div>
                       </td>
@@ -345,18 +345,18 @@ const AdminUsers = () => {
                       {user.role === 'coadmin' ? 'Co-Admin' : user.role.charAt(0).toUpperCase() + user.role.slice(1)}
                     </span>
                   </div>
-                  <div className="mb-3 rounded-lg border border-slate-700 bg-slate-950/40 p-3">
-                    <p className="text-xs font-bold text-slate-300">Plan & payment</p>
+                  <div className="mb-3 rounded-lg border border-blue-100 bg-blue-50 p-3">
+                    <p className="text-xs font-bold text-slate-600">Plan & payment</p>
                     <p className="mt-1 text-sm font-semibold text-slate-900">{user.latestSubscription?.planName || 'No plan assigned'}</p>
-                    <p className="text-xs text-slate-400">Original ₹{Number(user.latestSubscription?.totalAmount || 0).toLocaleString('en-IN')} · Discount ₹{Number(user.latestSubscription?.discountAmount || 0).toLocaleString('en-IN')}</p>
-                    <p className="text-xs text-slate-400">Coupon: {user.latestSubscription?.couponCode || 'No coupon'} · Received ₹{getPaidAmount(user.latestSubscription).toLocaleString('en-IN')} · Due ₹{Math.max(0, getPayableAmount(user.latestSubscription) - getPaidAmount(user.latestSubscription)).toLocaleString('en-IN')}</p>
-                    <p className="text-xs text-slate-400 break-all">Transaction: {user.latestSubscription?.transactionId || user.latestSubscription?.cashfreeOrderId || '—'}</p>
-                    <p className="text-xs text-slate-400">Plan status: <span className="capitalize">{user.latestSubscription?.canceled ? 'cancelled' : user.latestSubscription?.status || 'No active plan'}</span></p>
-                    {user.latestSubscription?.canceled && <p className="text-xs text-slate-400">Cancelled by: <span className="font-semibold text-amber-300">{user.latestSubscription.cancellationInitiatedBy === 'askc' ? 'ASKC TECHNOLOGIES' : user.latestSubscription.cancellationInitiatedBy === 'user' ? 'Self (User)' : 'Not recorded'}</span></p>}
-                    {user.latestSubscription?.canceled && <p className="text-xs text-slate-400">Refund status: <span className="capitalize">{String(user.latestSubscription.refundStatus || 'not_reviewed').replace(/_/g, ' ')}</span></p>}
+                    <p className="text-xs text-slate-500">Original ₹{Number(user.latestSubscription?.totalAmount || 0).toLocaleString('en-IN')} · Discount ₹{Number(user.latestSubscription?.discountAmount || 0).toLocaleString('en-IN')}</p>
+                    <p className="text-xs text-slate-500">Coupon: {user.latestSubscription?.couponCode || 'No coupon'} · Received ₹{getPaidAmount(user.latestSubscription).toLocaleString('en-IN')} · Due ₹{Math.max(0, getPayableAmount(user.latestSubscription) - getPaidAmount(user.latestSubscription)).toLocaleString('en-IN')}</p>
+                    <p className="text-xs text-slate-500 break-all">Transaction: {user.latestSubscription?.transactionId || user.latestSubscription?.cashfreeOrderId || '—'}</p>
+                    <p className="text-xs text-slate-500">Plan status: <span className="capitalize">{user.latestSubscription?.canceled ? 'cancelled' : user.latestSubscription?.status || 'No active plan'}</span></p>
+                    {user.latestSubscription?.canceled && <p className="text-xs text-slate-500">Cancelled by: <span className="font-semibold text-amber-800">{user.latestSubscription.cancellationInitiatedBy === 'askc' ? 'ASKC TECHNOLOGIES' : user.latestSubscription.cancellationInitiatedBy === 'user' ? 'Self (User)' : 'Not recorded'}</span></p>}
+                    {user.latestSubscription?.canceled && <p className="text-xs text-slate-500">Refund status: <span className="capitalize">{String(user.latestSubscription.refundStatus || 'not_reviewed').replace(/_/g, ' ')}</span></p>}
                     <div className="mt-2 flex flex-wrap gap-2">
-                      <button onClick={() => openAssignPlan(user)} className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-slate-900">{user.latestSubscription ? 'Change plan' : 'Assign plan'}</button>
-                      {user.latestSubscription && <button onClick={() => recordPayment(user)} className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-slate-900">Add payment</button>}
+                      <button onClick={() => openAssignPlan(user)} className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-white">{user.latestSubscription ? 'Change plan' : 'Assign plan'}</button>
+                      {user.latestSubscription && <button onClick={() => recordPayment(user)} className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white">Add payment</button>}
                     </div>
                   </div>
                   <div className="space-y-2">
@@ -401,7 +401,7 @@ const AdminUsers = () => {
             </label>
             <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">Share these temporary credentials with the client securely. The client cannot access the dashboard until a new password is saved.</div>
             {error && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
-            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button type="button" onClick={() => setShowCreateClient(false)} disabled={creatingClient} className="rounded-xl border border-slate-300 px-4 py-3 text-sm font-bold text-slate-700">Cancel</button><button type="submit" disabled={creatingClient || !clientForm.email.trim() || clientForm.password.length < 8} className="rounded-xl bg-emerald-600 px-5 py-3 text-sm font-bold text-slate-900 disabled:opacity-50">{creatingClient ? "Creating…" : "Create Client"}</button></div>
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button type="button" onClick={() => setShowCreateClient(false)} disabled={creatingClient} className="rounded-xl border border-slate-300 px-4 py-3 text-sm font-bold text-slate-700">Cancel</button><button type="submit" disabled={creatingClient || !clientForm.email.trim() || clientForm.password.length < 8} className="rounded-xl bg-emerald-700 px-5 py-3 text-sm font-bold text-white disabled:opacity-50">{creatingClient ? "Creating…" : "Create Client"}</button></div>
           </form>
         </div>
       )}
@@ -448,7 +448,7 @@ const AdminUsers = () => {
               </label>
             </div>
             <div className="rounded-xl bg-slate-50 p-3 text-xs text-slate-600">A new subscription record will be created. Existing subscription history will remain available in User Plans.</div>
-            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button type="button" onClick={() => setPlanModalUser(null)} className="rounded-xl border border-slate-300 px-4 py-3 text-sm font-bold text-slate-700">Cancel</button><button disabled={billingBusy === planModalUser._id} className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-bold text-slate-900 disabled:opacity-50">{billingBusy === planModalUser._id ? 'Saving…' : 'Assign Plan'}</button></div>
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button type="button" onClick={() => setPlanModalUser(null)} className="rounded-xl border border-slate-300 px-4 py-3 text-sm font-bold text-slate-700">Cancel</button><button disabled={billingBusy === planModalUser._id} className="rounded-xl bg-blue-700 px-5 py-3 text-sm font-bold text-white disabled:opacity-50">{billingBusy === planModalUser._id ? 'Saving…' : 'Assign Plan'}</button></div>
           </form>
         </div>
       )}
