@@ -4422,7 +4422,7 @@ router.get("/user-notifications", authMiddleware, async (req, res) => {
       ]
     }).sort({ createdAt: -1 }).limit(200).lean();
     res.set("Cache-Control", "no-store");
-    return res.json({ notifications: notifications.map((item) => ({ ...item, read: Array.isArray(item.readBy) && item.readBy.some((id) => String(id) === String(req.user.id)) })) });
+    return res.json({ serverNow: new Date().toISOString(), notifications: notifications.map((item) => ({ ...item, read: Array.isArray(item.readBy) && item.readBy.some((id) => String(id) === String(req.user.id)) })) });
   } catch (error) {
     console.error("User notifications fetch failed:", error?.message || error);
     return res.status(500).json({ message: "Could not fetch notifications." });
