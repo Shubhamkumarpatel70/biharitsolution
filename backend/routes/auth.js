@@ -4309,7 +4309,7 @@ router.get("/complaints", authMiddleware, async (req, res) => {
 
 router.get("/complaints/:id", authMiddleware, async (req, res) => {
   try {
-    if (!/^[a-f\\d]{24}$/i.test(String(req.params.id || ""))) {
+    if (!/^[a-f\d]{24}$/i.test(String(req.params.id || ""))) {
       return res.status(400).json({ message: "Invalid complaint ID." });
     }
     const complaint = await Complaint.findOne({ _id: req.params.id, user: req.user.id }).lean();
@@ -4324,7 +4324,7 @@ router.get("/complaints/:id", authMiddleware, async (req, res) => {
 
 router.get("/complaints/:id/chat", authMiddleware, async (req, res) => {
   try {
-    if (!/^[a-f\\d]{24}$/i.test(String(req.params.id || ""))) {
+    if (!/^[a-f\d]{24}$/i.test(String(req.params.id || ""))) {
       return res.status(400).json({ message: "Invalid complaint ID." });
     }
     const complaint = await Complaint.findOne({ _id: req.params.id, user: req.user.id }).select("chat").lean();
@@ -4339,7 +4339,7 @@ router.get("/complaints/:id/chat", authMiddleware, async (req, res) => {
 
 router.post("/complaints/:id/chat", authMiddleware, async (req, res) => {
   try {
-    if (!/^[a-f\\d]{24}$/i.test(String(req.params.id || ""))) {
+    if (!/^[a-f\d]{24}$/i.test(String(req.params.id || ""))) {
       return res.status(400).json({ message: "Invalid complaint ID." });
     }
     const message = String(req.body?.text || "").trim();
