@@ -8,6 +8,9 @@ const notificationSchema = new mongoose.Schema({
   link: { type: String, default: '' },
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null }, // null = global
   readBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  source: { type: String, enum: ['system', 'admin_custom'], default: 'system', index: true },
+  isArchived: { type: Boolean, default: false, index: true },
+  archiveAt: { type: Date, default: null, index: true },
   expiresAt: { 
     type: Date, 
     default: function() {
@@ -22,6 +25,7 @@ const notificationSchema = new mongoose.Schema({
 // Add index for expiration queries
 notificationSchema.index({ expiresAt: 1 });
 notificationSchema.index({ user: 1, expiresAt: 1 });
+notificationSchema.index({ source: 1, isArchived: 1, archiveAt: 1 });
 
 // Static method to clean expired notifications
 notificationSchema.statics.cleanExpired = async function() {

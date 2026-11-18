@@ -4151,14 +4151,45 @@ router.get("/admin/approved-subscriptions", authMiddleware, coAdminMiddleware, a
   }
 });
 
+async function archiveExpiredAdminNotifications() {
+  const now = new Date();
+  await Notification.updateMany(
+    { source: "admin_custom", isArchived: false, archiveAt: { $lte: now } },
+    { $set: { isArchived: true } }
+  );
+}
+
+// Archive custom admin notifications automatically, even when the admin page is not open.
+const notificationArchiveTimer = setInterval(() => {
+  archiveExpiredAdminNotifications().catch((error) => {
+    console.error("Automatic notification archiving failed:", error?.message || error);
+  });
+}, 60 * 1000);
+if (typeof notificationArchiveTimer.unref === "function") notificationArchiveTimer.unref();
+
 router.get("/admin/notifications", authMiddleware, coAdminMiddleware, async (req, res) => {
   try {
-    const notifications = await Notification.find().populate("user", "name email").sort({ createdAt: -1 }).limit(500).lean();
+    await archiveExpiredAdminNotifications();
+    const notifications = await Notification.find({ isArchived: { $ne: true } })
+      .populate("user", "name email").sort({ createdAt: -1 }).limit(500).lean();
     res.set("Cache-Control", "no-store");
     return res.json({ notifications: Array.isArray(notifications) ? notifications : [] });
   } catch (error) {
     console.error("Admin notifications fetch failed:", error?.message || error);
     return res.status(500).json({ message: "Could not load notifications." });
+  }
+});
+
+router.get("/admin/notification-archives", authMiddleware, coAdminMiddleware, async (req, res) => {
+  try {
+    await archiveExpiredAdminNotifications();
+    const notifications = await Notification.find({ source: "admin_custom", isArchived: true })
+      .populate("user", "name email").sort({ archiveAt: -1, createdAt: -1 }).limit(1000).lean();
+    res.set("Cache-Control", "no-store");
+    return res.json({ notifications: Array.isArray(notifications) ? notifications : [] });
+  } catch (error) {
+    console.error("Admin notification archives fetch failed:", error?.message || error);
+    return res.status(500).json({ message: "Could not load notification archives." });
   }
 });
 
@@ -4169,11 +4200,18 @@ router.post("/admin/notifications", authMiddleware, coAdminMiddleware, async (re
     if (!message || message.length > 2000) return res.status(400).json({ message: "Enter a message of up to 2000 characters." });
     let user = null;
     if (userId) {
+      if (!/^[a-f\\d]{24}$/i.test(userId)) return res.status(400).json({ message: "Invalid recipient." });
       user = await User.findById(userId).select("_id");
       if (!user) return res.status(404).json({ message: "Selected user was not found." });
     }
-    const notification = await Notification.create({ message, title: "ASKC TECHNOLOGIES", type: "general", user: user?._id || null, expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) });
-    return res.status(201).json({ notification, message: "Notification sent successfully." });
+    const now = new Date();
+    const archiveAt = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+    const notification = await Notification.create({
+      message, title: "ASKC TECHNOLOGIES", type: "general", user: user?._id || null,
+      source: "admin_custom", isArchived: false, archiveAt,
+      expiresAt: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
+    });
+    return res.status(201).json({ notification, message: "Notification sent successfully. It will be archived automatically after 3 days." });
   } catch (error) {
     console.error("Admin notification create failed:", error?.message || error);
     return res.status(500).json({ message: "Could not send notification." });
