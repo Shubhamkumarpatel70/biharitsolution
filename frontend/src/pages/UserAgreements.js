@@ -127,7 +127,7 @@ export default function UserAgreements() {
               <div className="rounded-xl bg-blue-50 p-3"><p className="text-xs text-blue-700">Awaiting verification</p><p className="mt-1 font-extrabold text-blue-800">{money(pending)}</p></div>
             </div>
             {entries.length > 0 && <div className="mt-4 overflow-x-auto"><table className="w-full text-left text-xs"><thead><tr className="border-b text-slate-500"><th className="py-2 pr-3">Date</th><th className="py-2 pr-3">Amount</th><th className="py-2 pr-3">Reference</th><th className="py-2">Status</th></tr></thead><tbody>{entries.map((p,i)=><tr key={p._id || i} className="border-b border-slate-100"><td className="py-2 pr-3">{dateTime(p.recordedAt)}</td><td className="py-2 pr-3 font-bold">{money(p.amount)}</td><td className="py-2 pr-3">{p.reference || '—'}</td><td className="py-2 capitalize">{p.status}</td></tr>)}</tbody></table></div>}
-            {due > 0 && <button onClick={() => {setPaymentFor(sub);setAmount(String(due));}} className="mt-4 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white hover:bg-slate-700">Submit payment details</button>}
+            {sub.assignedByAdmin === true && sub.status === 'pending' && !sub.canceled && !['paid', 'success', 'completed'].includes(String(sub.paymentStatus || '').toLowerCase()) && due > 0 && <button onClick={() => {setPaymentFor(sub);setAmount(String(due));}} className="mt-4 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white hover:bg-slate-700">Submit payment details</button>}
           </article>;
         })}
       </section>
