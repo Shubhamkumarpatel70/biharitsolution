@@ -145,8 +145,8 @@ const DashboardHome = () => {
               <Icon name="user" className="w-6 h-6" strokeWidth={2} />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-slate-500 mb-1">Your role</h3>
-              <p className="text-lg font-bold text-slate-900">{user?.role || 'User'}</p>
+              <h3 className="text-sm font-semibold text-slate-500 mb-1">Account type</h3>
+              <p className="text-lg font-bold text-slate-900">{String(user?.role || 'user').toLowerCase()}</p>
             </div>
           </div>
         </div>
