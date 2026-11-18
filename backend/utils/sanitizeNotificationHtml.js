@@ -1,6 +1,6 @@
 const ALLOWED_TAGS = new Set(["b", "strong", "i", "em", "u", "p", "div", "br", "span"]);
 const VOID_TAGS = new Set(["br"]);
-const COLOR_RE = /^#[0-9a-fA-F]{6}$/;
+const COLOR_RE = /^(?:#[0-9a-fA-F]{6}|rgb\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*\))$/;
 
 function escapeText(value) {
   return String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -29,7 +29,7 @@ function sanitizeNotificationHtml(input) {
       continue;
     }
     if (tag === "span") {
-      const style = match[3].match(/\bstyle\s*=\s*["'][^"']*color\s*:\s*(#[0-9a-fA-F]{6})\s*;?[^"']*["']/i);
+      const style = match[3].match(/\bstyle\s*=\s*["'][^"']*color\s*:\s*(#[0-9a-fA-F]{6}|rgb\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*\))\s*;?[^"']*["']/i);
       const color = style && COLOR_RE.test(style[1]) ? style[1] : "";
       output += color ? `<span style="color:${color}">` : "<span>";
     } else output += `<${tag}>`;
