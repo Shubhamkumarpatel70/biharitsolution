@@ -635,8 +635,10 @@ router.post("/admin/users/:id/record-payment", authMiddleware, coAdminMiddleware
     const subscription = await Subscription.findOne({ user: user._id, status: { $in: ["pending", "active"] } }).sort({ createdAt: -1 });
     if (!subscription) return res.status(404).json({ message: "No pending or active subscription exists for this user." });
     const confirmedSoFar = (subscription.paymentEntries || []).filter(entry => entry.status === "confirmed").reduce((sum, entry) => sum + Number(entry.amount || 0), 0);
+    const payableAmount = Math.max(0, Number(subscription.totalAmount || 0) - Number(subscription.discountAmount || 0));
+    const outstandingAmount = Math.max(0, payableAmount - confirmedSoFar);
+    if (amount > outstandingAmount + 0.01) return res.status(409).json({ message: "Payment exceeds the outstanding balance after coupon discount." });
     const nextPaid = Math.round((confirmedSoFar + amount) * 100) / 100;
-    if (subscription.totalAmount > 0 && nextPaid > Number(subscription.totalAmount) + 0.01) return res.status(409).json({ message: "Payment exceeds the outstanding subscription amount." });
     subscription.paymentEntries.push({
       amount,
       method: String(req.body?.method || "manual").slice(0, 40),
@@ -646,7 +648,7 @@ router.post("/admin/users/:id/record-payment", authMiddleware, coAdminMiddleware
       recordedAt: new Date(),
     });
     subscription.amountPaid = nextPaid;
-    if (subscription.totalAmount === 0 || nextPaid >= Number(subscription.totalAmount)) {
+    if (payableAmount === 0 || nextPaid >= payableAmount) {
       subscription.status = "active";
       subscription.paymentStatus = "paid";
       subscription.expiresAt = new Date(Date.now() + Number(subscription.durationDays || 30) * 24 * 60 * 60 * 1000);
