@@ -607,6 +607,7 @@ router.post("/admin/users/:id/assign-plan", authMiddleware, coAdminMiddleware, a
       plan,
       planName,
       sourcePlan: sourcePlan?._id || null,
+      assignedByAdmin: true,
       totalAmount,
       amountPaid: 0,
       durationDays,
@@ -4261,6 +4262,55 @@ router.delete("/admin/newsletter-unsubscribed/:id", authMiddleware, coAdminMiddl
   }
 });
 
+router.post("/user/subscriptions/:id/payment-details", authMiddleware, async (req, res) => {
+  try {
+    if (!/^[a-f\d]{24}$/i.test(String(req.params.id || ""))) return res.status(400).json({ message: "Invalid subscription ID." });
+    const transactionId = String(req.body?.transactionId || "").trim().slice(0, 160);
+    const imageInput = String(req.body?.paymentImage || "").trim();
+    if (!transactionId) return res.status(400).json({ message: "Enter your transaction/reference ID." });
+    if (!/^data:image\/(png|jpe?g|webp);base64,/i.test(imageInput)) return res.status(400).json({ message: "Upload a valid payment screenshot or receipt." });
+    if (imageInput.length > 7 * 1024 * 1024) return res.status(413).json({ message: "Payment screenshot must be 5 MB or smaller." });
+    const subscription = await Subscription.findOne({ _id: req.params.id, user: req.user.id });
+    if (!subscription) return res.status(404).json({ message: "Assigned subscription not found." });
+    if (subscription.assignedByAdmin !== true) return res.status(403).json({ message: "Payment details can only be submitted for a plan assigned by ASKC TECHNOLOGIES." });
+    if (subscription.status !== "pending" || subscription.canceled) return res.status(409).json({ message: "Payment details can only be submitted for a pending assigned plan." });
+    if (["paid", "success", "completed"].includes(String(subscription.paymentStatus || "").toLowerCase())) return res.status(409).json({ message: "This subscription is already paid." });
+    subscription.paymentImage = await uploadDataUri(imageInput, "askc-technologies/payment-proofs");
+    subscription.transactionId = transactionId;
+    subscription.paymentMethod = "upi";
+    subscription.paymentStatus = "pending";
+    subscription.paymentSubmittedAt = new Date();
+    await subscription.save();
+    res.set("Cache-Control", "no-store");
+    return res.json({ success: true, subscription, message: "Payment details submitted. Your plan will activate after ASKC TECHNOLOGIES verifies the payment." });
+  } catch (error) {
+    console.error("Assigned plan payment submission failed:", error?.message || error);
+    return res.status(500).json({ message: "Could not submit payment details." });
+  }
+});
+
+router.post("/cancel-subscription/:id", authMiddleware, async (req, res) => {
+  try {
+    if (!/^[a-f\d]{24}$/i.test(String(req.params.id || ""))) return res.status(400).json({ message: "Invalid subscription ID." });
+    const reason = String(req.body?.reason || "").trim();
+    if (reason.length < 5 || reason.length > 1000) return res.status(400).json({ message: "Enter a cancellation reason between 5 and 1,000 characters." });
+    const subscription = await Subscription.findOne({ _id: req.params.id, user: req.user.id });
+    if (!subscription) return res.status(404).json({ message: "Subscription not found." });
+    if (subscription.status !== "active" || subscription.canceled) return res.status(409).json({ message: "Only your active subscription can be cancelled." });
+    if (["pending", "approved"].includes(subscription.cancellationStatus)) return res.status(409).json({ message: "A cancellation request already exists for this subscription." });
+    subscription.cancellationStatus = "pending";
+    subscription.cancellationInitiatedBy = "user";
+    subscription.cancellationReason = reason;
+    subscription.cancellationRequestDate = new Date();
+    subscription.cancellationRejectionReason = "";
+    await subscription.save();
+    res.set("Cache-Control", "no-store");
+    return res.json({ success: true, subscription, message: "Cancellation request submitted. Your subscription remains active until ASKC TECHNOLOGIES reviews it." });
+  } catch (error) {
+    console.error("User subscription cancellation request failed:", error?.message || error);
+    return res.status(500).json({ message: "Could not submit cancellation request." });
+  }
+});
 router.get("/user-subscriptions", authMiddleware, async (req, res) => {
   try {
     const subscriptions = await Subscription.find({ user: req.user.id }).sort({ createdAt: -1 }).lean();
