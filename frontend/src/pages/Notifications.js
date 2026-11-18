@@ -2,12 +2,38 @@ import React, { useEffect, useState } from 'react';
 import axios from '../axios';
 import { Link } from 'react-router-dom';
 
+function safeNotificationHtml(html) {
+  const doc = new DOMParser().parseFromString(String(html || ''), 'text/html');
+  const allowed = new Set(['B','STRONG','I','EM','U','P','DIV','BR','SPAN']);
+  const clean = node => {
+    if (node.nodeType === Node.TEXT_NODE) return document.createTextNode(node.textContent || '');
+    if (node.nodeType !== Node.ELEMENT_NODE || !allowed.has(node.tagName)) {
+      const fragment = document.createDocumentFragment();
+      Array.from(node.childNodes || []).forEach(child => fragment.appendChild(clean(child)));
+      return fragment;
+    }
+    const el = document.createElement(node.tagName.toLowerCase());
+    if (node.tagName === 'SPAN') {
+      const color = (node.getAttribute('style') || '').match(/color\s*:\s*(#[0-9a-fA-F]{6})/);
+      if (color) el.style.color = color[1];
+    }
+    Array.from(node.childNodes).forEach(child => el.appendChild(clean(child)));
+    return el;
+  };
+  const root = document.createElement('div');
+  Array.from(doc.body.childNodes).forEach(child => root.appendChild(clean(child)));
+  return root.innerHTML;
+}
+
 const Notifications = () => {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [pushStatus, setPushStatus] = useState('');
   const [pushBusy, setPushBusy] = useState(false);
+  const [clockNow, setClockNow] = useState(Date.now());
+
+  useEffect(() => { const timer = window.setInterval(() => setClockNow(Date.now()), 1000); return () => window.clearInterval(timer); }, []);
 
   useEffect(() => {
     fetchNotifications();
@@ -70,7 +96,16 @@ const Notifications = () => {
     finally { setPushBusy(false); }
   };
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const visibleNotifications = notifications.filter(n => !n.countdownEndsAt || new Date(n.countdownEndsAt).getTime() > clockNow);
+  const countdownText = end => {
+    const seconds = Math.max(0, Math.floor((new Date(end).getTime() - clockNow) / 1000));
+    const days = Math.floor(seconds / 86400);
+    const hours = Math.floor((seconds % 86400) / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return (days ? days + 'd ' : '') + hours + 'h ' + minutes + 'm ' + secs + 's';
+  };
+  const unreadCount = visibleNotifications.filter(n => !n.read).length;
 
   const markAllAsRead = async () => {
     try {
@@ -102,7 +137,7 @@ const Notifications = () => {
         </div>
       )}
 
-      {notifications.length === 0 ? (
+      {visibleNotifications.length === 0 ? (
         <div className="bg-white border border-slate-200 rounded-xl p-10 text-center text-slate-500">
           <div className="text-5xl mb-3">🔔</div>
           <h3 className="text-slate-800 font-semibold mb-1">No notifications yet</h3>
@@ -110,7 +145,7 @@ const Notifications = () => {
         </div>
       ) : (
         <div className="grid gap-3">
-          {notifications.map(notification => (
+          {visibleNotifications.map(notification => (
             <div 
               key={notification._id} 
               className={`relative rounded-xl p-4 sm:p-5 border shadow-sm ${
@@ -129,9 +164,8 @@ const Notifications = () => {
                   <div className={`font-bold text-base sm:text-lg mb-1 ${notification.read ? 'text-slate-800' : 'text-emerald-700'}`}>
                     {notification.title || 'Notification'}
                   </div>
-                  <div className={`mb-3 leading-relaxed text-sm sm:text-base ${notification.read ? 'text-slate-600' : 'text-slate-800'}`}>
-                    {notification.message}
-                  </div>
+                  <div className={`mb-3 leading-relaxed text-sm sm:text-base ${notification.read ? 'text-slate-600' : 'text-slate-800'}`} dangerouslySetInnerHTML={{ __html: safeNotificationHtml(notification.message) }} />
+                  {notification.countdownEndsAt && <div className="mb-3 inline-flex rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800">⏳ Expires in {countdownText(notification.countdownEndsAt)}</div>}
                   <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
                     <div className="text-xs sm:text-sm text-slate-500">
                       {new Date(notification.createdAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
